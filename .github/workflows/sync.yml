@@ -32,4 +32,6 @@ jobs:
             git remote set-url origin https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git
             git branch
             git remote -v
+            ls -l
+            chmod a+x mirror.mk
             ./mirror.mk
