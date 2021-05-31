@@ -1,15 +1,15 @@
 #!/usr/bin/make -f
 
-push: fetch-upstream
-	git push --force origin refs/remotes/upstream/branches/default/tip:master
+push: fetch-official
+	git push --force origin refs/remotes/official/branches/default/tip:master
 
-fetch-upstream: git-cinnabar
-	(git remote | grep -q upstream) || git remote add upstream hg::http://hg.code.sf.net/p/scintilla/code
-	git fetch upstream branches/default/tip:refs/remotes/upstream/branches/default/tip
+fetch-official: git-cinnabar
+	(git remote | grep -q official) || git remote add official hg::http://hg.code.sf.net/p/scintilla/code
+	git fetch official branches/default/tip:refs/remotes/official/branches/default/tip
 
-.PHONY: push fetch-upstream
+.PHONY: push fetch-official
 
-fetch-upstream: export PATH := $(abspath git-cinnabar):$(PATH)
+fetch-official: export PATH := $(abspath git-cinnabar):$(PATH)
 
 git-cinnabar.linux.x86_64.tar.xz:
 	wget https://github.com/glandium/git-cinnabar/releases/download/0.5.7/git-cinnabar.linux.x86_64.tar.xz -O $@
