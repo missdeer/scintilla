@@ -17,18 +17,14 @@ jobs:
         - name: Check out this repository
           run: |
             git clone --branch mirror https://github.com/missdeer/scintilla.git
-          
-        - name: Set up Git
+              
+        - name: sync with official
           env:
             GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}        
           run: |
             cd scintilla
             git config user.name "auto-sync-with-official[bot]"
             git config user.email "auto-sync-with-official[bot]@users.noreply.github.com"
-    
-        - name: sync with official
-          run: |
-            cd scintilla
             git remote set-url origin https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git
             git branch
             git remote -v
