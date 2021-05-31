@@ -22,8 +22,9 @@ jobs:
           env:
             GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}        
           run: |
-            git config user.name "auto-update-lists[bot]"
-            git config user.email "auto-update-lists[bot]@users.noreply.github.com"
+            cd scintilla
+            git config user.name "auto-sync-with-official[bot]"
+            git config user.email "auto-sync-with-official[bot]@users.noreply.github.com"
     
         - name: sync with official
           run: |
