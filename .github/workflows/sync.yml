@@ -3,9 +3,15 @@ name: sync with official
 on:
   schedule:
     - cron:  '15 4 * * *'
-
+  push:
+    branches:
+      - 'mirror'
+    paths:
+      - '.github/workflows/sync.yml'
+      - 'mirror.mk'
+      
 jobs:
-  update-options:
+  sync-with-official-scintilla:
     runs-on: ubuntu-latest      
     steps:    
         - name: Check out this repository
