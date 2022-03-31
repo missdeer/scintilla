@@ -328,7 +328,11 @@ void ScintillaEditBase::wheelEvent(QWheelEvent *event)
 				// Scroll
 				int linesToScroll = 3;
 				//QQuickPaintedItem::wheelEvent(event);
+				#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+				if (event->angleDelta().y() > 0) {
+				#else
 				if (event->delta() > 0) {
+				#endif
 					sqt->ScrollTo(sqt->topLine-linesToScroll);
 				} else {
 					sqt->ScrollTo(sqt->topLine+linesToScroll);
@@ -366,7 +370,11 @@ void ScintillaEditBase::focusOutEvent(QFocusEvent *event)
 
 #ifdef PLAT_QT_QML
 
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+void ScintillaEditBase::geometryChange(const QRectF &newGeometry, const QRectF &oldGeometry)
+#else
 void ScintillaEditBase::geometryChanged(const QRectF &newGeometry, const QRectF &oldGeometry)
+#endif
 {
 	// trigger resize handling only if the size of the control has changed
 	// no update is needed for a position change
@@ -375,7 +383,11 @@ void ScintillaEditBase::geometryChanged(const QRectF &newGeometry, const QRectF 
 		sqt->ChangeSize();
 		emit resized();
 
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+		QQuickPaintedItem::geometryChange(newGeometry, oldGeometry);
+#else
 		QQuickPaintedItem::geometryChanged(newGeometry, oldGeometry);
+#endif
 	}
 }
 
@@ -556,7 +568,7 @@ void ScintillaEditBase::mousePressEvent(QMouseEvent *event)
 }
 
 #ifdef PLAT_QT_QML
-void ProcessScintillaContextMenu(Point pt, Scintilla::Window & w, const QList<QPair<QString, QPair<int, bool>>> & menu)
+void ProcessScintillaContextMenu(Point pt, Window & w, const QList<QPair<QString, QPair<int, bool>>> & menu)
 {
 	ScintillaEditBase * pQtObj = static_cast<ScintillaEditBase *>(w.GetID());
 

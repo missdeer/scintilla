@@ -686,8 +686,11 @@ class AutoSurface {
 private:
 	std::unique_ptr<Surface> surf;
 public:
-	AutoSurface(const Editor *ed) :
+	AutoSurface(const Editor *ed, /*this parameter is needed for QtQuick/QML support only*/PainterID pid = nullptr) :
 		surf(ed->CreateMeasurementSurface())  {
+#ifdef PLAT_QT_QML
+		surf->Init(true, pid);  // is QQuickPaintedItem here
+#endif
 	}
 	AutoSurface(SurfaceID sid, Editor *ed, std::optional<Scintilla::Technology> technology = {}) :
 		surf(ed->CreateDrawingSurface(sid, technology)) {

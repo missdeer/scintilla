@@ -45,7 +45,7 @@
 #include <QList>
 #include <QPair>
 
-extern void ProcessScintillaContextMenu(Scintilla::Point pt, Scintilla::Window & w, const QList<QPair<QString, QPair<int, bool>>> & menu);
+extern void ProcessScintillaContextMenu(Scintilla::Internal::Point pt, Scintilla::Internal::Window & w, const QList<QPair<QString, QPair<int, bool>>> & menu);
 #endif
 
 using namespace Scintilla;
@@ -1371,7 +1371,7 @@ void Menu::Show(Point pt, const Window & w)
 	menu->exec(QPoint(pt.x, pt.y));
 #else
 	auto *menu = static_cast<QList<QPair<QString, QPair<int, bool>>> *>(mid);
-	ProcessScintillaContextMenu(pt, w, *menu);
+	ProcessScintillaContextMenu(pt,const_cast<Window&>(w), *menu);
 #endif
 	Destroy();
 }

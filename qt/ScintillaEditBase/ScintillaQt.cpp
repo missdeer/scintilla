@@ -368,9 +368,9 @@ bool ScintillaQt::ModifyScrollBars(Sci::Line nMax, Sci::Line nPage)
 #ifndef PLAT_QT_QML
 	int charWidth = vs.styles[STYLE_DEFAULT].aveCharWidth;
 #endif	
-	if (hMax != hNewMax || hPage != hNewPage ||
+	if (hMax != hNewMax || hPage != hNewPage
 #ifndef PLAT_QT_QML
-	    scrollArea->horizontalScrollBar()->singleStep() != charWidth
+	    || scrollArea->horizontalScrollBar()->singleStep() != charWidth
 #endif		
 		) {
 		hMax = hNewMax;
@@ -918,7 +918,7 @@ void ScintillaQt::PartialPaintQml(const PRectangle & rect, QPainter *painter)
 	Paint(surfacePaint, rcPaint);
 	surfacePaint->Release();
 
-	if (paintState == PaintState::paintAbandoned) {
+	if (paintState == PaintState::abandoned) {
 		// FIXME: Failure to paint the requested rectangle in each
 		// paint event causes flicker on some platforms (Mac?)
 		// Paint rect immediately.
