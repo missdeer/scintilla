@@ -68,7 +68,11 @@
 #include "CaseConvert.h"
 
 #include <QObject>
+#ifdef PLAT_QT_QML
+#include <QQuickPaintedItem>
+#else
 #include <QAbstractScrollArea>
+#endif
 #include <QAction>
 #include <QClipboard>
 #include <QPaintEvent>
@@ -81,10 +85,18 @@ class ScintillaQt : public QObject, public ScintillaBase {
 	Q_OBJECT
 
 public:
+#ifdef PLAT_QT_QML
+	explicit ScintillaQt(QQuickPaintedItem *parent);
+	void UpdateInfos(int winId);
+	QQuickPaintedItem * GetScrollArea() { return scrollArea; }
+    void selectCurrentWord();
+#else
 	explicit ScintillaQt(QAbstractScrollArea *parent);
+#endif
 	virtual ~ScintillaQt();
 
 signals:
+    void cursorPositionChanged();
 	void horizontalScrolled(int value);
 	void verticalScrolled(int value);
 	void horizontalRangeChanged(int max, int page);
@@ -147,17 +159,21 @@ private:
 
 	void CreateCallTipWindow(PRectangle rc) override;
 	void AddToPopUp(const char *label, int cmd, bool enabled) override;
+public:
 	sptr_t WndProc(Scintilla::Message iMessage, uptr_t wParam, sptr_t lParam) override;
 	sptr_t DefWndProc(Scintilla::Message iMessage, uptr_t wParam, sptr_t lParam) override;
-
+private:
 	static sptr_t DirectFunction(sptr_t ptr,
 				     unsigned int iMessage, uptr_t wParam, sptr_t lParam);
 	static sptr_t DirectStatusFunction(sptr_t ptr,
 				     unsigned int iMessage, uptr_t wParam, sptr_t lParam, int *pStatus);
-
+#ifdef PLAT_QT_QML
+	QPainter * GetPainter() { return currentPainter; }
+#endif
 protected:
 
 	void PartialPaint(const PRectangle &rect);
+	void PartialPaintQml(const PRectangle & rect, QPainter *painter);
 
 	void DragEnter(const Point &point);
 	void DragMove(const Point &point);
@@ -168,7 +184,11 @@ protected:
 	void timerEvent(QTimerEvent *event) override;
 
 private:
+#ifdef PLAT_QT_QML
+	QQuickPaintedItem *scrollArea;      // is a ScintillaEditBase
+#else
 	QAbstractScrollArea *scrollArea;
+#endif
 
 	int vMax, hMax;   // Scroll bar maximums.
 	int vPage, hPage; // Scroll bar page sizes.
@@ -177,6 +197,9 @@ private:
 	bool dragWasDropped;
 	int rectangularSelectionModifier;
 
+#ifdef PLAT_QT_QML
+	QPainter *currentPainter;  // temporary variable for paint() handling
+#endif
 	friend class ::ScintillaEditBase;
 };
 

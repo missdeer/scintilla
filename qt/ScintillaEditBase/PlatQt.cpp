@@ -39,6 +39,14 @@
 #include <QTextLayout>
 #include <QTextLine>
 #include <QLibrary>
+#ifdef PLAT_QT_QML
+#include <QQuickPaintedItem>
+#include <QScreen>
+#include <QList>
+#include <QPair>
+
+extern void ProcessScintillaContextMenu(Scintilla::Point pt, Scintilla::Window & w, const QList<QPair<QString, QPair<int, bool>>> & menu);
+#endif
 
 using namespace Scintilla;
 
@@ -182,16 +190,37 @@ void SurfaceImpl::Clear()
 	painterOwned = false;
 }
 
+void SurfaceImpl::Init(bool signatureFlag, PainterID pid)    // wid is QQuickPaintedItem here
+{
+    Q_UNUSED(signatureFlag);
+    Release();
+#ifdef PLAT_QT_QML
+    painter = static_cast<QPainter *>(pid);
+#else
+    Q_ASSERT(false);
+#endif
+}
+
 void SurfaceImpl::Init(WindowID wid)
 {
 	Release();
+#ifdef PLAT_QT_QML
+    Q_ASSERT(false);
+	Q_UNUSED(wid);
+#else
 	device = static_cast<QWidget *>(wid);
+#endif
 }
 
 void SurfaceImpl::Init(SurfaceID sid, WindowID /*wid*/)
 {
 	Release();
+#ifdef PLAT_QT_QML
+	Q_ASSERT(false);     // not supported yet, is it really needed ?
+	Q_UNUSED(sid);
+#else
 	device = static_cast<QPaintDevice *>(sid);
+#endif
 }
 
 std::unique_ptr<Surface> SurfaceImpl::AllocatePixMap(int width, int height)
@@ -220,7 +249,11 @@ int SurfaceImpl::SupportsFeature(Supports feature) noexcept
 
 bool SurfaceImpl::Initialised()
 {
+#ifdef PLAT_QT_QML
+	return painter != nullptr;
+#else
 	return device != nullptr;
+#endif	
 }
 
 void SurfaceImpl::PenColour(ColourRGBA fore)
@@ -268,7 +301,12 @@ void SurfaceImpl::SetFont(const Font *font)
 
 int SurfaceImpl::LogPixelsY()
 {
+#ifdef PLAT_QT_QML
+// TODO --> improve for multiple screens !!!! get current screen... ?
+	return QGuiApplication::primaryScreen()->logicalDotsPerInchY();
+#else
 	return device->logicalDpiY();
+#endif	
 }
 
 int SurfaceImpl::PixelDivisions()
@@ -752,7 +790,9 @@ QPaintDevice *SurfaceImpl::GetPaintDevice()
 
 QPainter *SurfaceImpl::GetPainter()
 {
+#ifndef PLAT_QT_QML
 	Q_ASSERT(device);
+#endif
 	if (!painter) {
 		if (device->paintingActive()) {
 			painter = device->paintEngine()->painter();
@@ -781,10 +821,28 @@ std::unique_ptr<Surface> Surface::Allocate(Technology)
 
 namespace {
 
+#ifdef PLAT_QT_QML
+QQuickPaintedItem *window(WindowID wid) noexcept
+{
+	return static_cast<QQuickPaintedItem *>(wid);
+}
+
+QRect ScreenRectangleForPoint(QPointF posGlobal)
+{
+#if QT_VERSION >= QT_VERSION_CHECK(5, 10, 0)
+	const QScreen *screen = QGuiApplication::screenAt(QPoint(posGlobal.x(),posGlobal.y()));
+	return screen->availableGeometry();
+#else
+	const QDesktopWidget *desktop = QApplication::desktop();
+	return desktop->availableGeometry(QPoint(posGlobal.x(),posGlobal.y()));
+#endif
+}
+#else
 QWidget *window(WindowID wid) noexcept
 {
 	return static_cast<QWidget *>(wid);
 }
+#endif
 
 QRect ScreenRectangleForPoint(QPoint posGlobal)
 {
@@ -810,18 +868,34 @@ void Window::Destroy() noexcept
 PRectangle Window::GetPosition() const
 {
 	// Before any size allocated pretend its 1000 wide so not scrolled
+#ifdef PLAT_QT_QML
+	return wid ? PRectFromQRectF(window(wid)->contentsBoundingRect()) : PRectangle(0, 0, 1000, 1000);
+#else
 	return wid ? PRectFromQRect(window(wid)->frameGeometry()) : PRectangle(0, 0, 1000, 1000);
+#endif	
 }
 
 void Window::SetPosition(PRectangle rc)
 {
 	if (wid)
+	{
+#ifdef PLAT_QT_QML
+		QRect aRect = QRectFromPRect(rc);
+		window(wid)->setPosition(QPointF(aRect.x(),aRect.y()));
+		window(wid)->setSize(QSizeF(aRect.width(),aRect.height()));
+#else
 		window(wid)->setGeometry(QRectFromPRect(rc));
+#endif
+	}		
 }
 
 void Window::SetPositionRelative(PRectangle rc, const Window *relativeTo)
 {
+#ifdef PLAT_QT_QML
+	QPointF oPos = window(relativeTo->wid)->mapToGlobal(QPointF(0,0));
+#else
 	QPoint oPos = window(relativeTo->wid)->mapToGlobal(QPoint(0,0));
+#endif	
 	int ox = oPos.x();
 	int oy = oPos.y();
 	ox += rc.left;
@@ -842,8 +916,13 @@ void Window::SetPositionRelative(PRectangle rc, const Window *relativeTo)
 		oy = rectDesk.bottom() - sizey;
 
 	Q_ASSERT(wid);
+#ifdef PLAT_QT_QML
+	window(wid)->setPosition(QPointF(ox, oy));
+	window(wid)->setSize(QSizeF(sizex, sizey));
+#else
 	window(wid)->move(ox, oy);
 	window(wid)->resize(sizex, sizey);
+#endif	
 }
 
 PRectangle Window::GetClientPosition() const
@@ -899,8 +978,13 @@ void Window::SetCursor(Cursor curs)
    window coordinates */
 PRectangle Window::GetMonitorRect(Point pt)
 {
+#ifdef PLAT_QT_QML
+	QPointF originGlobal = window(wid)->mapToGlobal(QPoint(0, 0));
+	QPointF posGlobal = window(wid)->mapToGlobal(QPoint(pt.x, pt.y));
+#else
 	const QPoint posGlobal = window(wid)->mapToGlobal(QPoint(pt.x, pt.y));
 	const QPoint originGlobal = window(wid)->mapToGlobal(QPoint(0, 0));
+#endif	
 	QRect rectScreen = ScreenRectangleForPoint(posGlobal);
 	rectScreen.translate(-originGlobal.x(), -originGlobal.y());
 	return PRectFromQRect(rectScreen);
@@ -1261,21 +1345,34 @@ Menu::Menu() noexcept : mid(nullptr) {}
 void Menu::CreatePopUp()
 {
 	Destroy();
+#ifndef PLAT_QT_QML
 	mid = new QMenu();
+#else
+	mid = new QList<QPair<QString, QPair<int, bool>>>();	// text, menuId, enabled
+#endif
 }
 
 void Menu::Destroy() noexcept
 {
 	if (mid) {
+#ifndef PLAT_QT_QML
 		QMenu *menu = static_cast<QMenu *>(mid);
+#else
+		auto *menu = static_cast<QList<QPair<QString, QPair<int, bool>>> *>(mid);
+#endif
 		delete menu;
 	}
 	mid = nullptr;
 }
-void Menu::Show(Point pt, const Window & /*w*/)
+void Menu::Show(Point pt, const Window & w)
 {
+#ifndef PLAT_QT_QML
 	QMenu *menu = static_cast<QMenu *>(mid);
 	menu->exec(QPoint(pt.x, pt.y));
+#else
+	auto *menu = static_cast<QList<QPair<QString, QPair<int, bool>>> *>(mid);
+	ProcessScintillaContextMenu(pt, w, *menu);
+#endif
 	Destroy();
 }
 

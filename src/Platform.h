@@ -81,6 +81,8 @@
 
 #endif
 
+#include <assert.h>
+
 namespace Scintilla::Internal {
 
 // Underlying the implementation of the platform classes are platform specific types.
@@ -92,6 +94,7 @@ typedef void *MenuID;
 typedef void *TickerID;
 typedef void *Function;
 typedef void *IdlerID;
+typedef void *PainterID;
 
 /**
  * Font management.
@@ -191,6 +194,7 @@ public:
 	virtual ~Surface() noexcept = default;
 	static std::unique_ptr<Surface> Allocate(Scintilla::Technology technology);
 
+	virtual void Init(bool /*signatureFlag*/, PainterID /*pid*/)=0;     // this method is only needed for QtQuick/QML support and must be overwritten in a derived class !
 	virtual void Init(WindowID wid)=0;
 	virtual void Init(SurfaceID sid, WindowID wid)=0;
 	virtual std::unique_ptr<Surface> AllocatePixMap(int width, int height)=0;
