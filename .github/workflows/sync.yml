@@ -16,7 +16,7 @@ jobs:
     steps:    
         - name: Check out this repository
           run: |
-            git clone --branch mirror https://github.com/missdeer/scintilla.git
+            git clone --branch mirror --single-branch https://github.com/missdeer/scintilla.git
               
         - name: sync with official
           env:
