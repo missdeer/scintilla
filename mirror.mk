@@ -12,7 +12,7 @@ fetch-official: git-cinnabar
 fetch-official: export PATH := $(abspath git-cinnabar):$(PATH)
 
 git-cinnabar.linux.x86_64.tar.xz:
-	wget https://github.com/glandium/git-cinnabar/releases/download/0.5.7/git-cinnabar.linux.x86_64.tar.xz -O $@
+	wget https://github.com/glandium/git-cinnabar/releases/download/0.5.11/git-cinnabar.linux.x86_64.tar.xz -O $@
 
 git-cinnabar: git-cinnabar.linux.x86_64.tar.xz
 	tar xf $<
