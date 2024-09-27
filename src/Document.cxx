@@ -167,8 +167,6 @@ Document::Document(DocumentOption options) :
 	tabIndents = true;
 	backspaceUnindents = false;
 
-	matchesValid = false;
-
 	perLineData[ldMarkers] = std::make_unique<LineMarkers>();
 	perLineData[ldLevels] = std::make_unique<LineLevels>();
 	perLineData[ldState] = std::make_unique<LineState>();
