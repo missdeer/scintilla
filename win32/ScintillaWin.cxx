@@ -1653,7 +1653,7 @@ sptr_t ScintillaWin::MouseMessage(unsigned int iMessage, uptr_t wParam, sptr_t l
 				const int widthToScroll = static_cast<int>(std::lround(charsToScroll * vs.aveCharWidth));
 				HorizontalScrollToClamped(xOffset + widthToScroll);
 			}
-			return 0;
+			return 1;
 		}
 
 		// Either SCROLL vertically or ZOOM. We handle the wheel steppings calculation
