@@ -130,7 +130,7 @@
 
     <h1>Scintilla Documentation</h1>
 
-    <p>Last edited 22 March 2024 NH</p>
+    <p>Last edited 26 October 2024 NH</p>
 
     <p style="background:#90F0C0">Scintilla 5 has moved the lexers from Scintilla into a new
     <a href="Lexilla.html">Lexilla</a> project.<br />
@@ -9517,6 +9517,16 @@ struct SCNotification {
         </tr>
 
         <tr>
+          <td align="left"><code id="SC_MOD_CHANGEEOLANNOTATION">SC_MOD_CHANGEEOLANNOTATION</code></td>
+
+          <td align="right">0x400000</td>
+
+          <td>An EOL annotation has changed.</td>
+
+          <td><code>line</code></td>
+        </tr>
+
+        <tr>
           <td align="left"><code id="SC_MOD_INSERTCHECK">SC_MOD_INSERTCHECK</code></td>
 
           <td align="right">0x100000</td>
@@ -9568,7 +9578,7 @@ struct SCNotification {
         <tr>
           <td align="left"><code>SC_MODEVENTMASKALL</code></td>
 
-          <td align="right">0x1FFFFF</td>
+          <td align="right">0x7FFFFF</td>
 
           <td>This is a mask for all valid flags. This is the default mask state set by <a
           class="message" href="#SCI_SETMODEVENTMASK"><code>SCI_SETMODEVENTMASK</code></a>.</td>
