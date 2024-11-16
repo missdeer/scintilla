@@ -2840,14 +2840,12 @@ Sci::Position Document::BraceMatch(Sci::Position position, Sci::Position /*maxRe
 	position = useStartPos ? startPos : NextPosition(position, direction);
 	while ((position >= 0) && (position < LengthNoExcept())) {
 		const char chAtPos = CharAt(position);
-		const int styAtPos = StyleIndexAt(position);
-		if ((position > GetEndStyled()) || (styAtPos == styBrace)) {
-			if (chAtPos == chBrace)
-				depth++;
-			if (chAtPos == chSeek)
-				depth--;
-			if (depth == 0)
-				return position;
+		if (chAtPos == chBrace || chAtPos == chSeek) {
+			if ((position > GetEndStyled()) || (StyleIndexAt(position) == styBrace)) {
+				depth += (chAtPos == chBrace) ? 1 : -1;
+				if (depth == 0)
+					return position;
+			}
 		}
 		const Sci::Position positionBeforeMove = position;
 		position = NextPosition(position, direction);
