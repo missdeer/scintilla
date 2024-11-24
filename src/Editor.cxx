@@ -2634,6 +2634,12 @@ void Editor::CheckModificationForWrap(DocModification mh) {
 		const Sci::Line lineDoc = pdoc->SciLineFromPosition(mh.position);
 		const Sci::Line lines = std::max(static_cast<Sci::Line>(0), mh.linesAdded);
 		if (Wrapping()) {
+			// Check if this modification crosses any of the wrap points
+			if (wrapPending.NeedsWrap()) {
+				if (lineDoc < wrapPending.end) { // Inserted/deleted before or inside wrap range
+					wrapPending.end += mh.linesAdded;
+				}
+			}
 			NeedWrapping(lineDoc, lineDoc + lines + 1);
 		}
 		RefreshStyleData();
