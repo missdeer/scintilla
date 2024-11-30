@@ -2846,7 +2846,7 @@ Sci::Position Document::BraceMatch(Sci::Position position, Sci::Position /*maxRe
 	const unsigned char chBrace = CharAt(position);
 	const unsigned char chSeek = BraceOpposite(chBrace);
 	if (chSeek == '\0')
-		return - 1;
+		return -1;
 	const int styBrace = StyleIndexAt(position);
 	int direction = -1;
 	if (chBrace == '(' || chBrace == '[' || chBrace == '{' || chBrace == '<')
@@ -2872,7 +2872,7 @@ Sci::Position Document::BraceMatch(Sci::Position position, Sci::Position /*maxRe
 		}
 		position += direction;
 	}
-	return - 1;
+	return -1;
 }
 
 /**
