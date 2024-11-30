@@ -2854,29 +2854,23 @@ Sci::Position Document::BraceMatch(Sci::Position position, Sci::Position /*maxRe
 	int depth = 1;
 	position = useStartPos ? startPos : NextPosition(position, direction);
 
-	// Avoid complex NextPosition call for bytes that may not cause incorrect match
+	// Avoid using MovePositionOutsideChar to check DBCS trail byte
 	unsigned char maxSafeChar = 0xff;
 	if (dbcsCodePage != 0 && dbcsCodePage != CpUtf8) {
-		maxSafeChar = (direction >= 0) ? 0x80 : DBCSMinTrailByte() - 1;
+		maxSafeChar = DBCSMinTrailByte() - 1;
 	}
 
 	while ((position >= 0) && (position < LengthNoExcept())) {
 		const unsigned char chAtPos = CharAt(position);
 		if (chAtPos == chBrace || chAtPos == chSeek) {
-			if ((position > GetEndStyled()) || (StyleIndexAt(position) == styBrace)) {
+			if (((position > GetEndStyled()) || (StyleIndexAt(position) == styBrace)) &&
+				(chAtPos <= maxSafeChar || position == MovePositionOutsideChar(position, direction, false))) {
 				depth += (chAtPos == chBrace) ? 1 : -1;
 				if (depth == 0)
 					return position;
 			}
 		}
-		if (chAtPos <= maxSafeChar) {
-			position += direction;
-		} else {
-			const Sci::Position positionBeforeMove = position;
-			position = NextPosition(position, direction);
-			if (position == positionBeforeMove)
-				break;
-		}
+		position += direction;
 	}
 	return - 1;
 }
