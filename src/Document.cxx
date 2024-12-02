@@ -2852,7 +2852,7 @@ Sci::Position Document::BraceMatch(Sci::Position position, Sci::Position /*maxRe
 	if (chBrace == '(' || chBrace == '[' || chBrace == '{' || chBrace == '<')
 		direction = 1;
 	int depth = 1;
-	position = useStartPos ? startPos : NextPosition(position, direction);
+	position = useStartPos ? startPos : position + direction;
 
 	// Avoid using MovePositionOutsideChar to check DBCS trail byte
 	unsigned char maxSafeChar = 0xff;
