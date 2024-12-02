@@ -80,8 +80,6 @@ void RunStyles<DISTANCE, STYLE>::RemoveRunIfSameAsPrevious(DISTANCE run) {
 
 template <typename DISTANCE, typename STYLE>
 RunStyles<DISTANCE, STYLE>::RunStyles() {
-	starts = Partitioning<DISTANCE>(8);
-	styles = SplitVector<STYLE>();
 	styles.InsertValue(0, 2, 0);
 }
 
@@ -172,9 +170,8 @@ FillResult<DISTANCE> RunStyles<DISTANCE, STYLE>::FillRange(DISTANCE position, ST
 		runEnd = RunFromPosition(end);
 		RemoveRunIfEmpty(runEnd);
 		return result;
-	} else {
-		return resultNoChange;
 	}
+	return resultNoChange;
 }
 
 template <typename DISTANCE, typename STYLE>
@@ -213,7 +210,7 @@ void RunStyles<DISTANCE, STYLE>::InsertSpace(DISTANCE position, DISTANCE insertL
 
 template <typename DISTANCE, typename STYLE>
 void RunStyles<DISTANCE, STYLE>::DeleteAll() {
-	starts = Partitioning<DISTANCE>(8);
+	starts = Partitioning<DISTANCE>();
 	styles = SplitVector<STYLE>();
 	styles.InsertValue(0, 2, 0);
 }
