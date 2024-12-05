@@ -186,25 +186,23 @@ void AutoComplete::SetList(const char *list) {
 	}
 
 	std::string sortedList;
-	char item[maxItemLen];
 	for (size_t i = 0; i < sortMatrix.size(); ++i) {
-		int wordLen = IndexSort.indices[sortMatrix[i] * 2 + 2] - IndexSort.indices[sortMatrix[i] * 2];
-		if (wordLen > maxItemLen-2)
-			wordLen = maxItemLen - 2;
-		memcpy(item, list + IndexSort.indices[sortMatrix[i] * 2], wordLen);
-		if ((i+1) == sortMatrix.size()) {
+		const unsigned index = sortMatrix[i] * 2;
+		// word length include trailing typesep and separator
+		const int wordLen = IndexSort.indices[index + 2] - IndexSort.indices[index];
+		const std::string_view item(list + IndexSort.indices[index], wordLen);
+		sortedList += item;
+		if ((i + 1) == sortMatrix.size()) {
 			// Last item so remove separator if present
-			if ((wordLen > 0) && (item[wordLen-1] == separator))
-				wordLen--;
+			if (!item.empty() && item.back() == separator) {
+				sortedList.pop_back();
+			}
 		} else {
 			// Item before last needs a separator
-			if ((wordLen == 0) || (item[wordLen-1] != separator)) {
-				item[wordLen] = separator;
-				wordLen++;
+			if (item.empty() || item.back() != separator) {
+				sortedList += separator;
 			}
 		}
-		item[wordLen] = '\0';
-		sortedList += item;
 	}
 	for (int i = 0; i < static_cast<int>(sortMatrix.size()); ++i)
 		sortMatrix[i] = i;
