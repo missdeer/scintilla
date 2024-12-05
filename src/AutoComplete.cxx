@@ -109,28 +109,32 @@ char AutoComplete::GetTypesep() const noexcept {
 	return typesep;
 }
 
+namespace {
+
 struct Sorter {
-	AutoComplete *ac;
+	const bool ignoreCase;
 	const char *list;
 	std::vector<int> indices;
 
-	Sorter(AutoComplete *ac_, const char *list_) : ac(ac_), list(list_) {
+	Sorter(const AutoComplete *ac, const char *list_) : ignoreCase(ac->ignoreCase), list(list_) {
 		int i = 0;
 		if (!list[i]) {
 			// Empty list has a single empty member
 			indices.push_back(i); // word start
 			indices.push_back(i); // word end
 		}
+		const char separator = ac->GetSeparator();
+		const char typesep = ac->GetTypesep();
 		while (list[i]) {
 			indices.push_back(i); // word start
-			while (list[i] != ac->GetTypesep() && list[i] != ac->GetSeparator() && list[i])
+			while (list[i] != typesep && list[i] != separator && list[i])
 				++i;
 			indices.push_back(i); // word end
-			if (list[i] == ac->GetTypesep()) {
-				while (list[i] != ac->GetSeparator() && list[i])
+			if (list[i] == typesep) {
+				while (list[i] != separator && list[i])
 					++i;
 			}
-			if (list[i] == ac->GetSeparator()) {
+			if (list[i] == separator) {
 				++i;
 				// preserve trailing separator as blank entry
 				if (!list[i]) {
@@ -142,20 +146,24 @@ struct Sorter {
 		indices.push_back(i); // index of last position
 	}
 
-	bool operator()(int a, int b) noexcept {
-		const int lenA = indices[a * 2 + 1] - indices[a * 2];
-		const int lenB = indices[b * 2 + 1] - indices[b * 2];
+	bool operator()(int a, int b) const noexcept {
+		const unsigned indexA = a * 2;
+		const unsigned indexB = b * 2;
+		const int lenA = indices[indexA + 1] - indices[indexA];
+		const int lenB = indices[indexB + 1] - indices[indexB];
 		const int len  = std::min(lenA, lenB);
 		int cmp;
-		if (ac->ignoreCase)
-			cmp = CompareNCaseInsensitive(list + indices[a * 2], list + indices[b * 2], len);
+		if (ignoreCase)
+			cmp = CompareNCaseInsensitive(list + indices[indexA], list + indices[indexB], len);
 		else
-			cmp = strncmp(list + indices[a * 2], list + indices[b * 2], len);
+			cmp = strncmp(list + indices[indexA], list + indices[indexB], len);
 		if (cmp == 0)
 			cmp = lenA - lenB;
 		return cmp < 0;
 	}
 };
+
+}
 
 void AutoComplete::SetList(const char *list) {
 	if (autoSort == Ordering::PreSorted) {
@@ -166,7 +174,7 @@ void AutoComplete::SetList(const char *list) {
 		return;
 	}
 
-	Sorter IndexSort(this, list);
+	const Sorter IndexSort(this, list);
 	sortMatrix.clear();
 	for (int i = 0; i < static_cast<int>(IndexSort.indices.size()) / 2; ++i)
 		sortMatrix.push_back(i);
