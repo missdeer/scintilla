@@ -299,7 +299,7 @@ void AutoComplete::Select(const char *word) {
 		if (autoSort == Ordering::Custom) {
 			// Check for a logically earlier match
 			for (int i = location + 1; i <= end; ++i) {
-				std::string item = lb->GetValue(sortMatrix[i]);
+				const std::string item = lb->GetValue(sortMatrix[i]);
 				if (CompareNCaseInsensitive(word, item.c_str(), lenWord))
 					break;
 				if (sortMatrix[i] < sortMatrix[location] && !strncmp(word, item.c_str(), lenWord))
