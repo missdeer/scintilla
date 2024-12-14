@@ -93,7 +93,7 @@ bool AutoComplete::IsFillUpChar(char ch) const noexcept {
 	return ch && (fillUpChars.find(ch) != std::string::npos);
 }
 
-void AutoComplete::SetSeparator(char separator_) {
+void AutoComplete::SetSeparator(char separator_) noexcept {
 	separator = separator_;
 }
 
@@ -101,7 +101,7 @@ char AutoComplete::GetSeparator() const noexcept {
 	return separator;
 }
 
-void AutoComplete::SetTypesep(char separator_) {
+void AutoComplete::SetTypesep(char separator_) noexcept {
 	typesep = separator_;
 }
 
