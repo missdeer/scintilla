@@ -2,10 +2,12 @@
 
 push: fetch-official
 	git push --force origin refs/remotes/official/branches/default/tip:master
+	git push --tags --force origin refs/remotes/official/branches/default/tip:master
 
 fetch-official: git-cinnabar
 	(git remote | grep -q official) || git remote add official hg::http://hg.code.sf.net/p/scintilla/code
 	git fetch official branches/default/tip:refs/remotes/official/branches/default/tip
+	git fetch official --tags
 
 .PHONY: push fetch-official
 
