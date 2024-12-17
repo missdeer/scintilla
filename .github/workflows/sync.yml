@@ -8,7 +8,7 @@ on:
       - 'mirror'
     paths:
       - '.github/workflows/sync.yml'
-      - 'mirror.mk'
+  workflow_dispatch:
       
 jobs:
   sync-with-official-scintilla:
@@ -17,6 +17,16 @@ jobs:
         - name: Check out this repository
           run: |
             git clone --branch mirror --single-branch https://github.com/${GITHUB_REPOSITORY}.git
+
+
+        - name: Install and configure git-cinnabar
+          run: |
+            sudo apt update -y
+            sudo apt install -y cargo make
+            echo "${HOME}/.cargo/bin" >> $GITHUB_PATH
+
+            cargo install --locked git-cinnabar
+            git cinnabar setup
               
         - name: sync with official
           env:
@@ -26,8 +36,28 @@ jobs:
             git config user.name "auto-sync-with-official[bot]"
             git config user.email "auto-sync-with-official[bot]@users.noreply.github.com"
             git remote set-url origin https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git
+
+            echo "Git branches:"
             git branch
+            echo "Git tags:"
+            git tag
+            echo "Git remotes:"
             git remote -v
+            echo "Files:"
             ls -l
-            chmod a+x mirror.mk
-            ./mirror.mk
+
+            echo "Syncing..."
+            (git remote | grep -q official) || git remote add official hg::http://hg.code.sf.net/p/scintilla/code
+            git fetch official branches/default/tip:refs/remotes/official/branches/default/tip
+            git cinnabar fetch --tags
+
+            echo "Git branches:"
+            git branch
+            echo "Git tags:"
+            git tag
+
+            echo "Store the official \"default/tip\" as the \"master\" branch..."
+            git push --force origin refs/remotes/official/branches/default/tip:master
+
+            echo "Store the remote tags..."
+            git push --force --tags
