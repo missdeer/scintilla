@@ -241,12 +241,12 @@ void ScintillaEditBase::keyPressEvent(QKeyEvent *event)
 		default:                    key = event->key(); break;
 	}
 
-	bool shift = QApplication::keyboardModifiers() & Qt::ShiftModifier;
-	bool ctrl  = QApplication::keyboardModifiers() & Qt::ControlModifier;
-	bool alt   = QApplication::keyboardModifiers() & Qt::AltModifier;
+	const bool shift = QApplication::keyboardModifiers() & Qt::ShiftModifier;
+	const bool ctrl  = QApplication::keyboardModifiers() & Qt::ControlModifier;
+	const bool alt   = QApplication::keyboardModifiers() & Qt::AltModifier;
 
 	bool consumed = false;
-	bool added = sqt->KeyDownWithModifiers(static_cast<Keys>(key),
+	const bool added = sqt->KeyDownWithModifiers(static_cast<Keys>(key),
 					       ModifierFlags(shift, ctrl, alt),
 					       &consumed) != 0;
 	if (!consumed)
@@ -283,7 +283,9 @@ void ScintillaEditBase::keyPressEvent(QKeyEvent *event)
 	emit keyPressed(event);
 }
 
-static int modifierTranslated(int sciModifier)
+namespace {
+
+int modifierTranslated(int sciModifier)
 {
 	switch (sciModifier) {
 		case SCMOD_SHIFT:
@@ -299,8 +301,6 @@ static int modifierTranslated(int sciModifier)
 	}
 }
 
-namespace {
-
 // Convert QElapsedTimer timestamp qint64 into unsigned int milliseconds wanted by Editor methods.
 unsigned int TimeOfEvent(const QElapsedTimer &timer)
 {
@@ -313,13 +313,13 @@ unsigned int TimeOfEvent(const QElapsedTimer &timer)
 
 void ScintillaEditBase::mousePressEvent(QMouseEvent *event)
 {
-	Point pos = PointFromQPoint(event->pos());
+	const Point pos = PointFromQPoint(event->pos());
 
 	emit buttonPressed(event);
 
 	if (event->button() == Qt::MiddleButton &&
 	    QApplication::clipboard()->supportsSelection()) {
-		SelectionPosition selPos = sqt->SPositionFromLocation(
+		const SelectionPosition selPos = sqt->SPositionFromLocation(
 					pos, false, false, sqt->UserVirtualSpace());
 		sqt->sel.Clear();
 		sqt->SetSelection(selPos, selPos);
@@ -328,9 +328,9 @@ void ScintillaEditBase::mousePressEvent(QMouseEvent *event)
 	}
 
 	if (event->button() == Qt::LeftButton) {
-		bool shift = QApplication::keyboardModifiers() & Qt::ShiftModifier;
-		bool ctrl  = QApplication::keyboardModifiers() & Qt::ControlModifier;
-		bool alt   = QApplication::keyboardModifiers() & modifierTranslated(sqt->rectangularSelectionModifier);
+		const bool shift = QApplication::keyboardModifiers() & Qt::ShiftModifier;
+		const bool ctrl  = QApplication::keyboardModifiers() & Qt::ControlModifier;
+		const bool alt   = QApplication::keyboardModifiers() & modifierTranslated(sqt->rectangularSelectionModifier);
 
 		sqt->ButtonDownWithModifiers(pos, TimeOfEvent(time), ModifierFlags(shift, ctrl, alt));
 	}
@@ -348,7 +348,7 @@ void ScintillaEditBase::mouseReleaseEvent(QMouseEvent *event)
 
 	const sptr_t pos = send(SCI_POSITIONFROMPOINT, point.x(), point.y());
 	const sptr_t line = send(SCI_LINEFROMPOSITION, pos);
-	int modifiers = QApplication::keyboardModifiers();
+	const int modifiers = QApplication::keyboardModifiers();
 
 	emit textAreaClicked(line, modifiers);
 	emit buttonReleased(event);
@@ -362,11 +362,11 @@ void ScintillaEditBase::mouseDoubleClickEvent(QMouseEvent *event)
 
 void ScintillaEditBase::mouseMoveEvent(QMouseEvent *event)
 {
-	Point pos = PointFromQPoint(event->pos());
+	const Point pos = PointFromQPoint(event->pos());
 
-	bool shift = QApplication::keyboardModifiers() & Qt::ShiftModifier;
-	bool ctrl  = QApplication::keyboardModifiers() & Qt::ControlModifier;
-	bool alt   = QApplication::keyboardModifiers() & modifierTranslated(sqt->rectangularSelectionModifier);
+	const bool shift = QApplication::keyboardModifiers() & Qt::ShiftModifier;
+	const bool ctrl  = QApplication::keyboardModifiers() & Qt::ControlModifier;
+	const bool alt   = QApplication::keyboardModifiers() & modifierTranslated(sqt->rectangularSelectionModifier);
 
 	const KeyMod modifiers = ModifierFlags(shift, ctrl, alt);
 
@@ -375,8 +375,8 @@ void ScintillaEditBase::mouseMoveEvent(QMouseEvent *event)
 
 void ScintillaEditBase::contextMenuEvent(QContextMenuEvent *event)
 {
-	Point pos = PointFromQPoint(event->globalPos());
-	Point pt = PointFromQPoint(event->pos());
+	const Point pos = PointFromQPoint(event->globalPos());
+	const Point pt = PointFromQPoint(event->pos());
 	if (!sqt->PointInSelection(pt)) {
 		sqt->SetEmptySelection(sqt->PositionFromLocation(pt));
 	}
@@ -395,7 +395,7 @@ void ScintillaEditBase::dragEnterEvent(QDragEnterEvent *event)
 	} else if (event->mimeData()->hasText()) {
 		event->acceptProposedAction();
 
-		Point point = PointFromQPoint(event->pos());
+		const Point point = PointFromQPoint(event->pos());
 		sqt->DragEnter(point);
 	} else {
 		event->ignore();
@@ -414,7 +414,7 @@ void ScintillaEditBase::dragMoveEvent(QDragMoveEvent *event)
 	} else if (event->mimeData()->hasText()) {
 		event->acceptProposedAction();
 
-		Point point = PointFromQPoint(event->pos());
+		const Point point = PointFromQPoint(event->pos());
 		sqt->DragMove(point);
 	} else {
 		event->ignore();
@@ -429,8 +429,8 @@ void ScintillaEditBase::dropEvent(QDropEvent *event)
 	} else if (event->mimeData()->hasText()) {
 		event->acceptProposedAction();
 
-		Point point = PointFromQPoint(event->pos());
-		bool move = (event->source() == this &&
+		const Point point = PointFromQPoint(event->pos());
+		const bool move = (event->source() == this &&
                  event->proposedAction() == Qt::MoveAction);
 		sqt->Drop(point, event->mimeData(), move);
 	} else {
@@ -440,7 +440,7 @@ void ScintillaEditBase::dropEvent(QDropEvent *event)
 
 bool ScintillaEditBase::IsHangul(const QChar qchar)
 {
-	unsigned int unicode = qchar.unicode();
+	const unsigned int unicode = qchar.unicode();
 	// Korean character ranges used for preedit chars.
 	// http://www.programminginkorean.com/programming/hangul-in-unicode/
 	const bool HangulJamo = (0x1100 <= unicode && unicode <= 0x11FF);
@@ -477,22 +477,24 @@ void ScintillaEditBase::DrawImeIndicator(int indicator, int len)
 	}
 }
 
-static int GetImeCaretPos(QInputMethodEvent *event)
+namespace {
+
+int GetImeCaretPos(QInputMethodEvent *event)
 {
-	foreach (QInputMethodEvent::Attribute attr, event->attributes()) {
+	foreach (const QInputMethodEvent::Attribute attr, event->attributes()) {
 		if (attr.type == QInputMethodEvent::Cursor)
 			return attr.start;
 	}
 	return 0;
 }
 
-static std::vector<int> MapImeIndicators(QInputMethodEvent *event)
+std::vector<int> MapImeIndicators(QInputMethodEvent *event)
 {
 	std::vector<int> imeIndicator(event->preeditString().size(), IndicatorUnknown);
-	foreach (QInputMethodEvent::Attribute attr, event->attributes()) {
+	foreach (const QInputMethodEvent::Attribute attr, event->attributes()) {
 		if (attr.type == QInputMethodEvent::TextFormat) {
-			QTextFormat format = attr.value.value<QTextFormat>();
-			QTextCharFormat charFormat = format.toCharFormat();
+			const QTextFormat format = attr.value.value<QTextFormat>();
+			const QTextCharFormat charFormat = format.toCharFormat();
 
 			int indicator = IndicatorUnknown;
 			switch (charFormat.underlineStyle()) {
@@ -530,6 +532,8 @@ static std::vector<int> MapImeIndicators(QInputMethodEvent *event)
 		}
 	}
 	return imeIndicator;
+}
+
 }
 
 void ScintillaEditBase::inputMethodEvent(QInputMethodEvent *event)
@@ -608,8 +612,8 @@ void ScintillaEditBase::inputMethodEvent(QInputMethodEvent *event)
 		}
 
 		// Move IME carets.
-		int imeCaretPos = GetImeCaretPos(event);
-		int imeEndToImeCaretU16 = imeCaretPos - preeditStrLen;
+		const int imeCaretPos = GetImeCaretPos(event);
+		const int imeEndToImeCaretU16 = imeCaretPos - preeditStrLen;
 		const Sci::Position imeCaretPosDoc = sqt->pdoc->GetRelativePositionUTF16(sqt->CurrentPosition(), imeEndToImeCaretU16);
 
 		MoveImeCarets(- sqt->CurrentPosition() + imeCaretPosDoc);
@@ -683,7 +687,9 @@ QVariant ScintillaEditBase::inputMethodQuery(Qt::InputMethodQuery query) const
 
 		case Qt::ImCurrentSelection:
 		{
-			QVarLengthArray<char,1024> buffer(send(SCI_GETSELTEXT)+1);
+			// Most of the time selection is small so can be stack allocated
+			constexpr int reasonableSelectionLength = 1024;
+			QVarLengthArray<char,reasonableSelectionLength> buffer(send(SCI_GETSELTEXT)+1);
 			sends(SCI_GETSELTEXT, 0, buffer.data());
 
 			return sqt->StringFromDocument(buffer.constData());
@@ -739,7 +745,7 @@ void ScintillaEditBase::notifyParent(NotificationData scn)
 			const bool deleted = FlagSet(scn.modificationType, ModificationFlags::DeleteText);
 
 			const Scintilla::Position length = send(SCI_GETTEXTLENGTH);
-			bool firstLineAdded = (added && length == 1) ||
+			const bool firstLineAdded = (added && length == 1) ||
 			                      (deleted && length == 0);
 
 			if (scn.linesAdded != 0) {
