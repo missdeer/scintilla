@@ -299,6 +299,18 @@ static int modifierTranslated(int sciModifier)
 	}
 }
 
+namespace {
+
+// Convert QElapsedTimer timestamp qint64 into unsigned int milliseconds wanted by Editor methods.
+unsigned int TimeOfEvent(const QElapsedTimer &timer)
+{
+	// Wrap every 2 billion milliseconds -> 24 days
+	constexpr qint64 maxTime = 2'000'000'000;
+	return static_cast<unsigned int>(timer.elapsed() % maxTime);
+}
+
+}
+
 void ScintillaEditBase::mousePressEvent(QMouseEvent *event)
 {
 	Point pos = PointFromQPoint(event->pos());
@@ -320,11 +332,11 @@ void ScintillaEditBase::mousePressEvent(QMouseEvent *event)
 		bool ctrl  = QApplication::keyboardModifiers() & Qt::ControlModifier;
 		bool alt   = QApplication::keyboardModifiers() & modifierTranslated(sqt->rectangularSelectionModifier);
 
-		sqt->ButtonDownWithModifiers(pos, time.elapsed(), ModifierFlags(shift, ctrl, alt));
+		sqt->ButtonDownWithModifiers(pos, TimeOfEvent(time), ModifierFlags(shift, ctrl, alt));
 	}
 
 	if (event->button() == Qt::RightButton) {
-		sqt->RightButtonDownWithModifiers(pos, time.elapsed(), ModifiersOfKeyboard());
+		sqt->RightButtonDownWithModifiers(pos, TimeOfEvent(time), ModifiersOfKeyboard());
 	}
 }
 
@@ -332,7 +344,7 @@ void ScintillaEditBase::mouseReleaseEvent(QMouseEvent *event)
 {
 	const QPoint point = event->pos();
 	if (event->button() == Qt::LeftButton)
-		sqt->ButtonUpWithModifiers(PointFromQPoint(point), time.elapsed(), ModifiersOfKeyboard());
+		sqt->ButtonUpWithModifiers(PointFromQPoint(point), TimeOfEvent(time), ModifiersOfKeyboard());
 
 	const sptr_t pos = send(SCI_POSITIONFROMPOINT, point.x(), point.y());
 	const sptr_t line = send(SCI_LINEFROMPOSITION, pos);
@@ -358,7 +370,7 @@ void ScintillaEditBase::mouseMoveEvent(QMouseEvent *event)
 
 	const KeyMod modifiers = ModifierFlags(shift, ctrl, alt);
 
-	sqt->ButtonMoveWithModifiers(pos, time.elapsed(), modifiers);
+	sqt->ButtonMoveWithModifiers(pos, TimeOfEvent(time), modifiers);
 }
 
 void ScintillaEditBase::contextMenuEvent(QContextMenuEvent *event)
