@@ -147,8 +147,9 @@ struct SelectionRange {
 enum InSelection { inNone, inMain, inAdditional };
 
 class Selection {
-	std::vector<SelectionRange> ranges;
-	std::vector<SelectionRange> rangesSaved;
+	using Ranges = std::vector<SelectionRange>;
+	Ranges ranges;
+	Ranges rangesSaved;
 	SelectionRange rangeRectangular;
 	size_t mainRange;
 	bool moveExtends;
@@ -198,7 +199,7 @@ public:
 	void RemoveDuplicates() noexcept;
 	void RotateMain() noexcept;
 	bool Tentative() const noexcept { return tentativeMain; }
-	std::vector<SelectionRange> RangesCopy() const {
+	Ranges RangesCopy() const {
 		return ranges;
 	}
 };
