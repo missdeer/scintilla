@@ -360,6 +360,8 @@ public:
 	Position FormatRangeFull(bool draw, RangeToFormatFull *fr);
 	void SetChangeHistory(Scintilla::ChangeHistoryOption changeHistory);
 	Scintilla::ChangeHistoryOption ChangeHistory();
+	void SetSelectionUndoHistory(bool selectionUndoHistory);
+	bool SelectionUndoHistory();
 	Line FirstVisibleLine();
 	Position GetLine(Line line, char *text);
 	std::string GetLine(Line line);

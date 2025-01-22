@@ -18,6 +18,7 @@
 #include <string_view>
 #include <vector>
 #include <array>
+#include <map>
 #include <forward_list>
 #include <optional>
 #include <algorithm>
@@ -1320,6 +1321,10 @@ bool Document::DeleteChars(Sci::Position pos, Sci::Position len) {
 	} else {
 		enteredModification++;
 		if (!cb.IsReadOnly()) {
+			if (cb.IsCollectingUndo() && cb.CanRedo()) {
+				// Abandoning some undo actions so truncate any later selections
+				TruncateUndoComments(cb.UndoCurrent());
+			}
 			NotifyModified(
 			    DocModification(
 			        ModificationFlags::BeforeDelete | ModificationFlags::User,
@@ -1372,6 +1377,10 @@ Sci::Position Document::InsertString(Sci::Position position, const char *s, Sci:
 	if (insertionSet) {
 		s = insertion.c_str();
 		insertLength = insertion.length();
+	}
+	if (cb.IsCollectingUndo() && cb.CanRedo()) {
+		// Abandoning some undo actions so truncate any later selections
+		TruncateUndoComments(cb.UndoCurrent());
 	}
 	NotifyModified(
 		DocModification(
@@ -1554,6 +1563,20 @@ Sci::Position Document::Redo() {
 		enteredModification--;
 	}
 	return newPos;
+}
+
+void Document::EndUndoAction() noexcept {
+	cb.EndUndoAction();
+	if (UndoSequenceDepth() == 0) {
+		// Broadcast notification to views to allow end of group processing.
+		// NotifyGroupCompleted may throw (for memory exhaustion) but this method
+		// may not as it is called in UndoGroup destructor so ignore exception.
+		try {
+			NotifyGroupCompleted();
+		} catch (...) {
+			// Ignore any exception
+		}
+	}
 }
 
 int Document::UndoSequenceDepth() const noexcept {
@@ -2504,6 +2527,25 @@ void Document::SetLexInterface(std::unique_ptr<LexInterface> pLexInterface) noex
 	pli = std::move(pLexInterface);
 }
 
+void Document::SetViewState(void *view, ViewStateShared pVSS) {
+	viewData[view] = pVSS;
+}
+
+ViewStateShared Document::GetViewState(void *view) const noexcept {
+	const std::map<void *, ViewStateShared>::const_iterator it = viewData.find(view);
+
+	if (it != viewData.end()) {
+		return it->second;
+	}
+	return {};
+}
+
+void Document::TruncateUndoComments(int action) {
+	for (auto &[key, value] : viewData) {
+		value->TruncateUndo(action);
+	}
+}
+
 int SCI_METHOD Document::SetLineState(Sci_Position line, int state) {
 	const int statePrevious = States()->SetLineState(line, state, LinesTotal());
 	if (state != statePrevious) {
@@ -2697,6 +2739,12 @@ void Document::NotifyModifyAttempt() {
 void Document::NotifySavePoint(bool atSavePoint) {
 	for (const WatcherWithUserData &watcher : watchers) {
 		watcher.watcher->NotifySavePoint(this, watcher.userData, atSavePoint);
+	}
+}
+
+void Document::NotifyGroupCompleted() noexcept {
+	for (const WatcherWithUserData &watcher : watchers) {
+		watcher.watcher->NotifyGroupCompleted(this, watcher.userData);
 	}
 }
 

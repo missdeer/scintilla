@@ -1334,6 +1334,12 @@ set void SetChangeHistory=2780(ChangeHistoryOption changeHistory,)
 # Report change history status.
 get ChangeHistoryOption GetChangeHistory=2781(,)
 
+# Enable or disable selection undo history.
+set void SetSelectionUndoHistory=2782(bool selectionUndoHistory,)
+
+# Report selection undo history status.
+get bool GetSelectionUndoHistory=2783(,)
+
 # Retrieve the display line at the top of the display.
 get line GetFirstVisibleLine=2152(,)
 

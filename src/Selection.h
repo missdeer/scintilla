@@ -163,6 +163,7 @@ public:
 	Sci::Position MainCaret() const noexcept;
 	Sci::Position MainAnchor() const noexcept;
 	SelectionRange &Rectangular() noexcept;
+	SelectionRange RectangularCopy() const noexcept;
 	SelectionSegment Limits() const noexcept;
 	// This is for when you want to move the caret in response to a
 	// user direction command - for rectangular selections, use the range
@@ -202,6 +203,7 @@ public:
 	Ranges RangesCopy() const {
 		return ranges;
 	}
+	void SetRanges(const Ranges &rangesToSet);
 };
 
 }

@@ -1259,6 +1259,14 @@ ChangeHistoryOption ScintillaCall::ChangeHistory() {
 	return static_cast<Scintilla::ChangeHistoryOption>(Call(Message::GetChangeHistory));
 }
 
+void ScintillaCall::SetSelectionUndoHistory(bool selectionUndoHistory) {
+	Call(Message::SetSelectionUndoHistory, selectionUndoHistory);
+}
+
+bool ScintillaCall::SelectionUndoHistory() {
+	return Call(Message::GetSelectionUndoHistory);
+}
+
 Line ScintillaCall::FirstVisibleLine() {
 	return Call(Message::GetFirstVisibleLine);
 }

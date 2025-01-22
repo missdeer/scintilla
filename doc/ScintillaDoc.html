@@ -1938,6 +1938,8 @@ struct Sci_TextToFindFull {
      <a class="message" href="#SCI_ENDUNDOACTION">SCI_ENDUNDOACTION</a><br />
      <a class="message" href="#SCI_GETUNDOSEQUENCE">SCI_GETUNDOSEQUENCE &rarr; int</a><br />
      <a class="message" href="#SCI_ADDUNDOACTION">SCI_ADDUNDOACTION(int token, int flags)</a><br />
+     <a class="message" href="#SCI_SETSELECTIONUNDOHISTORY">SCI_SETSELECTIONUNDOHISTORY(bool selectionUndoHistory)</a><br />
+     <a class="message" href="#SCI_GETSELECTIONUNDOHISTORY">SCI_GETSELECTIONUNDOHISTORY &rarr; bool</a><br />
     </code>
 
     <p><b id="SCI_UNDO">SCI_UNDO</b><br />
@@ -2015,6 +2017,14 @@ struct Sci_TextToFindFull {
      Coalescing treats coalescible container actions as transparent so will still only group together insertions that
      look like typing or deletions that look like multiple uses of the Backspace or Delete keys.
      </p>
+
+    <p><b id="SCI_SETSELECTIONUNDOHISTORY">SCI_SETSELECTIONUNDOHISTORY(bool selectionUndoHistory)</b><br />
+     <b id="SCI_GETSELECTIONUNDOHISTORY">SCI_GETSELECTIONUNDOHISTORY &rarr; bool</b><br />
+     The selection for each action can be saved and then restored when undo or redo is performed.
+      <code>SCI_SETSELECTIONUNDOHISTORY</code> controls this.
+      The current <code>bool</code> argument may change to a set of flags.
+      There is a memory cost for this feature with a minimum of 150 bytes for each of undo and redo for each recorded action.
+      Recording may be turned on at any time.</p>
 
     <h2 id="UndoSaveRestore">Undo Save and Restore</h2>
 

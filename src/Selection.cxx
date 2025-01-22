@@ -217,6 +217,10 @@ SelectionRange &Selection::Rectangular() noexcept {
 	return rangeRectangular;
 }
 
+SelectionRange Selection::RectangularCopy() const noexcept {
+	return rangeRectangular;
+}
+
 SelectionSegment Selection::Limits() const noexcept {
 	PLATFORM_ASSERT(!ranges.empty());
 	SelectionSegment sr(ranges[0].anchor, ranges[0].caret);
@@ -456,3 +460,6 @@ void Selection::RotateMain() noexcept {
 	mainRange = (mainRange + 1) % ranges.size();
 }
 
+void Selection::SetRanges(const Ranges &rangesToSet) {
+	ranges = rangesToSet;
+}
