@@ -2399,7 +2399,7 @@ void Editor::SelectAll() {
 }
 
 void Editor::RestoreSelection(Sci::Position newPos, UndoRedo history) {
-	if (rememberingSelectionForUndo && modelState) {
+	if ((undoSelectionHistoryOption == UndoSelectionHistoryOption::Enabled) && modelState) {
 		// Undo wants the element after the current as it just undid it
 		const int index = pdoc->UndoCurrent() + (history == UndoRedo::undo ? 1 : 0);
 		const SelectionSimple *pss = modelState->SelectionFromStack(index, history);
@@ -2789,7 +2789,8 @@ void Editor::NotifyModified(Document *, DocModification mh, void *) {
 			view.llc.Invalidate(LineLayout::ValidLevel::checkTextAndStyle);
 		}
 	} else {
-		if (rememberingSelectionForUndo && FlagSet(mh.modificationType, ModificationFlags::User)) {
+		if ((undoSelectionHistoryOption == UndoSelectionHistoryOption::Enabled) &&
+			FlagSet(mh.modificationType, ModificationFlags::User)) {
 			if (FlagSet(mh.modificationType, ModificationFlags::BeforeInsert | ModificationFlags::BeforeDelete)) {
 				RememberSelectionForUndo(pdoc->UndoCurrent());
 			}
@@ -8687,12 +8688,12 @@ sptr_t Editor::WndProc(Message iMessage, uptr_t wParam, sptr_t lParam) {
 	case Message::GetChangeHistory:
 		return static_cast<sptr_t>(changeHistoryOption);
 
-	case Message::SetSelectionUndoHistory:
-		rememberingSelectionForUndo = wParam;
+	case Message::SetUndoSelectionHistory:
+		undoSelectionHistoryOption = static_cast<UndoSelectionHistoryOption>(wParam);
 		break;
 
-	case Message::GetSelectionUndoHistory:
-		return rememberingSelectionForUndo;
+	case Message::GetUndoSelectionHistory:
+		return static_cast<sptr_t>(undoSelectionHistoryOption);
 
 	case Message::SetExtraAscent:
 		vs.extraAscent = static_cast<int>(wParam);

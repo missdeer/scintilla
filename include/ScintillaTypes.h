@@ -299,6 +299,11 @@ enum class ChangeHistoryOption {
 	Indicators = 4,
 };
 
+enum class UndoSelectionHistoryOption {
+	Disabled = 0,
+	Enabled = 1,
+};
+
 enum class FoldLevel {
 	None = 0x0,
 	Base = 0x400,

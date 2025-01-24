@@ -181,7 +181,7 @@ int EditModel::GetMark(Sci::Line line) const {
 }
 
 void EditModel::EnsureModelState() {
-	if (!modelState && rememberingSelectionForUndo) {
+	if (!modelState && (undoSelectionHistoryOption == UndoSelectionHistoryOption::Enabled)) {
 		if (ViewStateShared vss = pdoc->GetViewState(this)) {
 			modelState = std::dynamic_pointer_cast<ModelState>(vss);
 		} else {

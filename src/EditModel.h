@@ -92,7 +92,7 @@ public:
 
 	Document *pdoc;
 
-	bool rememberingSelectionForUndo = false;
+	Scintilla::UndoSelectionHistoryOption undoSelectionHistoryOption = UndoSelectionHistoryOption::Disabled;
 	bool needRedoRemembered = false;
 	ModelStateShared modelState;
 

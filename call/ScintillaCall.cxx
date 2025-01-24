@@ -1259,12 +1259,12 @@ ChangeHistoryOption ScintillaCall::ChangeHistory() {
 	return static_cast<Scintilla::ChangeHistoryOption>(Call(Message::GetChangeHistory));
 }
 
-void ScintillaCall::SetSelectionUndoHistory(bool selectionUndoHistory) {
-	Call(Message::SetSelectionUndoHistory, selectionUndoHistory);
+void ScintillaCall::SetUndoSelectionHistory(Scintilla::UndoSelectionHistoryOption undoSelectionHistory) {
+	Call(Message::SetUndoSelectionHistory, static_cast<uintptr_t>(undoSelectionHistory));
 }
 
-bool ScintillaCall::SelectionUndoHistory() {
-	return Call(Message::GetSelectionUndoHistory);
+UndoSelectionHistoryOption ScintillaCall::UndoSelectionHistory() {
+	return static_cast<Scintilla::UndoSelectionHistoryOption>(Call(Message::GetUndoSelectionHistory));
 }
 
 Line ScintillaCall::FirstVisibleLine() {
