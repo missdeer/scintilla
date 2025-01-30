@@ -432,11 +432,13 @@ void Selection::Clear() noexcept {
 	if (ranges.size() > 1) {
 		ranges.erase(ranges.begin() + 1, ranges.end());
 	}
-	mainRange = 0;
-	selType = SelTypes::stream;
-	moveExtends = false;
-	ranges[mainRange].Reset();
+	ranges[0].Reset();
+	rangesSaved.clear();
 	rangeRectangular.Reset();
+	mainRange = 0;
+	moveExtends = false;
+	tentativeMain = false;
+	selType = SelTypes::stream;
 }
 
 void Selection::RemoveDuplicates() noexcept {
