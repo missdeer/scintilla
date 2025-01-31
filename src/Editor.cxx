@@ -2399,6 +2399,7 @@ void Editor::SelectAll() {
 }
 
 void Editor::RestoreSelection(Sci::Position newPos, UndoRedo history) {
+	EnsureModelState();
 	if ((undoSelectionHistoryOption == UndoSelectionHistoryOption::Enabled) && modelState) {
 		// Undo wants the element after the current as it just undid it
 		const int index = pdoc->UndoCurrent() + (history == UndoRedo::undo ? 1 : 0);
