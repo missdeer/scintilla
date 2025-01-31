@@ -52,13 +52,6 @@ void SelectionPosition::MoveForInsertDelete(bool insertion, Sci::Position startC
 	}
 }
 
-bool SelectionPosition::operator <(const SelectionPosition &other) const noexcept {
-	if (position == other.position)
-		return virtualSpace < other.virtualSpace;
-	else
-		return position < other.position;
-}
-
 bool SelectionPosition::operator >(const SelectionPosition &other) const noexcept {
 	if (position == other.position)
 		return virtualSpace > other.virtualSpace;
