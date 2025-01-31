@@ -9,11 +9,13 @@
 #include <cstdlib>
 
 #include <stdexcept>
+#include <string>
 #include <string_view>
 #include <vector>
 #include <optional>
 #include <algorithm>
 #include <memory>
+#include <charconv>
 
 #include "Debugging.h"
 
@@ -21,6 +23,30 @@
 #include "Selection.h"
 
 using namespace Scintilla::Internal;
+
+namespace {
+
+// Generically convert a string to a integer value throwing if the conversion failed.
+// Failures include values that are out of range for the destination variable.
+template <typename T>
+void ValueFromString(std::string_view sv, T &value) {
+	const std::from_chars_result res = std::from_chars(sv.data(), sv.data() + sv.size(), value);
+	if (res.ec != std::errc{}) {
+		if (res.ec == std::errc::result_out_of_range)
+			throw std::runtime_error("from_chars out of range.");
+		throw std::runtime_error("from_chars failed.");
+	}
+}
+
+}
+
+SelectionPosition::SelectionPosition(std::string_view sv) : position(0) {
+	if (const size_t v = sv.find('v'); v != std::string_view::npos) {
+		ValueFromString(sv.substr(v + 1), virtualSpace);
+		sv = sv.substr(0, v);
+	}
+	ValueFromString(sv, position);
+}
 
 void SelectionPosition::MoveForInsertDelete(bool insertion, Sci::Position startChange, Sci::Position length, bool moveForEqual) noexcept {
 	if (insertion) {
@@ -71,6 +97,26 @@ bool SelectionPosition::operator >=(const SelectionPosition &other) const noexce
 		return true;
 	else
 		return *this > other;
+}
+
+std::string SelectionPosition::ToString() const {
+	std::string result = std::to_string(position);
+	if (virtualSpace) {
+		result += 'v';
+		result += std::to_string(virtualSpace);
+	}
+	return result;
+}
+
+SelectionRange::SelectionRange(std::string_view sv) {
+	const size_t dash = sv.find('-');
+	if (dash == std::string_view::npos) {
+		anchor = SelectionPosition(sv);
+		caret = anchor;
+	} else {
+		anchor = SelectionPosition(sv.substr(0, dash));
+		caret = SelectionPosition(sv.substr(dash + 1));
+	}
 }
 
 Sci::Position SelectionRange::Length() const noexcept {
@@ -190,8 +236,71 @@ void SelectionRange::MinimizeVirtualSpace() noexcept {
 	}
 }
 
+std::string SelectionRange::ToString() const {
+	std::string result = anchor.ToString();
+	if (!(caret == anchor)) {
+		result += '-';
+		result += caret.ToString();
+	}
+	return result;
+}
+
 Selection::Selection() : mainRange(0), moveExtends(false), tentativeMain(false), selType(SelTypes::stream) {
 	AddSelection(SelectionRange(SelectionPosition(0)));
+}
+
+Selection::Selection(std::string_view sv) : mainRange(0), moveExtends(false), tentativeMain(false), selType(SelTypes::stream) {
+	if (sv.empty()) {
+		return;
+	}
+	try {
+		// Decode initial letter prefix if any
+		switch (sv.front()) {
+		case 'R':
+			selType = SelTypes::rectangle;
+			break;
+		case 'L':
+			selType = SelTypes::lines;
+			break;
+		case 'T':
+			selType = SelTypes::thin;
+			break;
+		default:
+			break;
+		}
+		if (selType != SelTypes::stream) {
+			sv.remove_prefix(1);
+		}
+
+		// Non-zero main index at end after '#'
+		if (const size_t hash = sv.find('#'); hash != std::string_view::npos) {
+			ValueFromString(sv.substr(hash + 1), mainRange);
+			sv = sv.substr(0, hash);
+		}
+
+		// Remainder is list of ranges
+		if (selType == SelTypes::rectangle || selType == SelTypes::thin) {
+			rangeRectangular = SelectionRange(sv);
+			// Ensure enough ranges exist for mainRange to be in bounds
+			for (size_t i = 0; i <= mainRange; i++) {
+				ranges.emplace_back(SelectionPosition(0));
+			}
+		} else {
+			size_t comma = sv.find(',');
+			while (comma != std::string_view::npos) {
+				ranges.emplace_back(sv.substr(0, comma));
+				sv.remove_prefix(comma + 1);
+				comma = sv.find(',');
+			}
+			ranges.emplace_back(sv);
+			if (mainRange >= ranges.size()) {
+				mainRange = ranges.size() - 1;
+			}
+		}
+	} catch (std::runtime_error &) {
+		// On failure, produce an empty selection.
+		Clear();
+	}
 }
 
 bool Selection::IsRectangular() const noexcept {
@@ -457,4 +566,40 @@ void Selection::RotateMain() noexcept {
 
 void Selection::SetRanges(const Ranges &rangesToSet) {
 	ranges = rangesToSet;
+}
+
+std::string Selection::ToString() const {
+	std::string result;
+	switch (selType) {
+	case SelTypes::rectangle:
+		result += 'R';
+		break;
+	case SelTypes::lines:
+		result += 'L';
+		break;
+	case SelTypes::thin:
+		result += 'T';
+		break;
+	default:
+		// No handling of none as not a real value of enumeration, just used for empty arguments
+		// No prefix.
+		break;
+	}
+	if (selType == SelTypes::rectangle || selType == SelTypes::thin) {
+		result += rangeRectangular.ToString();
+	} else {
+		for (size_t r = 0; r < ranges.size(); r++) {
+			if (r > 0) {
+				result += ',';
+			}
+			result += ranges[r].ToString();
+		}
+	}
+
+	if (mainRange > 0) {
+		result += '#';
+		result += std::to_string(mainRange);
+	}
+
+	return result;
 }

@@ -110,6 +110,26 @@ TEST_CASE("SelectionPosition") {
 		REQUIRE(sel == SelectionPosition(2, 0));
 	}
 
+	SECTION("Serialization") {
+		// Conversion to/from string form
+
+		const std::string invalidString(invalid.ToString());
+		REQUIRE(invalidString == "-1");
+		const SelectionPosition invalidReturned(invalidString);
+		REQUIRE(invalidReturned == invalid);
+
+		const std::string zeroString(zero.ToString());
+		REQUIRE(zeroString == "0");
+		const SelectionPosition zeroReturned(zeroString);
+		REQUIRE(zeroReturned == zero);
+
+		const SelectionPosition virtue(2, 3);
+		const std::string virtueString(virtue.ToString());
+		REQUIRE(virtueString == "2v3");
+		const SelectionPosition virtueReturned(virtueString);
+		REQUIRE(virtueReturned == virtue);
+	}
+
 }
 
 TEST_CASE("SelectionSegment") {
@@ -130,6 +150,18 @@ TEST_CASE("SelectionRange") {
 		REQUIRE(sr.caret == invalid);
 	}
 
+	SECTION("Serialization") {
+		// Conversion to/from string form
+
+		// Range from 1 to 2 with 3 virtual spaces
+		const SelectionRange range123(SelectionPosition(2, 3), SelectionPosition(1));
+		const std::string range123String(range123.ToString());
+		// Opposite order to constructor: from anchor to caret 
+		REQUIRE(range123String == "1-2v3");
+		const SelectionRange range123Returned(range123String);
+		REQUIRE(range123Returned == range123);
+	}
+
 }
 
 TEST_CASE("Selection") {
@@ -146,6 +178,86 @@ TEST_CASE("Selection") {
 		REQUIRE(sel.RangeMain() == rangeZero);
 		REQUIRE(sel.Rectangular() == rangeInvalid);
 		REQUIRE(sel.Empty());
+	}
+
+	SECTION("Serialization") {
+		// Conversion to/from string form
+
+		// Range from 5 with 3 virtual spaces to 2
+		const SelectionRange range532(SelectionPosition(2), SelectionPosition(5, 3));
+		Selection selection;
+		selection.SetSelection(range532);
+		const std::string selectionString(selection.ToString());
+		// Opposite order to constructor: from anchor to caret 
+		REQUIRE(selectionString == "5v3-2");
+		const SelectionRange selectionReturned(selectionString);
+
+		REQUIRE(selection.selType == Selection::SelTypes::stream);
+		REQUIRE(!selection.IsRectangular());
+		REQUIRE(selection.Count() == 1);
+		REQUIRE(selection.Main() == 0);
+
+		REQUIRE(selection.Range(0) == range532);
+		REQUIRE(selection.RangeMain() == range532);
+		REQUIRE(selection.Rectangular() == rangeInvalid);
+		REQUIRE(!selection.Empty());
+	}
+
+	SECTION("SerializationMultiple") {
+		// Conversion to/from string form
+
+		// Range from 5 with 3 virtual spaces to 2
+		const SelectionRange range532(SelectionPosition(2), SelectionPosition(5, 3));
+		const SelectionRange range1(SelectionPosition(1));
+		Selection selection;
+		selection.SetSelection(range532);
+		selection.AddSelection(range1);
+		selection.SetMain(1);
+		const std::string selectionString(selection.ToString());
+		REQUIRE(selectionString == "5v3-2,1#1");
+		const SelectionRange selectionReturned(selectionString);
+
+		REQUIRE(selection.selType == Selection::SelTypes::stream);
+		REQUIRE(!selection.IsRectangular());
+		REQUIRE(selection.Count() == 2);
+		REQUIRE(selection.Main() == 1);
+
+		REQUIRE(selection.Range(0) == range532);
+		REQUIRE(selection.Range(1) == range1);
+		REQUIRE(selection.RangeMain() == range1);
+		REQUIRE(selection.Rectangular() == rangeInvalid);
+		REQUIRE(!selection.Empty());
+	}
+
+	SECTION("SerializationRectangular") {
+		// Conversion to/from string form
+
+		// Range from 5 with 3 virtual spaces to 2
+		const SelectionRange range532(SelectionPosition(2), SelectionPosition(5, 3));
+		
+		// Create a single-line rectangular selection
+		Selection selection;
+		selection.selType = Selection::SelTypes::rectangle;
+		selection.Rectangular() = range532;
+		// Set arbitrary realized range - inside editor ranges would be calculated from line layout
+		selection.SetSelection(rangeZero);
+
+		const std::string selectionString(selection.ToString());
+		REQUIRE(selectionString == "R5v3-2");
+		const Selection selectionReturned(selectionString);
+
+		REQUIRE(selection.selType == Selection::SelTypes::rectangle);
+		REQUIRE(selection.IsRectangular());
+		REQUIRE(selection.Count() == 1);
+		REQUIRE(selection.Main() == 0);
+
+		REQUIRE(selection.Range(0) == rangeZero);
+		REQUIRE(selection.RangeMain() == rangeZero);
+		REQUIRE(selection.Rectangular() == range532);
+
+		selection.selType = Selection::SelTypes::thin;
+		const std::string thinString(selection.ToString());
+		REQUIRE(thinString == "T5v3-2");
 	}
 
 }

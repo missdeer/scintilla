@@ -20,6 +20,7 @@ public:
 		if (virtualSpace < 0)
 			virtualSpace = 0;
 	}
+	explicit SelectionPosition(std::string_view sv);
 	void Reset() noexcept {
 		position = 0;
 		virtualSpace = 0;
@@ -63,6 +64,7 @@ public:
 	bool IsValid() const noexcept {
 		return position >= 0;
 	}
+	std::string ToString() const;
 };
 
 // Ordered range to make drawing simpler
@@ -112,6 +114,7 @@ struct SelectionRange {
 	}
 	constexpr SelectionRange(Sci::Position caret_, Sci::Position anchor_) noexcept : caret(caret_), anchor(anchor_) {
 	}
+	explicit SelectionRange(std::string_view sv);
 	bool Empty() const noexcept {
 		return anchor == caret;
 	}
@@ -147,6 +150,7 @@ struct SelectionRange {
 	bool Trim(SelectionRange range) noexcept;
 	// If range is all virtual collapse to start of virtual space
 	void MinimizeVirtualSpace() noexcept;
+	std::string ToString() const;
 };
 
 // Deliberately an enum rather than an enum class to allow treating as bool
@@ -165,6 +169,8 @@ public:
 	SelTypes selType;
 
 	Selection();	// Allocates so may throw.
+	explicit Selection(std::string_view sv);
+
 	bool IsRectangular() const noexcept;
 	Sci::Position MainCaret() const noexcept;
 	Sci::Position MainAnchor() const noexcept;
@@ -210,6 +216,7 @@ public:
 		return ranges;
 	}
 	void SetRanges(const Ranges &rangesToSet);
+	std::string ToString() const;
 };
 
 }
