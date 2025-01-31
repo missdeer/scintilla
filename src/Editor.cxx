@@ -2403,19 +2403,18 @@ void Editor::RestoreSelection(Sci::Position newPos, UndoRedo history) {
 	if ((undoSelectionHistoryOption == UndoSelectionHistoryOption::Enabled) && modelState) {
 		// Undo wants the element after the current as it just undid it
 		const int index = pdoc->UndoCurrent() + (history == UndoRedo::undo ? 1 : 0);
-		const SelectionSimple *pss = modelState->SelectionFromStack(index, history);
-		if (pss) {
-			sel.selType = pss->selType;
+		const std::string_view ss = modelState->SelectionFromStack(index, history);
+		if (!ss.empty()) {
+			sel = Selection(ss);
 			if (sel.IsRectangular()) {
-				sel.Rectangular() = pss->rangeRectangular;
+				const size_t mainForRectangular = sel.Main();
 				// Reconstitute ranges from rectangular range
 				SetRectangularRange();
-			} else {
-				sel.SetRanges(pss->ranges);
+				// Restore main if possible.
+				if (mainForRectangular < sel.Count()) {
+					sel.SetMain(mainForRectangular);
+				}
 			}
-			// Unsure if this is safe with SetMain potentially failing if document doesn't appear the same.
-			// Maybe this can occur if the user changes font or wrap mode?
-			sel.SetMain(pss->mainRange);
 			newPos = -1; // Used selection from stack so don't use position returned from undo/redo.
 		}
 	}

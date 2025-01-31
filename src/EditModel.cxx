@@ -58,21 +58,9 @@ using namespace Scintilla::Internal;
 Caret::Caret() noexcept :
 	active(false), on(false), period(500) {}
 
-SelectionSimple::SelectionSimple(const Selection &sel) {
-	selType = sel.selType;
-	if (sel.IsRectangular()) {
-		// rectangular or thin
-		// Could be large so don't remember each range, just the rectangular bounds then reconstitute when undone
-		rangeRectangular = sel.RectangularCopy();
-	} else {
-		ranges = sel.RangesCopy();
-	}
-	mainRange = sel.Main();
-}
-
 void ModelState::RememberSelectionForUndo(int index, const Selection &sel) {
 	historyForUndo.indexCurrent = index;
-	historyForUndo.ssCurrent = SelectionSimple(sel);
+	historyForUndo.ssCurrent = sel.ToString();
 }
 
 void ModelState::ForgetSelectionForUndo() noexcept {
@@ -87,22 +75,22 @@ void ModelState::RememberSelectionOntoStack(int index) {
 }
 
 void ModelState::RememberSelectionForRedoOntoStack(int index, const Selection &sel) {
-	historyForRedo.stack[index] = SelectionSimple(sel);
+	historyForRedo.stack[index] = sel.ToString();
 }
 
-const SelectionSimple *ModelState::SelectionFromStack(int index, UndoRedo history) const {
+std::string_view ModelState::SelectionFromStack(int index, UndoRedo history) const {
 	const SelectionHistory &sh = history == UndoRedo::undo ? historyForUndo : historyForRedo;
-	std::map<int, SelectionSimple>::const_iterator it = sh.stack.find(index);
+	const SelectionStack::const_iterator it = sh.stack.find(index);
 	if (it != sh.stack.end()) {
-		return &it->second;
+		return it->second;
 	}
 	return {};
 }
 
 void ModelState::TruncateUndo(int index) {
-	std::map<int, SelectionSimple>::iterator itUndo = historyForUndo.stack.find(index);
+	const SelectionStack::const_iterator itUndo = historyForUndo.stack.find(index);
 	historyForUndo.stack.erase(itUndo, historyForUndo.stack.end());
-	std::map<int, SelectionSimple>::iterator itRedo = historyForRedo.stack.find(index);
+	const SelectionStack::const_iterator itRedo = historyForRedo.stack.find(index);
 	historyForRedo.stack.erase(itRedo, historyForRedo.stack.end());
 }
 

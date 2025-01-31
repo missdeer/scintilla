@@ -178,8 +178,6 @@ constexpr XYScrollOptions operator|(XYScrollOptions a, XYScrollOptions b) noexce
 	return static_cast<XYScrollOptions>(static_cast<int>(a) | static_cast<int>(b));
 }
 
-struct SelectionStack;
-
 /**
  */
 class Editor : public EditModel, public DocWatcher {

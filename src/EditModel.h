@@ -21,26 +21,15 @@ public:
 	Caret() noexcept;
 };
 
-// Simplified version of selection which won't contain rectangular selection realized
-// into ranges as too much data.
-// Just a type and single range for now.
-
-struct SelectionSimple {
-	std::vector<SelectionRange> ranges;
-	SelectionRange rangeRectangular;
-	size_t mainRange = 0;
-	Selection::SelTypes selType = Selection::SelTypes::stream;
-
-	SelectionSimple() = default;
-	explicit SelectionSimple(const Selection &sel);
-};
-
 enum class UndoRedo { undo, redo };
+
+// Selection stack is sparse so use a map
+using SelectionStack = std::map<int, std::string>;
 
 struct SelectionHistory {
 	int indexCurrent = 0;
-	SelectionSimple ssCurrent;
-	std::map<int, SelectionSimple> stack;
+	std::string ssCurrent;
+	SelectionStack stack;
 };
 
 struct ModelState : ViewState {
@@ -50,7 +39,7 @@ struct ModelState : ViewState {
 	void ForgetSelectionForUndo() noexcept;
 	void RememberSelectionOntoStack(int index);
 	void RememberSelectionForRedoOntoStack(int index, const Selection &sel);
-	const SelectionSimple *SelectionFromStack(int index, UndoRedo history) const;
+	std::string_view SelectionFromStack(int index, UndoRedo history) const;
 	virtual void TruncateUndo(int index) final;
 };
 
