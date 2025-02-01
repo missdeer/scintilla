@@ -148,6 +148,7 @@ struct SelectionRange {
 	}
 	void Swap() noexcept;
 	bool Trim(SelectionRange range) noexcept;
+	void Truncate(Sci::Position length) noexcept;
 	// If range is all virtual collapse to start of virtual space
 	void MinimizeVirtualSpace() noexcept;
 	std::string ToString() const;
@@ -216,6 +217,7 @@ public:
 		return ranges;
 	}
 	void SetRanges(const Ranges &rangesToSet);
+	void Truncate(Sci::Position length) noexcept;
 	std::string ToString() const;
 };
 

@@ -130,7 +130,7 @@
 
     <h1>Scintilla Documentation</h1>
 
-    <p>Last edited 26 October 2024 NH</p>
+    <p>Last edited 1 February 2025 NH</p>
 
     <p style="background:#90F0C0">Scintilla 5 has moved the lexers from Scintilla into a new
     <a href="Lexilla.html">Lexilla</a> project.<br />
@@ -1239,6 +1239,10 @@ struct Sci_TextRangeFull {
      <a class="message" href="#SCI_GETRECTANGULARSELECTIONANCHORVIRTUALSPACE">SCI_GETRECTANGULARSELECTIONANCHORVIRTUALSPACE &rarr; position</a><br />
      <br />
 
+     <a class="message" href="#SCI_SETSELECTIONSERIALIZED">SCI_SETSELECTIONSERIALIZED(&lt;unused&gt;, const char *selectionString)</a><br />
+     <a class="message" href="#SCI_GETSELECTIONSERIALIZED">SCI_GETSELECTIONSERIALIZED(&lt;unused&gt;, char *selectionString) &rarr; position</a><br />
+     <br />
+
      <a class="element" href="#SC_ELEMENT_SELECTION_ADDITIONAL_TEXT">SC_ELEMENT_SELECTION_ADDITIONAL_TEXT : colouralpha</a><br />
      <a class="element" href="#SC_ELEMENT_SELECTION_ADDITIONAL_BACK">SC_ELEMENT_SELECTION_ADDITIONAL_BACK : colouralpha</a><br />
      <a class="discouraged message" href="#SCI_SETADDITIONALSELALPHA">SCI_SETADDITIONALSELALPHA(alpha alpha)</a><br />
@@ -1403,6 +1407,12 @@ struct Sci_TextRangeFull {
      <b id="SCI_GETRECTANGULARSELECTIONANCHORVIRTUALSPACE">SCI_GETRECTANGULARSELECTIONANCHORVIRTUALSPACE &rarr; position</b><br />
      Set or query the position and amount of virtual space for the caret and anchor of the rectangular selection.
      After setting the rectangular selection, this is broken down into multiple selections, one for each line.</p>
+
+    <p>
+     <b id="SCI_SETSELECTIONSERIALIZED">SCI_SETSELECTIONSERIALIZED(&lt;unused&gt;, const char *selectionString)</b><br />
+     <b id="SCI_GETSELECTIONSERIALIZED">SCI_GETSELECTIONSERIALIZED(&lt;unused&gt;, char *selectionString) &rarr; position</b><br />
+     Set or query the selection type and positions as a serialized string.
+     The format of this string may change in future versions so should not be persisted beyond the current session.</p>
 
     <p>
      <b id="SC_ELEMENT_SELECTION_ADDITIONAL_TEXT">SC_ELEMENT_SELECTION_ADDITIONAL_TEXT : colouralpha</b><br />

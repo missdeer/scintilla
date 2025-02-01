@@ -362,6 +362,9 @@ public:
 	Scintilla::ChangeHistoryOption ChangeHistory();
 	void SetUndoSelectionHistory(Scintilla::UndoSelectionHistoryOption undoSelectionHistory);
 	Scintilla::UndoSelectionHistoryOption UndoSelectionHistory();
+	void SetSelectionSerialized(const char *selectionString);
+	Position SelectionSerialized(char *selectionString);
+	std::string SelectionSerialized();
 	Line FirstVisibleLine();
 	Position GetLine(Line line, char *text);
 	std::string GetLine(Line line);

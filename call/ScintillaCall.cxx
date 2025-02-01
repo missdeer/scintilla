@@ -1267,6 +1267,18 @@ UndoSelectionHistoryOption ScintillaCall::UndoSelectionHistory() {
 	return static_cast<Scintilla::UndoSelectionHistoryOption>(Call(Message::GetUndoSelectionHistory));
 }
 
+void ScintillaCall::SetSelectionSerialized(const char *selectionString) {
+	CallString(Message::SetSelectionSerialized, 0, selectionString);
+}
+
+Position ScintillaCall::SelectionSerialized(char *selectionString) {
+	return CallPointer(Message::GetSelectionSerialized, 0, selectionString);
+}
+
+std::string ScintillaCall::SelectionSerialized() {
+	return CallReturnString(Message::GetSelectionSerialized, 0);
+}
+
 Line ScintillaCall::FirstVisibleLine() {
 	return Call(Message::GetFirstVisibleLine);
 }

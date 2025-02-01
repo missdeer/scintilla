@@ -225,6 +225,13 @@ bool SelectionRange::Trim(SelectionRange range) noexcept {
 	}
 }
 
+void SelectionRange::Truncate(Sci::Position length) noexcept {
+	if (anchor.Position() > length)
+		anchor.SetPosition(length);
+	if (caret.Position() > length)
+		caret.SetPosition(length);
+}
+
 // If range is all virtual collapse to start of virtual space
 void SelectionRange::MinimizeVirtualSpace() noexcept {
 	if (caret.Position() == anchor.Position()) {
@@ -566,6 +573,16 @@ void Selection::RotateMain() noexcept {
 
 void Selection::SetRanges(const Ranges &rangesToSet) {
 	ranges = rangesToSet;
+}
+
+void Selection::Truncate(Sci::Position length) noexcept {
+	// This may be needed when applying a persisted selection onto a document that has been shortened.
+	for (SelectionRange &range : ranges) {
+		range.Truncate(length);
+	}
+	// Above may have made some non-unique empty ranges.
+	RemoveDuplicates();
+	rangeRectangular.Truncate(length);
 }
 
 std::string Selection::ToString() const {

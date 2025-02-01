@@ -287,6 +287,8 @@ enum class Message {
 	GetChangeHistory = 2781,
 	SetUndoSelectionHistory = 2782,
 	GetUndoSelectionHistory = 2783,
+	SetSelectionSerialized = 2784,
+	GetSelectionSerialized = 2785,
 	GetFirstVisibleLine = 2152,
 	GetLine = 2153,
 	GetLineCount = 2154,
