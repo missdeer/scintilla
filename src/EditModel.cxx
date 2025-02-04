@@ -121,6 +121,9 @@ EditModel::EditModel() : braces{} {
 
 EditModel::~EditModel() {
 	try {
+		// Erasing the view state won't throw even though SetViewState
+		// and the resulting map::erase aren't marked noexcept.
+		pdoc->SetViewState(this, {});
 		// This never throws but isn't marked noexcept for compatibility
 		pdoc->Release();
 	} catch (...) {
@@ -176,5 +179,12 @@ void EditModel::EnsureModelState() {
 			modelState = std::make_shared<ModelState>();
 			pdoc->SetViewState(this, std::static_pointer_cast<ViewState>(modelState));
 		}
+	}
+}
+
+void EditModel::ChangeUndoSelectionHistory(Scintilla::UndoSelectionHistoryOption undoSelectionHistoryOptionNew) {
+	undoSelectionHistoryOption = undoSelectionHistoryOptionNew;
+	if (undoSelectionHistoryOption == UndoSelectionHistoryOption::Disabled) {
+		pdoc->SetViewState(this, {});
 	}
 }

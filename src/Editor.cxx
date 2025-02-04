@@ -8698,7 +8698,7 @@ sptr_t Editor::WndProc(Message iMessage, uptr_t wParam, sptr_t lParam) {
 		return static_cast<sptr_t>(changeHistoryOption);
 
 	case Message::SetUndoSelectionHistory:
-		undoSelectionHistoryOption = static_cast<UndoSelectionHistoryOption>(wParam);
+		ChangeUndoSelectionHistory(static_cast<UndoSelectionHistoryOption>(wParam));
 		break;
 
 	case Message::GetUndoSelectionHistory:

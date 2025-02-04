@@ -105,6 +105,7 @@ public:
 	[[nodiscard]] int GetMark(Sci::Line line) const;
 
 	void EnsureModelState();
+	void ChangeUndoSelectionHistory(Scintilla::UndoSelectionHistoryOption undoSelectionHistoryOptionNew);
 };
 
 }
