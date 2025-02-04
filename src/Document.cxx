@@ -1202,6 +1202,92 @@ bool Document::IsDBCSDualByteAt(Sci::Position pos) const noexcept {
 		&& IsDBCSTrailByteNoExcept(cb.CharAt(pos + 1));
 }
 
+namespace {
+
+// Remove any extra bytes after the last valid character.
+void DiscardEndFragment(std::string_view &text) noexcept {
+	if (!text.empty()) {
+		if (UTF8IsFirstByte(text.back())) {
+			// Ending with start of character byte is invalid
+			text.remove_suffix(1);
+		} else if (UTF8IsTrailByte(text.back())) {
+			// go back to the start of last character.
+			const size_t maxTrail = std::max<size_t>(UTF8MaxBytes - 1, text.length());
+			size_t trail = 1;
+			while (trail < maxTrail && UTF8IsTrailByte(text[text.length() - trail])) {
+				trail++;
+			}
+			const std::string_view endPortion = text.substr(text.length() - trail);
+			if (!UTF8IsValid(endPortion)) {
+				text.remove_suffix(trail);
+			}
+		}
+	}
+}
+
+constexpr bool IsBaseOfGrapheme(CharacterCategory cc) {
+	// \p{L}\p{N}\p{P}\p{S}\p{Zs}
+	switch (cc) {
+	case ccLu:
+	case ccLl:
+	case ccLt:
+	case ccLm:
+	case ccLo:
+	case ccNd:
+	case ccNl:
+	case ccNo:
+	case ccPc:
+	case ccPd:
+	case ccPs:
+	case ccPe:
+	case ccPi:
+	case ccPf:
+	case ccPo:
+	case ccSm:
+	case ccSc:
+	case ccSk:
+	case ccSo:
+	case ccZs:
+		return true;
+	default:
+		// ccMn, ccMc, ccMe,
+		// ccZl, ccZp,
+		// ccCc, ccCf, ccCs, ccCo, ccCn
+		return false;
+	}
+}
+
+void DiscardLastCombinedCharacter(std::string_view &text) noexcept {
+	// Handle the simple common case where a base character may be followed by
+	// accents and similar marks by discarding until start of base character.
+	// 
+	// From Grapheme_Cluster_Boundaries
+	// combining character sequence = ccs-base? ccs-extend+
+	// ccs-base := [\p{L}\p{N}\p{P}\p{S}\p{Zs}]
+	// ccs-extend := [\p{M}\p{Join_Control}]
+
+	std::string_view truncated = text;
+	while (truncated.length() > (UTF8MaxBytes * 2)) {
+		// Give up when short
+		std::string_view::iterator it = truncated.end() - 1;
+		// For UTF-8 go back to the start of last character.
+		for (int trail = 0; trail < UTF8MaxBytes - 1 && UTF8IsTrailByte(*it); trail++) {
+			--it;
+		}
+		const size_t countBytes = truncated.end() - it;
+		const std::string_view svLastCharacter = truncated.substr(truncated.length() - countBytes);
+		const CharacterCategory cc = CategoriseCharacter(UnicodeFromUTF8(svLastCharacter));
+		truncated.remove_suffix(countBytes);
+		if (IsBaseOfGrapheme(cc)) {
+			text = truncated;
+			return;
+		}
+	}
+	// No base character found so just leave as is
+}
+
+}
+
 // Need to break text into segments near end but taking into account the
 // encoding to not break inside a UTF-8 or DBCS character and also trying
 // to avoid breaking inside a pair of combining characters, or inside
@@ -1215,7 +1301,8 @@ bool Document::IsDBCSDualByteAt(Sci::Position pos) const noexcept {
 // In preference order from best to worst:
 //   1) Break before or after spaces or controls
 //   2) Break at word and punctuation boundary for better kerning and ligature support
-//   3) Break after whole character, this may break combining characters
+//   3) Break before letter in UTF-8 to avoid breaking combining characters
+//   4) Break after whole character, this may break combining characters
 
 size_t Document::SafeSegment(std::string_view text) const noexcept {
 	// check space first as most written language use spaces.
@@ -1236,14 +1323,14 @@ size_t Document::SafeSegment(std::string_view text) const noexcept {
 			}
 		} while (it != text.begin());
 
-		it = text.end() - 1;
 		if (dbcsCodePage) {
-			// for UTF-8 go back to the start of last character.
-			for (int trail = 0; trail < UTF8MaxBytes - 1 && UTF8IsTrailByte(*it); trail++) {
-				--it;
-			}
+			// UTF-8
+			DiscardEndFragment(text);
+			DiscardLastCombinedCharacter(text);
+			return text.length();
+		} else {
+			return text.length() - 1;
 		}
-		return it - text.begin();
 	}
 
 	{
