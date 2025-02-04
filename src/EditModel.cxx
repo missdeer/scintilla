@@ -185,6 +185,7 @@ void EditModel::EnsureModelState() {
 void EditModel::ChangeUndoSelectionHistory(Scintilla::UndoSelectionHistoryOption undoSelectionHistoryOptionNew) {
 	undoSelectionHistoryOption = undoSelectionHistoryOptionNew;
 	if (undoSelectionHistoryOption == UndoSelectionHistoryOption::Disabled) {
+		modelState.reset();
 		pdoc->SetViewState(this, {});
 	}
 }
