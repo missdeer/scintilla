@@ -8503,8 +8503,8 @@ sptr_t Editor::WndProc(Message iMessage, uptr_t wParam, sptr_t lParam) {
 	case Message::GetLineSelStartPosition:
 	case Message::GetLineSelEndPosition: {
 			const SelectionSegment segmentLine(
-				SelectionPosition(pdoc->LineStart(LineFromUPtr(wParam))),
-				SelectionPosition(pdoc->LineEnd(LineFromUPtr(wParam))));
+				pdoc->LineStart(LineFromUPtr(wParam)),
+				pdoc->LineEnd(LineFromUPtr(wParam)));
 			for (size_t r=0; r<sel.Count(); r++) {
 				const SelectionSegment portion = sel.Range(r).Intersect(segmentLine);
 				if (portion.start.IsValid()) {

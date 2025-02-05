@@ -327,7 +327,7 @@ SelectionRange Selection::RectangularCopy() const noexcept {
 
 SelectionSegment Selection::Limits() const noexcept {
 	PLATFORM_ASSERT(!ranges.empty());
-	SelectionSegment sr(ranges[0].anchor, ranges[0].caret);
+	SelectionSegment sr = ranges[0].AsSegment();
 	for (size_t i=1; i<ranges.size(); i++) {
 		sr.Extend(ranges[i].anchor);
 		sr.Extend(ranges[i].caret);
@@ -339,7 +339,7 @@ SelectionSegment Selection::LimitsForRectangularElseMain() const noexcept {
 	if (IsRectangular()) {
 		return Limits();
 	} else {
-		return SelectionSegment(ranges[mainRange].caret, ranges[mainRange].anchor);
+		return ranges[mainRange].AsSegment();
 	}
 }
 
