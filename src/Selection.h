@@ -81,6 +81,12 @@ struct SelectionSegment {
 			end = a;
 		}
 	}
+	constexpr SelectionSegment(Sci::Position a, Sci::Position b) :
+		SelectionSegment(SelectionPosition(a), SelectionPosition(b)) {
+	}
+	[[nodiscard]] constexpr bool operator ==(const SelectionSegment &other) const noexcept {
+		return (start == other.start) && (end == other.end);
+	}
 	bool Empty() const noexcept {
 		return start == end;
 	}
@@ -115,6 +121,9 @@ struct SelectionRange {
 	constexpr SelectionRange(Sci::Position caret_, Sci::Position anchor_) noexcept : caret(caret_), anchor(anchor_) {
 	}
 	explicit SelectionRange(std::string_view sv);
+	SelectionSegment AsSegment() const noexcept {
+		return {caret, anchor};
+	}
 	bool Empty() const noexcept {
 		return anchor == caret;
 	}

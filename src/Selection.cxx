@@ -170,20 +170,15 @@ bool SelectionRange::ContainsCharacter(SelectionPosition spCharacter) const noex
 }
 
 SelectionSegment SelectionRange::Intersect(SelectionSegment check) const noexcept {
-	const SelectionSegment inOrder(caret, anchor);
-	if ((inOrder.start <= check.end) || (inOrder.end >= check.start)) {
-		SelectionSegment portion = check;
-		if (portion.start < inOrder.start)
-			portion.start = inOrder.start;
-		if (portion.end > inOrder.end)
-			portion.end = inOrder.end;
-		if (portion.start > portion.end)
-			return SelectionSegment();
-		else
-			return portion;
-	} else {
-		return SelectionSegment();
+	const SelectionSegment inOrder = AsSegment();
+	if ((inOrder.start > check.end) || (inOrder.end < check.start)) {
+		// Nothing in common, not even touching so return empty *invalid* segment
+		return {};
 	}
+	return {
+		std::max(check.start, inOrder.start),
+		std::min(check.end, inOrder.end)
+	};
 }
 
 void SelectionRange::Swap() noexcept {

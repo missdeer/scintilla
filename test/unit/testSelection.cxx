@@ -162,6 +162,38 @@ TEST_CASE("SelectionRange") {
 		REQUIRE(range123Returned == range123);
 	}
 
+	SECTION("Intersect") {
+		constexpr SelectionSegment segmentEmpty;
+
+		// Range from 1 to 2 with 3 virtual spaces
+		const SelectionRange range123(SelectionPosition(2, 3), SelectionPosition(1));
+		const SelectionSegment segment12(1, 2);
+		const SelectionSegment inside = range123.Intersect(segment12);
+		REQUIRE(inside == segment12);
+
+		const SelectionSegment segment121(SelectionPosition(1), SelectionPosition(2, 1));
+		const SelectionSegment withVirtual = range123.Intersect(segment121);
+		REQUIRE(withVirtual == segment121);
+
+		const SelectionSegment segment052(SelectionPosition(0), SelectionPosition(5, 2));
+		const SelectionSegment internal = range123.Intersect(segment052);	// All inside
+		REQUIRE(internal == range123.AsSegment());
+
+		const SelectionSegment wayOut(SelectionPosition(100), SelectionPosition(105, 2));
+		const SelectionSegment nothing = range123.Intersect(wayOut);
+		REQUIRE(nothing == segmentEmpty);
+
+		const SelectionSegment edge(1, 1);
+		const SelectionSegment nowt = range123.Intersect(edge);
+		REQUIRE(nowt == edge);
+
+		// (0, 1) and (1, 2v3) touch so intersection is a single position.
+		const SelectionSegment front(0, 1);
+		const SelectionSegment single(1, 1);
+		const SelectionSegment thin = range123.Intersect(front);
+		REQUIRE(thin == single);
+	}
+
 }
 
 TEST_CASE("Selection") {
