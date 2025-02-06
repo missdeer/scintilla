@@ -67,18 +67,18 @@ void ModelState::ForgetSelectionForUndo() noexcept {
 	historyForUndo.indexCurrent = -1;
 }
 
-void ModelState::RememberSelectionOntoStack(int index) {
+void ModelState::RememberSelectionOntoStack(int index, Sci::Line topLine) {
 	if ((historyForUndo.indexCurrent >= 0) && (index == historyForUndo.indexCurrent + 1)) {
 		// Don't overwrite initial selection save if most recent action was coalesced
-		historyForUndo.stack[index] = historyForUndo.ssCurrent;
+		historyForUndo.stack[index] = { historyForUndo.ssCurrent, topLine };
 	}
 }
 
-void ModelState::RememberSelectionForRedoOntoStack(int index, const Selection &sel) {
-	historyForRedo.stack[index] = sel.ToString();
+void ModelState::RememberSelectionForRedoOntoStack(int index, const Selection &sel, Sci::Line topLine) {
+	historyForRedo.stack[index] = { sel.ToString(), topLine };
 }
 
-std::string_view ModelState::SelectionFromStack(int index, UndoRedo history) const {
+SelectionWithScroll ModelState::SelectionFromStack(int index, UndoRedo history) const {
 	const SelectionHistory &sh = history == UndoRedo::undo ? historyForUndo : historyForRedo;
 	const SelectionStack::const_iterator it = sh.stack.find(index);
 	if (it != sh.stack.end()) {

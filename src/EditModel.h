@@ -24,7 +24,13 @@ public:
 enum class UndoRedo { undo, redo };
 
 // Selection stack is sparse so use a map
-using SelectionStack = std::map<int, std::string>;
+
+struct SelectionWithScroll {
+	std::string selection;
+	Sci::Line topLine = 0;
+};
+
+using SelectionStack = std::map<int, SelectionWithScroll>;
 
 struct SelectionHistory {
 	int indexCurrent = 0;
@@ -37,9 +43,9 @@ struct ModelState : ViewState {
 	SelectionHistory historyForRedo;
 	void RememberSelectionForUndo(int index, const Selection &sel);
 	void ForgetSelectionForUndo() noexcept;
-	void RememberSelectionOntoStack(int index);
-	void RememberSelectionForRedoOntoStack(int index, const Selection &sel);
-	std::string_view SelectionFromStack(int index, UndoRedo history) const;
+	void RememberSelectionOntoStack(int index, Sci::Line topLine);
+	void RememberSelectionForRedoOntoStack(int index, const Selection &sel, Sci::Line topLine);
+	SelectionWithScroll SelectionFromStack(int index, UndoRedo history) const;
 	virtual void TruncateUndo(int index) final;
 };
 

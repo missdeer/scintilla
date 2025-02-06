@@ -951,7 +951,7 @@ void Editor::RememberSelectionOntoStack(int index) {
 		if (!pdoc->AfterUndoSequenceStart()) {
 			// Don't remember selections inside a grouped sequence as can only
 			// unto or redo to the start and end of the group.
-			modelState->RememberSelectionOntoStack(index);
+			modelState->RememberSelectionOntoStack(index, topLine);
 		}
 	}
 }
@@ -960,7 +960,7 @@ void Editor::RememberCurrentSelectionForRedoOntoStack() {
 	if (needRedoRemembered && (pdoc->UndoSequenceDepth() == 0)) {
 		EnsureModelState();
 		if (modelState) {
-			modelState->RememberSelectionForRedoOntoStack(pdoc->UndoCurrent(), sel);
+			modelState->RememberSelectionForRedoOntoStack(pdoc->UndoCurrent(), sel, topLine);
 			needRedoRemembered = false;
 		}
 	}
@@ -2412,9 +2412,10 @@ void Editor::RestoreSelection(Sci::Position newPos, UndoRedo history) {
 	if ((undoSelectionHistoryOption == UndoSelectionHistoryOption::Enabled) && modelState) {
 		// Undo wants the element after the current as it just undid it
 		const int index = pdoc->UndoCurrent() + (history == UndoRedo::undo ? 1 : 0);
-		const std::string_view ss = modelState->SelectionFromStack(index, history);
-		if (!ss.empty()) {
-			sel = Selection(ss);
+		const SelectionWithScroll selAndLine = modelState->SelectionFromStack(index, history);
+		if (!selAndLine.selection.empty()) {
+			ScrollTo(selAndLine.topLine);
+			sel = Selection(selAndLine.selection);
 			if (sel.IsRectangular()) {
 				const size_t mainForRectangular = sel.Main();
 				// Reconstitute ranges from rectangular range
