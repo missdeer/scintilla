@@ -81,22 +81,19 @@ void SelectionPosition::MoveForInsertDelete(bool insertion, Sci::Position startC
 bool SelectionPosition::operator >(const SelectionPosition &other) const noexcept {
 	if (position == other.position)
 		return virtualSpace > other.virtualSpace;
-	else
-		return position > other.position;
+	return position > other.position;
 }
 
 bool SelectionPosition::operator <=(const SelectionPosition &other) const noexcept {
-	if (position == other.position && virtualSpace == other.virtualSpace)
+	if (other == *this)
 		return true;
-	else
-		return other > *this;
+	return other > *this;
 }
 
 bool SelectionPosition::operator >=(const SelectionPosition &other) const noexcept {
-	if (position == other.position && virtualSpace == other.virtualSpace)
+	if (other == *this)
 		return true;
-	else
-		return *this > other;
+	return *this > other;
 }
 
 std::string SelectionPosition::ToString() const {
@@ -215,9 +212,8 @@ bool SelectionRange::Trim(SelectionRange range) noexcept {
 			caret = end;
 		}
 		return Empty();
-	} else {
-		return false;
 	}
+	return false;
 }
 
 void SelectionRange::Truncate(Sci::Position length) noexcept {
@@ -338,9 +334,8 @@ SelectionSegment Selection::Limits() const noexcept {
 SelectionSegment Selection::LimitsForRectangularElseMain() const noexcept {
 	if (IsRectangular()) {
 		return Limits();
-	} else {
-		return ranges[mainRange].AsSegment();
 	}
+	return ranges[mainRange].AsSegment();
 }
 
 size_t Selection::Count() const noexcept {
@@ -375,9 +370,8 @@ const SelectionRange &Selection::RangeMain() const noexcept {
 SelectionPosition Selection::Start() const noexcept {
 	if (IsRectangular()) {
 		return rangeRectangular.Start();
-	} else {
-		return ranges[mainRange].Start();
 	}
+	return ranges[mainRange].Start();
 }
 
 bool Selection::MoveExtends() const noexcept {
