@@ -139,6 +139,16 @@ bool LoadD2D() noexcept {
 	return pIDWriteFactory && pD2DFactory;
 }
 
+HRESULT CreateDCRenderTarget(const D2D1_RENDER_TARGET_PROPERTIES *renderTargetProperties, DCRenderTarget &dcRT) noexcept {
+	dcRT.reset();
+	ID2D1DCRenderTarget *pDCRT{};
+	const HRESULT hr = pD2DFactory->CreateDCRenderTarget(renderTargetProperties, &pDCRT);
+	if (SUCCEEDED(hr) && pDCRT) {
+		dcRT.reset(pDCRT);
+	}
+	return hr;
+}
+
 constexpr D2D_COLOR_F ColorFromColourAlpha(ColourRGBA colour) noexcept {
 	return D2D_COLOR_F{
 		colour.GetRedComponent(),
@@ -2921,15 +2931,14 @@ public:
 			D2D1_ALPHA_MODE_PREMULTIPLIED
 		);
 
-		ID2D1DCRenderTarget *pTarget_ = nullptr;
-		HRESULT hr = pD2DFactory->CreateDCRenderTarget(&drtp, &pTarget_);
-		if (FAILED(hr) || !pTarget_) {
+		DCRenderTarget pTarget;
+		HRESULT hr = CreateDCRenderTarget(&drtp, pTarget);
+		if (FAILED(hr) || !pTarget) {
 			return false;
 		}
-		const std::unique_ptr<ID2D1DCRenderTarget, UnknownReleaser> pTarget(pTarget_);
 
 		const RECT rc = {0, 0, width, height};
-		hr = pTarget_->BindDC(hMemDC, &rc);
+		hr = pTarget->BindDC(hMemDC, &rc);
 		if (FAILED(hr)) {
 			return false;
 		}
@@ -3509,8 +3518,8 @@ void ListBoxX::Draw(DRAWITEMSTRUCT *pDrawItem) {
 					D2D1_RENDER_TARGET_USAGE_NONE,
 					D2D1_FEATURE_LEVEL_DEFAULT
 					);
-				ID2D1DCRenderTarget *pDCRT = nullptr;
-				HRESULT hr = pD2DFactory->CreateDCRenderTarget(&props, &pDCRT);
+				DCRenderTarget pDCRT;
+				HRESULT hr = CreateDCRenderTarget(&props, pDCRT);
 				if (SUCCEEDED(hr) && pDCRT) {
 					const long left = pDrawItem->rcItem.left + static_cast<long>(ItemInset.x + ImageInset.x);
 
@@ -3520,13 +3529,12 @@ void ListBoxX::Draw(DRAWITEMSTRUCT *pDrawItem) {
 
 					hr = pDCRT->BindDC(pDrawItem->hDC, &rcItem);
 					if (SUCCEEDED(hr)) {
-						surfaceItem->Init(pDCRT, pDrawItem->hwndItem);
+						surfaceItem->Init(pDCRT.get(), pDrawItem->hwndItem);
 						pDCRT->BeginDraw();
 						const PRectangle rcImage = PRectangle::FromInts(0, 0, images.GetWidth(), rcItem.bottom - rcItem.top);
 						surfaceItem->DrawRGBAImage(rcImage,
 							pimage->GetWidth(), pimage->GetHeight(), pimage->Pixels());
 						pDCRT->EndDraw();
-						ReleaseUnknown(pDCRT);
 					}
 				}
 #endif

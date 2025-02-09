@@ -71,6 +71,11 @@ extern bool LoadD2D() noexcept;
 extern ID2D1Factory *pD2DFactory;
 extern IDWriteFactory *pIDWriteFactory;
 
+using DCRenderTarget = std::unique_ptr<ID2D1DCRenderTarget, UnknownReleaser>;
+using HwndRenderTarget = std::unique_ptr<ID2D1HwndRenderTarget, UnknownReleaser>;
+
+HRESULT CreateDCRenderTarget(const D2D1_RENDER_TARGET_PROPERTIES *renderTargetProperties, DCRenderTarget &dcRT) noexcept;
+
 struct RenderingParams {
 	std::unique_ptr<IDWriteRenderingParams, UnknownReleaser> defaultRenderingParams;
 	std::unique_ptr<IDWriteRenderingParams, UnknownReleaser> customRenderingParams;

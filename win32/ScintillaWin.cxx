@@ -361,6 +361,28 @@ D2D1_SIZE_U GetSizeUFromRect(const RECT &rc, const int scaleFactor) noexcept {
 
 namespace Scintilla::Internal {
 
+#if defined(USE_D2D)
+
+// There may be either a Hwnd or DC render target
+struct RenderTargets {
+	HwndRenderTarget pHwndRT;
+	DCRenderTarget pDCRT;
+	bool valid = true;
+	ID2D1RenderTarget *RenderTarget() const noexcept {
+		if (pHwndRT)
+			return pHwndRT.get();
+		if (pDCRT)
+			return pDCRT.get();
+		return nullptr;
+	}
+	void Release() noexcept {
+		pHwndRT.reset();
+		pDCRT.reset();
+	}
+};
+
+#endif
+
 /**
  */
 class ScintillaWin :
@@ -408,8 +430,7 @@ class ScintillaWin :
 	}
 
 #if defined(USE_D2D)
-	ID2D1RenderTarget *pRenderTarget;
-	bool renderTargetValid;
+	RenderTargets targets;
 	// rendering parameters for current monitor
 	HMONITOR hCurrentMonitor;
 	std::shared_ptr<RenderingParams> renderingParams;
@@ -631,8 +652,6 @@ ScintillaWin::ScintillaWin(HWND hwnd) {
 	styleIdleInQueue = false;
 
 #if defined(USE_D2D)
-	pRenderTarget = nullptr;
-	renderTargetValid = true;
 	hCurrentMonitor = {};
 #endif
 
@@ -678,6 +697,17 @@ void ScintillaWin::Finalise() {
 
 #if defined(USE_D2D)
 
+HRESULT CreateHwndRenderTarget(const D2D1_RENDER_TARGET_PROPERTIES *renderTargetProperties,
+	const D2D1_HWND_RENDER_TARGET_PROPERTIES *hwndRenderTargetProperties, HwndRenderTarget &hwndRT) noexcept {
+	hwndRT.reset();
+	ID2D1HwndRenderTarget *pHwndRT{};
+	const HRESULT hr = pD2DFactory->CreateHwndRenderTarget(renderTargetProperties, hwndRenderTargetProperties, &pHwndRT);
+	if (SUCCEEDED(hr) && pHwndRT) {
+		hwndRT.reset(pHwndRT);
+	}
+	return hr;
+}
+
 bool ScintillaWin::UpdateRenderingParams(bool force) noexcept {
 	if (!renderingParams) {
 		try {
@@ -716,11 +746,11 @@ bool ScintillaWin::UpdateRenderingParams(bool force) noexcept {
 }
 
 void ScintillaWin::EnsureRenderTarget(HDC hdc) {
-	if (!renderTargetValid) {
+	if (!targets.valid) {
 		DropRenderTarget();
-		renderTargetValid = true;
+		targets.valid = true;
 	}
-	if (!pRenderTarget) {
+	if (!targets.RenderTarget()) {
 		HWND hw = MainHWND();
 		const RECT rc = GetClientRect(hw);
 
@@ -737,13 +767,10 @@ void ScintillaWin::EnsureRenderTarget(HDC hdc) {
 			drtp.pixelFormat = D2D1::PixelFormat(DXGI_FORMAT_B8G8R8A8_UNORM,
 				D2D1_ALPHA_MODE_IGNORE);
 
-			ID2D1DCRenderTarget *pDCRT = nullptr;
-			const HRESULT hr = pD2DFactory->CreateDCRenderTarget(&drtp, &pDCRT);
-			if (SUCCEEDED(hr)) {
-				pRenderTarget = pDCRT;
-			} else {
+			const HRESULT hr = CreateDCRenderTarget(&drtp, targets.pDCRT);
+			if (FAILED(hr)) {
 				Platform::DebugPrintf("Failed CreateDCRenderTarget 0x%lx\n", hr);
-				pRenderTarget = nullptr;
+				targets.Release();
 			}
 
 		} else {
@@ -759,13 +786,10 @@ void ScintillaWin::EnsureRenderTarget(HDC hdc) {
 			dhrtp.presentOptions = (technology == Technology::DirectWriteRetain) ?
 			D2D1_PRESENT_OPTIONS_RETAIN_CONTENTS : D2D1_PRESENT_OPTIONS_NONE;
 
-			ID2D1HwndRenderTarget *pHwndRenderTarget = nullptr;
-			const HRESULT hr = pD2DFactory->CreateHwndRenderTarget(drtp, dhrtp, &pHwndRenderTarget);
-			if (SUCCEEDED(hr)) {
-				pRenderTarget = pHwndRenderTarget;
-			} else {
+			const HRESULT hr = CreateHwndRenderTarget(&drtp, &dhrtp, targets.pHwndRT);
+			if (FAILED(hr)) {
 				Platform::DebugPrintf("Failed CreateHwndRenderTarget 0x%lx\n", hr);
-				pRenderTarget = nullptr;
+				targets.Release();
 			}
 		}
 		// Pixmaps were created to be compatible with previous render target so
@@ -773,9 +797,9 @@ void ScintillaWin::EnsureRenderTarget(HDC hdc) {
 		DropGraphics();
 	}
 
-	if ((technology == Technology::DirectWriteDC) && pRenderTarget) {
+	if ((technology == Technology::DirectWriteDC) && targets.pDCRT) {
 		const RECT rcWindow = GetClientRect(MainHWND());
-		const HRESULT hr = static_cast<ID2D1DCRenderTarget*>(pRenderTarget)->BindDC(hdc, &rcWindow);
+		const HRESULT hr = targets.pDCRT->BindDC(hdc, &rcWindow);
 		if (FAILED(hr)) {
 			Platform::DebugPrintf("BindDC failed 0x%lx\n", hr);
 			DropRenderTarget();
@@ -786,7 +810,7 @@ void ScintillaWin::EnsureRenderTarget(HDC hdc) {
 
 void ScintillaWin::DropRenderTarget() noexcept {
 #if defined(USE_D2D)
-	ReleaseUnknown(pRenderTarget);
+	targets.Release();
 #endif
 }
 
@@ -1031,7 +1055,7 @@ bool ScintillaWin::PaintDC(HDC hdc) {
 	} else {
 #if defined(USE_D2D)
 		EnsureRenderTarget(hdc);
-		if (pRenderTarget) {
+		if (ID2D1RenderTarget *pRenderTarget = targets.RenderTarget()) {
 			AutoSurface surfaceWindow(pRenderTarget, this);
 			if (surfaceWindow) {
 				SetRenderingParams(surfaceWindow);
@@ -1560,7 +1584,7 @@ void ScintillaWin::SizeWindow() {
 	if (paintState == PaintState::notPainting) {
 		DropRenderTarget();
 	} else {
-		renderTargetValid = false;
+		targets.valid = false;
 	}
 #endif
 	//Platform::DebugPrintf("Scintilla WM_SIZE %d %d\n", LOWORD(lParam), HIWORD(lParam));
@@ -3694,7 +3718,7 @@ LRESULT PASCAL ScintillaWin::CTWndProc(
 				::BeginPaint(hWnd, &ps);
 				std::unique_ptr<Surface> surfaceWindow(Surface::Allocate(sciThis->technology));
 #if defined(USE_D2D)
-				ID2D1HwndRenderTarget *pCTRenderTarget = nullptr;
+				HwndRenderTarget pCTRenderTarget;
 #endif
 				const RECT rc = GetClientRect(hWnd);
 				if (sciThis->technology == Technology::Default) {
@@ -3719,7 +3743,8 @@ LRESULT PASCAL ScintillaWin::CTWndProc(
 					drtp.usage = D2D1_RENDER_TARGET_USAGE_NONE;
 					drtp.minLevel = D2D1_FEATURE_LEVEL_DEFAULT;
 
-					if (!SUCCEEDED(pD2DFactory->CreateHwndRenderTarget(drtp, dhrtp, &pCTRenderTarget))) {
+					const HRESULT hr = CreateHwndRenderTarget(&drtp, &dhrtp, pCTRenderTarget);
+					if (!SUCCEEDED(hr)) {
 						surfaceWindow->Release();
 						::EndPaint(hWnd, &ps);
 						return 0;
@@ -3727,7 +3752,7 @@ LRESULT PASCAL ScintillaWin::CTWndProc(
 					// If above SUCCEEDED, then pCTRenderTarget not nullptr
 					assert(pCTRenderTarget);
 					if (pCTRenderTarget) {
-						surfaceWindow->Init(pCTRenderTarget, hWnd);
+						surfaceWindow->Init(pCTRenderTarget.get(), hWnd);
 						pCTRenderTarget->BeginDraw();
 					}
 #endif
@@ -3740,9 +3765,6 @@ LRESULT PASCAL ScintillaWin::CTWndProc(
 					pCTRenderTarget->EndDraw();
 #endif
 				surfaceWindow->Release();
-#if defined(USE_D2D)
-				ReleaseUnknown(pCTRenderTarget);
-#endif
 				::EndPaint(hWnd, &ps);
 				return 0;
 			} else if ((iMessage == WM_NCLBUTTONDOWN) || (iMessage == WM_NCLBUTTONDBLCLK)) {
