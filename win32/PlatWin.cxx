@@ -76,8 +76,12 @@ IDWriteFactory *pIDWriteFactory = nullptr;
 ID2D1Factory *pD2DFactory = nullptr;
 D2D1_DRAW_TEXT_OPTIONS d2dDrawTextOptions = D2D1_DRAW_TEXT_OPTIONS_NONE;
 
-static HMODULE hDLLD2D {};
-static HMODULE hDLLDWrite {};
+namespace {
+
+HMODULE hDLLD2D{};
+HMODULE hDLLDWrite{};
+
+}
 
 void LoadD2DOnce() noexcept {
 	DWORD loadLibraryFlags = 0;
@@ -4149,24 +4153,26 @@ void Platform_Initialise(void *hInstance) noexcept {
 	ListBoxX_Register();
 }
 
+namespace {
+
+void ReleaseLibrary(HMODULE &hLib) noexcept {
+	if (hLib) {
+		FreeLibrary(hLib);
+		hLib = {};
+	}
+}
+
+}
+
 void Platform_Finalise(bool fromDllMain) noexcept {
-#if defined(USE_D2D)
 	if (!fromDllMain) {
+#if defined(USE_D2D)
 		ReleaseUnknown(pIDWriteFactory);
 		ReleaseUnknown(pD2DFactory);
-		if (hDLLDWrite) {
-			FreeLibrary(hDLLDWrite);
-			hDLLDWrite = {};
-		}
-		if (hDLLD2D) {
-			FreeLibrary(hDLLD2D);
-			hDLLD2D = {};
-		}
-	}
+		ReleaseLibrary(hDLLDWrite);
+		ReleaseLibrary(hDLLD2D);
 #endif
-	if (!fromDllMain && hDLLShcore) {
-		FreeLibrary(hDLLShcore);
-		hDLLShcore = {};
+		ReleaseLibrary(hDLLShcore);
 	}
 	ListBoxX_Unregister();
 }
