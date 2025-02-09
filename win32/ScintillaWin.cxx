@@ -339,6 +339,24 @@ CLIPFORMAT RegisterClipboardType(LPCWSTR lpszFormat) noexcept {
 	return ::RegisterClipboardFormatW(lpszFormat) & 0xFFFF;
 }
 
+RECT GetClientRect(HWND hwnd) noexcept {
+	RECT rect{};
+	::GetClientRect(hwnd, &rect);
+	return rect;
+}
+
+#if defined(USE_D2D)
+
+D2D1_SIZE_U GetSizeUFromRect(const RECT &rc, const int scaleFactor) noexcept {
+	const long width = rc.right - rc.left;
+	const long height = rc.bottom - rc.top;
+	const UINT32 scaledWidth = width * scaleFactor;
+	const UINT32 scaledHeight = height * scaleFactor;
+	return D2D1::SizeU(scaledWidth, scaledHeight);
+}
+
+#endif
+
 }
 
 namespace Scintilla::Internal {
@@ -697,18 +715,6 @@ bool ScintillaWin::UpdateRenderingParams(bool force) noexcept {
 	return true;
 }
 
-namespace {
-
-D2D1_SIZE_U GetSizeUFromRect(const RECT &rc, const int scaleFactor) noexcept {
-	const long width = rc.right - rc.left;
-	const long height = rc.bottom - rc.top;
-	const UINT32 scaledWidth = width * scaleFactor;
-	const UINT32 scaledHeight = height * scaleFactor;
-	return D2D1::SizeU(scaledWidth, scaledHeight);
-}
-
-}
-
 void ScintillaWin::EnsureRenderTarget(HDC hdc) {
 	if (!renderTargetValid) {
 		DropRenderTarget();
@@ -716,8 +722,7 @@ void ScintillaWin::EnsureRenderTarget(HDC hdc) {
 	}
 	if (!pRenderTarget) {
 		HWND hw = MainHWND();
-		RECT rc;
-		::GetClientRect(hw, &rc);
+		const RECT rc = GetClientRect(hw);
 
 		// Create a Direct2D render target.
 		D2D1_RENDER_TARGET_PROPERTIES drtp {};
@@ -769,8 +774,7 @@ void ScintillaWin::EnsureRenderTarget(HDC hdc) {
 	}
 
 	if ((technology == Technology::DirectWriteDC) && pRenderTarget) {
-		RECT rcWindow;
-		::GetClientRect(MainHWND(), &rcWindow);
+		const RECT rcWindow = GetClientRect(MainHWND());
 		const HRESULT hr = static_cast<ID2D1DCRenderTarget*>(pRenderTarget)->BindDC(hdc, &rcWindow);
 		if (FAILED(hr)) {
 			Platform::DebugPrintf("BindDC failed 0x%lx\n", hr);
@@ -3692,8 +3696,7 @@ LRESULT PASCAL ScintillaWin::CTWndProc(
 #if defined(USE_D2D)
 				ID2D1HwndRenderTarget *pCTRenderTarget = nullptr;
 #endif
-				RECT rc;
-				GetClientRect(hWnd, &rc);
+				const RECT rc = GetClientRect(hWnd);
 				if (sciThis->technology == Technology::Default) {
 					surfaceWindow->Init(ps.hdc, hWnd);
 				} else {
