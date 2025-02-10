@@ -1581,8 +1581,21 @@ PRectangle ScintillaWin::GetClientRectangle() const {
 
 void ScintillaWin::SizeWindow() {
 #if defined(USE_D2D)
+	HRESULT hrResize = E_FAIL;
+
+	if (((technology == Technology::DirectWrite) || (technology == Technology::DirectWriteRetain)) && targets.pHwndRT) {
+		// May be able to just resize the HWND render target
+		const int scaleFactor = GetFirstIntegralMultipleDeviceScaleFactor();
+		const D2D1_SIZE_U pixelSize = ::GetSizeUFromRect(GetClientRect(MainHWND()), scaleFactor);
+		hrResize = targets.pHwndRT->Resize(pixelSize);
+		if (FAILED(hrResize)) {
+			Platform::DebugPrintf("Failed to Resize ID2D1HwndRenderTarget 0x%lx\n", hrResize);
+		}
+	}
 	if (paintState == PaintState::notPainting) {
-		DropRenderTarget();
+		if (FAILED(hrResize)) {
+			DropRenderTarget();
+		}
 	} else {
 		targets.valid = false;
 	}
