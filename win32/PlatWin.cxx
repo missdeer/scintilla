@@ -72,8 +72,8 @@ namespace Scintilla::Internal {
 UINT CodePageFromCharSet(CharacterSet characterSet, UINT documentCodePage) noexcept;
 
 #if defined(USE_D2D)
-IDWriteFactory *pIDWriteFactory = nullptr;
-ID2D1Factory *pD2DFactory = nullptr;
+IDWriteFactory1 *pIDWriteFactory = nullptr;
+ID2D1Factory1 *pD2DFactory = nullptr;
 D2D1_DRAW_TEXT_OPTIONS d2dDrawTextOptions = D2D1_DRAW_TEXT_OPTIONS_NONE;
 
 namespace {
@@ -103,10 +103,11 @@ void LoadD2DOnce() noexcept {
 	hDLLD2D = ::LoadLibraryEx(TEXT("D2D1.DLL"), 0, loadLibraryFlags);
 	D2D1CFSig fnD2DCF = DLLFunction<D2D1CFSig>(hDLLD2D, "D2D1CreateFactory");
 	if (fnD2DCF) {
+		const D2D1_FACTORY_OPTIONS options {};
 		// A multi threaded factory in case Scintilla is used with multiple GUI threads
 		fnD2DCF(D2D1_FACTORY_TYPE_MULTI_THREADED,
-			__uuidof(ID2D1Factory),
-			nullptr,
+			__uuidof(ID2D1Factory1),
+			&options,
 			reinterpret_cast<IUnknown**>(&pD2DFactory));
 	}
 	hDLLDWrite = ::LoadLibraryEx(TEXT("DWRITE.DLL"), 0, loadLibraryFlags);
@@ -123,7 +124,7 @@ void LoadD2DOnce() noexcept {
 			d2dDrawTextOptions = static_cast<D2D1_DRAW_TEXT_OPTIONS>(0x00000004);
 		} else {
 			fnDWCF(DWRITE_FACTORY_TYPE_SHARED,
-				__uuidof(IDWriteFactory),
+				__uuidof(IDWriteFactory1),
 				reinterpret_cast<IUnknown**>(&pIDWriteFactory));
 		}
 	}

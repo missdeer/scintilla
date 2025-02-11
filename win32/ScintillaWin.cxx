@@ -98,6 +98,11 @@
 #include "HanjaDic.h"
 #include "ScintillaWin.h"
 
+// __uuidof is a Microsoft extension but makes COM code neater, so disable warning
+#if defined(__clang__)
+#pragma clang diagnostic ignored "-Wlanguage-extension-token"
+#endif
+
 namespace {
 
 // Two idle messages SC_WIN_IDLE and SC_WORK_IDLE.
@@ -722,15 +727,26 @@ bool ScintillaWin::UpdateRenderingParams(bool force) noexcept {
 		return false;
 	}
 
-	IDWriteRenderingParams *monitorRenderingParams = nullptr;
-	IDWriteRenderingParams *customClearTypeRenderingParams = nullptr;
-	const HRESULT hr = pIDWriteFactory->CreateMonitorRenderingParams(monitor, &monitorRenderingParams);
+	IDWriteRenderingParams *mrpTemp{};
+	HRESULT hr = pIDWriteFactory->CreateMonitorRenderingParams(monitor, &mrpTemp);
+	if (FAILED(hr)) {
+		return false;
+	}
+	std::unique_ptr<IDWriteRenderingParams, UnknownReleaser> upMrp(mrpTemp);
+
+	// Cast to IDWriteRenderingParams1 so can call GetGrayscaleEnhancedContrast
+	WriteRenderingParams monitorRenderingParams{};
+	hr = UniquePtrFromQI(upMrp.get(), __uuidof(IDWriteRenderingParams1), monitorRenderingParams);
+
+	IDWriteRenderingParams1 *customClearTypeRenderingParams{};
 	UINT clearTypeContrast = 0;
-	if (SUCCEEDED(hr) && ::SystemParametersInfo(SPI_GETFONTSMOOTHINGCONTRAST, 0, &clearTypeContrast, 0) != 0) {
+	if (SUCCEEDED(hr) && monitorRenderingParams &&
+		::SystemParametersInfo(SPI_GETFONTSMOOTHINGCONTRAST, 0, &clearTypeContrast, 0) != 0) {
 		if (clearTypeContrast >= 1000 && clearTypeContrast <= 2200) {
 			const FLOAT gamma = static_cast<FLOAT>(clearTypeContrast) / 1000.0f;
 			pIDWriteFactory->CreateCustomRenderingParams(gamma,
 				monitorRenderingParams->GetEnhancedContrast(),
+				monitorRenderingParams->GetGrayscaleEnhancedContrast(),
 				monitorRenderingParams->GetClearTypeLevel(),
 				monitorRenderingParams->GetPixelGeometry(),
 				monitorRenderingParams->GetRenderingMode(),
@@ -740,7 +756,7 @@ bool ScintillaWin::UpdateRenderingParams(bool force) noexcept {
 
 	hCurrentMonitor = monitor;
 	deviceScaleFactor = Internal::GetDeviceScaleFactorWhenGdiScalingActive(hRootWnd);
-	renderingParams->defaultRenderingParams.reset(monitorRenderingParams);
+	renderingParams->defaultRenderingParams = std::move(monitorRenderingParams);
 	renderingParams->customRenderingParams.reset(customClearTypeRenderingParams);
 	return true;
 }
