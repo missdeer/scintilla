@@ -45,6 +45,7 @@
 
 #if defined(USE_D2D)
 #include <d2d1_1.h>
+#include <d3d11_1.h>
 #include <dwrite_1.h>
 #endif
 
@@ -79,7 +80,10 @@ D2D1_DRAW_TEXT_OPTIONS d2dDrawTextOptions = D2D1_DRAW_TEXT_OPTIONS_NONE;
 namespace {
 
 HMODULE hDLLD2D{};
+HMODULE hDLLD3D{};
 HMODULE hDLLDWrite{};
+
+PFN_D3D11_CREATE_DEVICE fnDCD {};
 
 }
 
@@ -128,6 +132,77 @@ void LoadD2DOnce() noexcept {
 				reinterpret_cast<IUnknown**>(&pIDWriteFactory));
 		}
 	}
+
+	hDLLD3D = ::LoadLibraryEx(TEXT("D3D11.DLL"), 0, loadLibraryFlags);
+	if (!hDLLD3D) {
+		Platform::DebugPrintf("Direct3D not loaded\n");
+	}
+	fnDCD = DLLFunction<PFN_D3D11_CREATE_DEVICE>(hDLLD3D, "D3D11CreateDevice");
+	if (!fnDCD) {
+		Platform::DebugPrintf("Direct3D does not have D3D11CreateDevice\n");
+	}
+}
+
+HRESULT CreateD3D(D3D11Device &device, D3D11DeviceContext &context) noexcept {
+	device.reset();
+	context.reset();
+	if (!fnDCD) {
+		return E_FAIL;
+	}
+
+	const D3D_FEATURE_LEVEL featureLevels[] = {
+		D3D_FEATURE_LEVEL_11_1,
+		D3D_FEATURE_LEVEL_11_0,
+		D3D_FEATURE_LEVEL_10_1,
+		D3D_FEATURE_LEVEL_10_0,
+		D3D_FEATURE_LEVEL_9_3,
+		D3D_FEATURE_LEVEL_9_2,
+		D3D_FEATURE_LEVEL_9_1
+	};
+
+	// Create device and context.
+	// Try for a hardware device but, if that fails, fall back to the Warp software rasterizer.
+	D3D_FEATURE_LEVEL returnedFeatureLevel{};
+	ID3D11Device *pDevice{};
+	ID3D11DeviceContext *pContext{};
+	HRESULT hr = S_OK;
+	const D3D_DRIVER_TYPE typesToTry[] = { D3D_DRIVER_TYPE_HARDWARE, D3D_DRIVER_TYPE_WARP };
+	for (const D3D_DRIVER_TYPE type : typesToTry) {
+		hr = fnDCD(nullptr,
+			type,
+			0,
+			D3D11_CREATE_DEVICE_BGRA_SUPPORT,
+			featureLevels,
+			ARRAYSIZE(featureLevels),
+			D3D11_SDK_VERSION,
+			&pDevice,
+			&returnedFeatureLevel,
+			&pContext);
+		if (SUCCEEDED(hr))
+			break;
+	}
+	if (FAILED(hr)) {
+		Platform::DebugPrintf("Failed to create D3D11 device and context 0x%lx\n", hr);
+		return hr;
+	}
+
+	// Ensure released
+	std::unique_ptr<ID3D11Device, UnknownReleaser> upDevice(pDevice);
+	std::unique_ptr<ID3D11DeviceContext, UnknownReleaser> upContext(pContext);
+
+	// Convert from D3D11 to D3D11.1
+	hr = UniquePtrFromQI(upDevice.get(), __uuidof(ID3D11Device1), device);
+	if (FAILED(hr)) {
+		Platform::DebugPrintf("Failed to create D3D11.1 device 0x%lx\n", hr);
+		return hr;
+	}
+	hr = UniquePtrFromQI(upContext.get(), __uuidof(ID3D11DeviceContext1), context);
+	if (FAILED(hr)) {
+		// Either both device and context or neither
+		device.reset();
+		Platform::DebugPrintf("Failed to create D3D11.1 device context 0x%lx\n", hr);
+	}
+	return hr;
 }
 
 bool LoadD2D() noexcept {
@@ -4112,7 +4187,7 @@ void Platform::DebugDisplay(const char *s) noexcept {
 	::OutputDebugStringA(s);
 }
 
-//#define TRACE
+#define TRACE
 
 #ifdef TRACE
 void Platform::DebugPrintf(const char *format, ...) noexcept {
@@ -4179,6 +4254,7 @@ void Platform_Finalise(bool fromDllMain) noexcept {
 		ReleaseUnknown(pIDWriteFactory);
 		ReleaseUnknown(pD2DFactory);
 		ReleaseLibrary(hDLLDWrite);
+		ReleaseLibrary(hDLLD3D);
 		ReleaseLibrary(hDLLD2D);
 #endif
 		ReleaseLibrary(hDLLShcore);

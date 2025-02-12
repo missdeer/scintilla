@@ -605,6 +605,12 @@
 	Serialize selection type and ranges with SCI_GETSELECTIONSERIALIZED and SCI_SETSELECTIONSERIALIZED.
 	</li>
 	<li>
+	For Win32, update Direct2D and DirectWrite interfaces used to 1.1 and add a lower-level approach to calling DirectWrite 1.1
+	by specifying SC_TECHNOLOGY_DIRECT_WRITE_1.
+	Since Windows Vista does not support these API versions, Scintilla o longer supports DirectWrite on Windows Vista and will
+	fall back to using GDI.
+	</li>
+	<li>
 	Fix segmentation of long lexemes to avoid breaking before modifiers like accents that must be drawn with their base letters.
 	</li>
 	<li>

@@ -49,6 +49,7 @@
 
 #if defined(USE_D2D)
 #include <d2d1_1.h>
+#include <d3d11_1.h>
 #include <dwrite_1.h>
 #endif
 
@@ -372,19 +373,74 @@ namespace Scintilla::Internal {
 struct RenderTargets {
 	HwndRenderTarget pHwndRT;
 	DCRenderTarget pDCRT;
+	D2DeviceContext pDeviceContext;
 	bool valid = true;
 	ID2D1RenderTarget *RenderTarget() const noexcept {
 		if (pHwndRT)
 			return pHwndRT.get();
 		if (pDCRT)
 			return pDCRT.get();
+		if (pDeviceContext)
+			return pDeviceContext.get();
 		return nullptr;
 	}
 	void Release() noexcept {
 		pHwndRT.reset();
 		pDCRT.reset();
+		pDeviceContext.reset();
 	}
 };
+
+using D2D1Device = std::unique_ptr<ID2D1Device, UnknownReleaser>;
+using DXGIDevice = std::unique_ptr<IDXGIDevice, UnknownReleaser>;
+
+// These resources are device-dependent but not window-dependent
+struct DirectDevice {
+	D3D11Device pDirect3DDevice;
+	D3D11DeviceContext pDirect3DContext;
+	D2D1Device pDirect2DDevice;
+	DXGIDevice pDXGIDevice;
+
+	void Release() noexcept;
+	HRESULT CreateDevice() noexcept;
+};
+
+void DirectDevice::Release() noexcept {
+	pDirect3DDevice.reset();
+	pDirect3DContext.reset();
+	pDirect2DDevice.reset();
+	pDXGIDevice.reset();
+}
+
+HRESULT DirectDevice::CreateDevice() noexcept {
+	if (pDirect2DDevice) {	// Must be released before creation
+		return E_FAIL;
+	}
+
+	HRESULT hr = CreateD3D(pDirect3DDevice, pDirect3DContext);
+	if (FAILED(hr)) {
+		Platform::DebugPrintf("Failed to create D3D device 0x%lx\n", hr);
+		return hr;
+	}
+
+	hr = UniquePtrFromQI(pDirect3DDevice.get(), __uuidof(IDXGIDevice), pDXGIDevice);
+	if (FAILED(hr)) {
+		Platform::DebugPrintf("Failed to create DXGI device 0x%lx\n", hr);
+		return hr;
+	}
+
+	ID2D1Device *pDirect2DDevice_{};
+	hr = pD2DFactory->CreateDevice(pDXGIDevice.get(), &pDirect2DDevice_);
+	if (FAILED(hr)) {
+		Platform::DebugPrintf("Failed to create D2D device 0x%lx\n", hr);
+		return hr;
+	}
+	pDirect2DDevice.reset(pDirect2DDevice_);
+
+	return S_OK;
+}
+
+using DXGISwapChain = std::unique_ptr<IDXGISwapChain1, UnknownReleaser>;
 
 #endif
 
@@ -435,6 +491,8 @@ class ScintillaWin :
 	}
 
 #if defined(USE_D2D)
+	DirectDevice device;
+	DXGISwapChain pDXGISwapChain;
 	RenderTargets targets;
 	// rendering parameters for current monitor
 	HMONITOR hCurrentMonitor;
@@ -452,6 +510,10 @@ class ScintillaWin :
 	void Finalise() override;
 #if defined(USE_D2D)
 	bool UpdateRenderingParams(bool force) noexcept;
+	HRESULT Create3D() noexcept;
+	void CreateRenderTarget();
+	HRESULT SetBackBuffer(HWND hwnd, IDXGISwapChain1 *pSwapChain);
+	HRESULT CreateSwapChain(HWND hwnd);
 	void EnsureRenderTarget(HDC hdc);
 #endif
 	void DropRenderTarget() noexcept;
@@ -713,6 +775,16 @@ HRESULT CreateHwndRenderTarget(const D2D1_RENDER_TARGET_PROPERTIES *renderTarget
 	return hr;
 }
 
+HRESULT CreateDeviceContext(ID2D1Device *pDirect2DDevice, D2DeviceContext &deviceContext) noexcept {
+	deviceContext.reset();
+	ID2D1DeviceContext *pD2DC{};
+	const HRESULT hr = pDirect2DDevice->CreateDeviceContext(D2D1_DEVICE_CONTEXT_OPTIONS_NONE, &pD2DC);
+	if (SUCCEEDED(hr) && pD2DC) {
+		deviceContext.reset(pD2DC);
+	}
+	return hr;
+}
+
 bool ScintillaWin::UpdateRenderingParams(bool force) noexcept {
 	if (!renderingParams) {
 		try {
@@ -761,59 +833,171 @@ bool ScintillaWin::UpdateRenderingParams(bool force) noexcept {
 	return true;
 }
 
+HRESULT ScintillaWin::Create3D() noexcept {
+	if (device.pDirect2DDevice) {
+		return S_OK;
+	}
+	targets.Release();
+	pDXGISwapChain.reset();
+	device.Release();
+	const HRESULT hr = device.CreateDevice();
+	if (FAILED(hr)) {
+		device.Release();
+	}
+	return hr;
+}
+
+void ScintillaWin::CreateRenderTarget() {
+	HWND hw = MainHWND();
+	const RECT rc = GetClientRect(hw);
+
+	// Create a Direct2D render target.
+	D2D1_RENDER_TARGET_PROPERTIES drtp{};
+	drtp.type = D2D1_RENDER_TARGET_TYPE_DEFAULT;
+	drtp.usage = D2D1_RENDER_TARGET_USAGE_NONE;
+	drtp.minLevel = D2D1_FEATURE_LEVEL_DEFAULT;
+
+	if (technology == Technology::DirectWriteDC) {
+		drtp.dpiX = 96.f;
+		drtp.dpiY = 96.f;
+		// Explicit pixel format needed.
+		drtp.pixelFormat = D2D1::PixelFormat(DXGI_FORMAT_B8G8R8A8_UNORM,
+			D2D1_ALPHA_MODE_IGNORE);
+
+		const HRESULT hr = CreateDCRenderTarget(&drtp, targets.pDCRT);
+		if (FAILED(hr)) {
+			Platform::DebugPrintf("Failed CreateDCRenderTarget 0x%lx\n", hr);
+			targets.Release();
+		}
+
+	} else if (technology == Technology::DirectWrite1) {
+		HRESULT hr = Create3D();	// Need pDirect2DDevice
+		if (SUCCEEDED(hr)) {
+			hr = CreateDeviceContext(device.pDirect2DDevice.get(), targets.pDeviceContext);
+			if (FAILED(hr)) {
+				Platform::DebugPrintf("Failed CreateDeviceContext 0x%lx\n", hr);
+			} else {
+				hr = CreateSwapChain(hw);
+				if (FAILED(hr)) {
+					Platform::DebugPrintf("Failed CreateSwapChain 0x%lx\n", hr);
+					targets.Release();
+				}
+			}
+		}
+
+	} else { // DirectWrite or DirectWriteRetain
+		const int integralDeviceScaleFactor = GetFirstIntegralMultipleDeviceScaleFactor();
+		drtp.dpiX = 96.f * integralDeviceScaleFactor;
+		drtp.dpiY = 96.f * integralDeviceScaleFactor;
+		drtp.pixelFormat = D2D1::PixelFormat(DXGI_FORMAT_UNKNOWN,
+			D2D1_ALPHA_MODE_UNKNOWN);
+
+		D2D1_HWND_RENDER_TARGET_PROPERTIES dhrtp{};
+		dhrtp.hwnd = hw;
+		dhrtp.pixelSize = ::GetSizeUFromRect(rc, integralDeviceScaleFactor);
+		dhrtp.presentOptions = (technology == Technology::DirectWriteRetain) ?
+			D2D1_PRESENT_OPTIONS_RETAIN_CONTENTS : D2D1_PRESENT_OPTIONS_NONE;
+
+		const HRESULT hr = CreateHwndRenderTarget(&drtp, &dhrtp, targets.pHwndRT);
+		if (FAILED(hr)) {
+			Platform::DebugPrintf("Failed CreateHwndRenderTarget 0x%lx\n", hr);
+			targets.Release();
+		}
+
+	}
+}
+
+HRESULT ScintillaWin::SetBackBuffer(HWND hwnd, IDXGISwapChain1 *pSwapChain) {
+	assert(targets.pDeviceContext);
+	// Back buffer as an IDXGISurface
+	IDXGISurface *dxgiBackBuffer_{};
+	HRESULT hr = pSwapChain->GetBuffer(0, IID_PPV_ARGS(&dxgiBackBuffer_));
+	if (FAILED(hr))
+		return hr;
+	std::unique_ptr<IDXGISurface, UnknownReleaser> dxgiBackBuffer(dxgiBackBuffer_);
+
+	const FLOAT dpiX = static_cast<FLOAT>(DpiForWindow(hwnd));
+	const FLOAT dpiY = dpiX;
+
+	// Direct2D bitmap linked to Direct3D texture through DXGI back buffer
+	const D2D1_BITMAP_PROPERTIES1 bitmapProperties =
+		D2D1::BitmapProperties1(D2D1_BITMAP_OPTIONS_TARGET | D2D1_BITMAP_OPTIONS_CANNOT_DRAW,
+			D2D1::PixelFormat(DXGI_FORMAT_B8G8R8A8_UNORM, D2D1_ALPHA_MODE_IGNORE), dpiX, dpiY);
+	ID2D1Bitmap1 *pDirect2DBackBuffer{};
+	hr = targets.pDeviceContext->CreateBitmapFromDxgiSurface(dxgiBackBuffer.get(), &bitmapProperties, &pDirect2DBackBuffer);
+	if (FAILED(hr))
+		return hr;
+
+	// Bitmap is render target
+	targets.pDeviceContext->SetTarget(pDirect2DBackBuffer);
+	ReleaseUnknown(pDirect2DBackBuffer);
+
+	return S_OK;
+}
+
+HRESULT ScintillaWin::CreateSwapChain(HWND hwnd) {
+	// Sets pDXGISwapChain but only when each call succeeds
+	// Needs pDXGIDevice, pDirect3DDevice
+	pDXGISwapChain.reset();
+	assert(device.pDXGIDevice);
+
+	// At each stage, place object in a unique_ptr to ensure release occurs
+
+	IDXGIAdapter *dxgiAdapter_{};
+	HRESULT hr = device.pDXGIDevice->GetAdapter(&dxgiAdapter_);
+	if (FAILED(hr))
+		return hr;
+	std::unique_ptr<IDXGIAdapter, UnknownReleaser> dxgiAdapter(dxgiAdapter_);
+
+	IDXGIFactory2 *dxgiFactory_{};
+	hr = dxgiAdapter->GetParent(IID_PPV_ARGS(&dxgiFactory_));
+	if (FAILED(hr))
+		return hr;
+	std::unique_ptr<IDXGIFactory2, UnknownReleaser> dxgiFactory(dxgiFactory_);
+
+	DXGI_SWAP_CHAIN_DESC1 swapChainDesc{};
+	swapChainDesc.Width = 0;
+	swapChainDesc.Height = 0;
+	swapChainDesc.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
+	swapChainDesc.Stereo = false;
+	swapChainDesc.SampleDesc.Count = 1;
+	swapChainDesc.SampleDesc.Quality = 0;
+	swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
+	swapChainDesc.BufferCount = 2;
+	swapChainDesc.Scaling = DXGI_SCALING_STRETCH;
+	swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;
+	swapChainDesc.Flags = 0;
+
+	// DXGI swap chain for window
+	IDXGISwapChain1 *pSwapChain_{};
+	hr = dxgiFactory->CreateSwapChainForHwnd(device.pDirect3DDevice.get(), hwnd, &swapChainDesc,
+		nullptr, nullptr, &pSwapChain_);
+	if (FAILED(hr))
+		return hr;
+	DXGISwapChain pSwapChain(pSwapChain_);
+
+	hr = SetBackBuffer(hwnd, pSwapChain.get());
+	if (FAILED(hr))
+		return hr;
+
+	// All successful so export swap chain for later presentation 
+	pDXGISwapChain = std::move(pSwapChain);
+	return S_OK;
+}
+
 void ScintillaWin::EnsureRenderTarget(HDC hdc) {
 	if (!targets.valid) {
 		DropRenderTarget();
 		targets.valid = true;
 	}
 	if (!targets.RenderTarget()) {
-		HWND hw = MainHWND();
-		const RECT rc = GetClientRect(hw);
-
-		// Create a Direct2D render target.
-		D2D1_RENDER_TARGET_PROPERTIES drtp {};
-		drtp.type = D2D1_RENDER_TARGET_TYPE_DEFAULT;
-		drtp.usage = D2D1_RENDER_TARGET_USAGE_NONE;
-		drtp.minLevel = D2D1_FEATURE_LEVEL_DEFAULT;
-
-		if (technology == Technology::DirectWriteDC) {
-			drtp.dpiX = 96.f;
-			drtp.dpiY = 96.f;
-			// Explicit pixel format needed.
-			drtp.pixelFormat = D2D1::PixelFormat(DXGI_FORMAT_B8G8R8A8_UNORM,
-				D2D1_ALPHA_MODE_IGNORE);
-
-			const HRESULT hr = CreateDCRenderTarget(&drtp, targets.pDCRT);
-			if (FAILED(hr)) {
-				Platform::DebugPrintf("Failed CreateDCRenderTarget 0x%lx\n", hr);
-				targets.Release();
-			}
-
-		} else {
-			const int integralDeviceScaleFactor = GetFirstIntegralMultipleDeviceScaleFactor();
-			drtp.dpiX = 96.f * integralDeviceScaleFactor;
-			drtp.dpiY = 96.f * integralDeviceScaleFactor;
-			drtp.pixelFormat = D2D1::PixelFormat(DXGI_FORMAT_UNKNOWN,
-				D2D1_ALPHA_MODE_UNKNOWN);
-
-			D2D1_HWND_RENDER_TARGET_PROPERTIES dhrtp {};
-			dhrtp.hwnd = hw;
-			dhrtp.pixelSize = ::GetSizeUFromRect(rc, integralDeviceScaleFactor);
-			dhrtp.presentOptions = (technology == Technology::DirectWriteRetain) ?
-			D2D1_PRESENT_OPTIONS_RETAIN_CONTENTS : D2D1_PRESENT_OPTIONS_NONE;
-
-			const HRESULT hr = CreateHwndRenderTarget(&drtp, &dhrtp, targets.pHwndRT);
-			if (FAILED(hr)) {
-				Platform::DebugPrintf("Failed CreateHwndRenderTarget 0x%lx\n", hr);
-				targets.Release();
-			}
-		}
+		CreateRenderTarget();
 		// Pixmaps were created to be compatible with previous render target so
 		// need to be recreated.
 		DropGraphics();
 	}
 
-	if ((technology == Technology::DirectWriteDC) && targets.pDCRT) {
+	if ((technology == Technology::DirectWriteDC) && targets.pDCRT) {	// DC RenderTarget needs binding
 		const RECT rcWindow = GetClientRect(MainHWND());
 		const HRESULT hr = targets.pDCRT->BindDC(hdc, &rcWindow);
 		if (FAILED(hr)) {
@@ -1070,6 +1254,11 @@ bool ScintillaWin::PaintDC(HDC hdc) {
 		}
 	} else {
 #if defined(USE_D2D)
+		// RefreshStyleData may set scroll bars and resize the window.
+		// Avoid issues resizing inside Paint when calling IDXGISwapChain1->ResizeBuffers
+		// with committed resources by refreshing the style data first.
+		RefreshStyleData();
+
 		EnsureRenderTarget(hdc);
 		if (ID2D1RenderTarget *pRenderTarget = targets.RenderTarget()) {
 			AutoSurface surfaceWindow(pRenderTarget, this);
@@ -1082,6 +1271,14 @@ bool ScintillaWin::PaintDC(HDC hdc) {
 				if (hr == static_cast<HRESULT>(D2DERR_RECREATE_TARGET)) {
 					DropRenderTarget();
 					return false;
+				}
+				if ((technology == Technology::DirectWrite1) && pDXGISwapChain) {
+					const DXGI_PRESENT_PARAMETERS parameters{};
+					const HRESULT hrPresent = pDXGISwapChain->Present1(1, 0, &parameters);
+					if (FAILED(hrPresent)) {
+						DropRenderTarget();
+						return false;
+					}
 				}
 			}
 		}
@@ -1596,9 +1793,9 @@ PRectangle ScintillaWin::GetClientRectangle() const {
 }
 
 void ScintillaWin::SizeWindow() {
+	rectangleClient = wMain.GetClientPosition();
 #if defined(USE_D2D)
 	HRESULT hrResize = E_FAIL;
-
 	if (((technology == Technology::DirectWrite) || (technology == Technology::DirectWriteRetain)) && targets.pHwndRT) {
 		// May be able to just resize the HWND render target
 		const int scaleFactor = GetFirstIntegralMultipleDeviceScaleFactor();
@@ -1608,16 +1805,25 @@ void ScintillaWin::SizeWindow() {
 			Platform::DebugPrintf("Failed to Resize ID2D1HwndRenderTarget 0x%lx\n", hrResize);
 		}
 	}
-	if (paintState == PaintState::notPainting) {
-		if (FAILED(hrResize)) {
-			DropRenderTarget();
+	if ((technology == Technology::DirectWrite1) && pDXGISwapChain && targets.pDeviceContext &&
+		(paintState == PaintState::notPainting)) {
+		targets.pDeviceContext->SetTarget(NULL);	// ResizeBuffers fails if bitmap still owned by swap chain
+		hrResize = pDXGISwapChain->ResizeBuffers(0, 0, 0, DXGI_FORMAT_UNKNOWN, 0);
+		if (SUCCEEDED(hrResize)) {
+			hrResize = SetBackBuffer(MainHWND(), pDXGISwapChain.get());
+		} else {
+			Platform::DebugPrintf("Failed ResizeBuffers 0x%lx\n", hrResize);
 		}
-	} else {
-		targets.valid = false;
+	}
+	if (FAILED(hrResize)) {
+		if (paintState == PaintState::notPainting) {
+			DropRenderTarget();
+		} else {
+			targets.valid = false;
+		}
 	}
 #endif
 	//Platform::DebugPrintf("Scintilla WM_SIZE %d %d\n", LOWORD(lParam), HIWORD(lParam));
-	rectangleClient = wMain.GetClientPosition();
 	ChangeSize();
 }
 
@@ -2032,7 +2238,8 @@ sptr_t ScintillaWin::SciMessage(Message iMessage, uptr_t wParam, sptr_t lParam) 
 			(technologyNew == Technology::Default) ||
 			(technologyNew == Technology::DirectWriteRetain) ||
 			(technologyNew == Technology::DirectWriteDC) ||
-			(technologyNew == Technology::DirectWrite)) {
+			(technologyNew == Technology::DirectWrite) ||
+			(technologyNew == Technology::DirectWrite1)) {
 			if (technology != technologyNew) {
 				if (technologyNew > Technology::Default) {
 #if defined(USE_D2D)
