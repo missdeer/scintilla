@@ -4187,7 +4187,7 @@ void Platform::DebugDisplay(const char *s) noexcept {
 	::OutputDebugStringA(s);
 }
 
-#define TRACE
+//#define TRACE
 
 #ifdef TRACE
 void Platform::DebugPrintf(const char *format, ...) noexcept {
