@@ -355,6 +355,13 @@ void LineLayout::WrapLine(const Document *pdoc, Sci::Position posLineStart, Wrap
 			Sci::Position lastGoodBreak = p;
 			if (p > 0) {
 				lastGoodBreak = CharacterBoundary(p, -1);
+				if (CpUtf8 == pdoc->dbcsCodePage) {
+					// Go back before a base character, commonly a letter as modifiers are after the letter they modify
+					std::string_view svWithoutLast(&chars[lastLineStart], CharacterBoundary(p+1, 1) - lastLineStart);
+					if (DiscardLastCombinedCharacter(svWithoutLast) && !svWithoutLast.empty()) {
+						lastGoodBreak = lastLineStart + static_cast<Sci::Position>(svWithoutLast.length());
+					}
+				}
 			}
 			if (wrapState != Wrap::Char) {
 				Sci::Position pos = lastGoodBreak;
