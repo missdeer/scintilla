@@ -355,14 +355,8 @@ void LineLayout::WrapLine(const Document *pdoc, Sci::Position posLineStart, Wrap
 			Sci::Position lastGoodBreak = p;
 			if (p > 0) {
 				lastGoodBreak = CharacterBoundary(p, -1);
-				if (CpUtf8 == pdoc->dbcsCodePage) {
-					// Go back before a base character, commonly a letter as modifiers are after the letter they modify
-					std::string_view svWithoutLast(&chars[lastLineStart], CharacterBoundary(p+1, 1) - lastLineStart);
-					if (DiscardLastCombinedCharacter(svWithoutLast) && !svWithoutLast.empty()) {
-						lastGoodBreak = lastLineStart + static_cast<Sci::Position>(svWithoutLast.length());
-					}
-				}
 			}
+			bool foundBreak = false;
 			if (wrapState != Wrap::Char) {
 				Sci::Position pos = lastGoodBreak;
 				while (pos > lastLineStart) {
@@ -377,12 +371,23 @@ void LineLayout::WrapLine(const Document *pdoc, Sci::Position posLineStart, Wrap
 				}
 				if (pos > lastLineStart) {
 					lastGoodBreak = pos;
+					foundBreak = true;
 				}
 			}
-			if (lastGoodBreak == lastLineStart) {
-				// Try moving to start of last character
-				if (p > 0) {
-					lastGoodBreak = CharacterBoundary(p, -1);
+			if (!foundBreak) {
+				if (CpUtf8 == pdoc->dbcsCodePage) {
+					// Go back before a base character, commonly a letter as modifiers are after the letter they modify
+					std::string_view svWithoutLast(&chars[lastLineStart], CharacterBoundary(p + 1, 1) - lastLineStart);
+					if (DiscardLastCombinedCharacter(svWithoutLast) && !svWithoutLast.empty()) {
+						lastGoodBreak = lastLineStart + static_cast<Sci::Position>(svWithoutLast.length());
+						foundBreak = true;
+					}
+				}
+				if (!foundBreak) {
+					// Try moving to start of last character
+					if (p > 0) {
+						lastGoodBreak = CharacterBoundary(p, -1);
+					}
 				}
 				if (lastGoodBreak == lastLineStart) {
 					// Ensure at least one character on line.
