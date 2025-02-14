@@ -273,6 +273,8 @@ struct CharacterExtracted {
 	}
 };
 
+bool DiscardLastCombinedCharacter(std::string_view &text) noexcept;
+
 /**
  */
 class Document : PerLine, public Scintilla::IDocument, public Scintilla::ILoader, public Scintilla::IDocumentEditable {

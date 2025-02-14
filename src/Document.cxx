@@ -1257,7 +1257,25 @@ constexpr bool IsBaseOfGrapheme(CharacterCategory cc) {
 	}
 }
 
-bool DiscardLastCombinedCharacter(std::string_view &text) noexcept {
+CharacterExtracted LastCharacter(std::string_view text) noexcept {
+	if (text.empty())
+		return { unicodeReplacementChar, 1 };
+	const size_t length = text.length();
+	size_t trail = length;
+	while ((trail > 0) && (length - trail < UTF8MaxBytes) && UTF8IsTrailByte(text[trail - 1]))
+		trail--;
+	const size_t start = (trail > 0) ? trail - 1 : trail;
+	const int utf8status = UTF8Classify(text.substr(start));
+	if (utf8status & UTF8MaskInvalid) {
+		return { unicodeReplacementChar, 1 };
+	}
+	return { static_cast<unsigned int>(UnicodeFromUTF8(text.substr(start))),
+		static_cast<unsigned int>(utf8status & UTF8MaskWidth) };
+}
+
+}
+
+bool Scintilla::Internal::DiscardLastCombinedCharacter(std::string_view &text) noexcept {
 	// Handle the simple common case where a base character may be followed by
 	// accents and similar marks by discarding until start of base character.
 	// 
@@ -1268,7 +1286,8 @@ bool DiscardLastCombinedCharacter(std::string_view &text) noexcept {
 	// Modified to move Sk (Symbol Modifier) from ccs-base to ccs-extend to preserve modified emoji
 
 	std::string_view truncated = text;
-	while (truncated.length() > (UTF8MaxBytes * 2)) {
+	while (truncated.length() > UTF8MaxBytes) {
+		/*
 		// Give up when short
 		std::string_view::iterator it = truncated.end() - 1;
 		// For UTF-8 go back to the start of last character.
@@ -1279,6 +1298,10 @@ bool DiscardLastCombinedCharacter(std::string_view &text) noexcept {
 		const std::string_view svLastCharacter = truncated.substr(truncated.length() - countBytes);
 		const CharacterCategory cc = CategoriseCharacter(UnicodeFromUTF8(svLastCharacter));
 		truncated.remove_suffix(countBytes);
+		*/
+		const CharacterExtracted ce = LastCharacter(truncated);
+		const CharacterCategory cc = CategoriseCharacter(static_cast<int>(ce.character));
+		truncated.remove_suffix(ce.widthBytes);
 		if (IsBaseOfGrapheme(cc)) {
 			text = truncated;
 			return true;
@@ -1286,8 +1309,6 @@ bool DiscardLastCombinedCharacter(std::string_view &text) noexcept {
 	}
 	// No base character found so just leave as is
 	return false;
-}
-
 }
 
 // Need to break text into segments near end but taking into account the
