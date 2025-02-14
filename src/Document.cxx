@@ -1226,7 +1226,7 @@ void DiscardEndFragment(std::string_view &text) noexcept {
 }
 
 constexpr bool IsBaseOfGrapheme(CharacterCategory cc) {
-	// \p{L}\p{N}\p{P}\p{S}\p{Zs}
+	// \p{L}\p{N}\p{P}\p{Sm}\p{Sc}\p{So}\p{Zs}
 	switch (cc) {
 	case ccLu:
 	case ccLl:
@@ -1245,19 +1245,19 @@ constexpr bool IsBaseOfGrapheme(CharacterCategory cc) {
 	case ccPo:
 	case ccSm:
 	case ccSc:
-	case ccSk:
 	case ccSo:
 	case ccZs:
 		return true;
 	default:
 		// ccMn, ccMc, ccMe,
+		// ccSk,
 		// ccZl, ccZp,
 		// ccCc, ccCf, ccCs, ccCo, ccCn
 		return false;
 	}
 }
 
-void DiscardLastCombinedCharacter(std::string_view &text) noexcept {
+bool DiscardLastCombinedCharacter(std::string_view &text) noexcept {
 	// Handle the simple common case where a base character may be followed by
 	// accents and similar marks by discarding until start of base character.
 	// 
@@ -1265,6 +1265,7 @@ void DiscardLastCombinedCharacter(std::string_view &text) noexcept {
 	// combining character sequence = ccs-base? ccs-extend+
 	// ccs-base := [\p{L}\p{N}\p{P}\p{S}\p{Zs}]
 	// ccs-extend := [\p{M}\p{Join_Control}]
+	// Modified to move Sk (Symbol Modifier) from ccs-base to ccs-extend to preserve modified emoji
 
 	std::string_view truncated = text;
 	while (truncated.length() > (UTF8MaxBytes * 2)) {
@@ -1280,10 +1281,11 @@ void DiscardLastCombinedCharacter(std::string_view &text) noexcept {
 		truncated.remove_suffix(countBytes);
 		if (IsBaseOfGrapheme(cc)) {
 			text = truncated;
-			return;
+			return true;
 		}
 	}
 	// No base character found so just leave as is
+	return false;
 }
 
 }
@@ -1313,6 +1315,13 @@ size_t Document::SafeSegment(std::string_view text) const noexcept {
 	}
 
 	if (!dbcsCodePage || dbcsCodePage == CpUtf8) {
+		if (dbcsCodePage) {
+			// UTF-8
+			DiscardEndFragment(text);
+			if (DiscardLastCombinedCharacter(text)) {
+				return text.length();
+			}
+		}
 		// backward iterate for UTF-8 and single byte encoding to find word and punctuation boundary.
 		std::string_view::iterator it = text.end() - 1;
 		const bool punctuation = IsPunctuation(*it);
@@ -1323,14 +1332,7 @@ size_t Document::SafeSegment(std::string_view text) const noexcept {
 			}
 		} while (it != text.begin());
 
-		if (dbcsCodePage) {
-			// UTF-8
-			DiscardEndFragment(text);
-			DiscardLastCombinedCharacter(text);
-			return text.length();
-		} else {
-			return text.length() - 1;
-		}
+		return text.length() - 1;
 	}
 
 	{
