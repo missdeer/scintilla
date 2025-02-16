@@ -71,17 +71,14 @@ extern bool LoadD2D() noexcept;
 extern ID2D1Factory1 *pD2DFactory;
 extern IDWriteFactory1 *pIDWriteFactory;
 
-using DCRenderTarget = std::unique_ptr<ID2D1DCRenderTarget, UnknownReleaser>;
-using HwndRenderTarget = std::unique_ptr<ID2D1HwndRenderTarget, UnknownReleaser>;
-using D2DeviceContext = std::unique_ptr<ID2D1DeviceContext, UnknownReleaser>;
+using DCRenderTarget = ComPtr<ID2D1DCRenderTarget>;
 
-using D3D11Device = std::unique_ptr<ID3D11Device1, UnknownReleaser>;
-using D3D11DeviceContext = std::unique_ptr<ID3D11DeviceContext1, UnknownReleaser>;
+using D3D11Device = ComPtr<ID3D11Device1>;
 
 HRESULT CreateDCRenderTarget(const D2D1_RENDER_TARGET_PROPERTIES *renderTargetProperties, DCRenderTarget &dcRT) noexcept;
-extern HRESULT CreateD3D(D3D11Device &device, D3D11DeviceContext &context) noexcept;
+extern HRESULT CreateD3D(D3D11Device &device) noexcept;
 
-using WriteRenderingParams = std::unique_ptr<IDWriteRenderingParams1, UnknownReleaser>;
+using WriteRenderingParams = ComPtr<IDWriteRenderingParams1>;
 
 struct RenderingParams {
 	WriteRenderingParams defaultRenderingParams;

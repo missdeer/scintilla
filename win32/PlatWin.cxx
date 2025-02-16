@@ -39,6 +39,9 @@
 #include <windowsx.h>
 #include <shellscalingapi.h>
 
+#include <wrl.h>
+using Microsoft::WRL::ComPtr;
+
 #if !defined(DISABLE_D2D)
 #define USE_D2D 1
 #endif
@@ -143,9 +146,8 @@ void LoadD2DOnce() noexcept {
 	}
 }
 
-HRESULT CreateD3D(D3D11Device &device, D3D11DeviceContext &context) noexcept {
-	device.reset();
-	context.reset();
+HRESULT CreateD3D(D3D11Device &device) noexcept {
+	device = nullptr;
 	if (!fnDCD) {
 		return E_FAIL;
 	}
@@ -160,47 +162,34 @@ HRESULT CreateD3D(D3D11Device &device, D3D11DeviceContext &context) noexcept {
 		D3D_FEATURE_LEVEL_9_1
 	};
 
-	// Create device and context.
+	// Create device.
 	// Try for a hardware device but, if that fails, fall back to the Warp software rasterizer.
-	D3D_FEATURE_LEVEL returnedFeatureLevel{};
-	ID3D11Device *pDevice{};
-	ID3D11DeviceContext *pContext{};
+	ComPtr<ID3D11Device> upDevice;
 	HRESULT hr = S_OK;
 	const D3D_DRIVER_TYPE typesToTry[] = { D3D_DRIVER_TYPE_HARDWARE, D3D_DRIVER_TYPE_WARP };
 	for (const D3D_DRIVER_TYPE type : typesToTry) {
 		hr = fnDCD(nullptr,
 			type,
-			0,
+			{},
 			D3D11_CREATE_DEVICE_BGRA_SUPPORT,
 			featureLevels,
 			ARRAYSIZE(featureLevels),
 			D3D11_SDK_VERSION,
-			&pDevice,
-			&returnedFeatureLevel,
-			&pContext);
+			upDevice.GetAddressOf(),
+			nullptr,
+			nullptr);
 		if (SUCCEEDED(hr))
 			break;
 	}
 	if (FAILED(hr)) {
-		Platform::DebugPrintf("Failed to create D3D11 device and context 0x%lx\n", hr);
+		Platform::DebugPrintf("Failed to create D3D11 device 0x%lx\n", hr);
 		return hr;
 	}
-
-	// Ensure released
-	std::unique_ptr<ID3D11Device, UnknownReleaser> upDevice(pDevice);
-	std::unique_ptr<ID3D11DeviceContext, UnknownReleaser> upContext(pContext);
 
 	// Convert from D3D11 to D3D11.1
-	hr = UniquePtrFromQI(upDevice.get(), __uuidof(ID3D11Device1), device);
+	hr = upDevice.As(&device);
 	if (FAILED(hr)) {
 		Platform::DebugPrintf("Failed to create D3D11.1 device 0x%lx\n", hr);
-		return hr;
-	}
-	hr = UniquePtrFromQI(upContext.get(), __uuidof(ID3D11DeviceContext1), context);
-	if (FAILED(hr)) {
-		// Either both device and context or neither
-		device.reset();
-		Platform::DebugPrintf("Failed to create D3D11.1 device context 0x%lx\n", hr);
 	}
 	return hr;
 }
@@ -216,13 +205,7 @@ bool LoadD2D() noexcept {
 }
 
 HRESULT CreateDCRenderTarget(const D2D1_RENDER_TARGET_PROPERTIES *renderTargetProperties, DCRenderTarget &dcRT) noexcept {
-	dcRT.reset();
-	ID2D1DCRenderTarget *pDCRT{};
-	const HRESULT hr = pD2DFactory->CreateDCRenderTarget(renderTargetProperties, &pDCRT);
-	if (SUCCEEDED(hr) && pDCRT) {
-		dcRT.reset(pDCRT);
-	}
-	return hr;
+	return pD2DFactory->CreateDCRenderTarget(renderTargetProperties, dcRT.ReleaseAndGetAddressOf());
 }
 
 constexpr D2D_COLOR_F ColorFromColourAlpha(ColourRGBA colour) noexcept {
@@ -1659,9 +1642,9 @@ void SurfaceD2D::SetFontQuality(FontQuality extraFontFlag) {
 		fontQuality = extraFontFlag;
 		const D2D1_TEXT_ANTIALIAS_MODE aaMode = DWriteMapFontQuality(extraFontFlag);
 		if (aaMode == D2D1_TEXT_ANTIALIAS_MODE_CLEARTYPE && renderingParams->customRenderingParams) {
-			pRenderTarget->SetTextRenderingParams(renderingParams->customRenderingParams.get());
+			pRenderTarget->SetTextRenderingParams(renderingParams->customRenderingParams.Get());
 		} else if (renderingParams->defaultRenderingParams) {
-			pRenderTarget->SetTextRenderingParams(renderingParams->defaultRenderingParams.get());
+			pRenderTarget->SetTextRenderingParams(renderingParams->defaultRenderingParams.Get());
 		}
 		pRenderTarget->SetTextAntialiasMode(aaMode);
 	}
@@ -3050,11 +3033,11 @@ public:
 			return false;
 		}
 
-		if (const BrushSolid pBrushFill = BrushSolidCreate(pTarget.get(), fillColour)) {
+		if (const BrushSolid pBrushFill = BrushSolidCreate(pTarget.Get(), fillColour)) {
 			pTarget->FillGeometry(geometry.get(), pBrushFill.get());
 		}
 
-		if (const BrushSolid pBrushStroke = BrushSolidCreate(pTarget.get(), strokeColour)) {
+		if (const BrushSolid pBrushStroke = BrushSolidCreate(pTarget.Get(), strokeColour)) {
 			pTarget->DrawGeometry(geometry.get(), pBrushStroke.get(), scale);
 		}
 
@@ -3605,7 +3588,7 @@ void ListBoxX::Draw(DRAWITEMSTRUCT *pDrawItem) {
 
 					hr = pDCRT->BindDC(pDrawItem->hDC, &rcItem);
 					if (SUCCEEDED(hr)) {
-						surfaceItem->Init(pDCRT.get(), pDrawItem->hwndItem);
+						surfaceItem->Init(pDCRT.Get(), pDrawItem->hwndItem);
 						pDCRT->BeginDraw();
 						const PRectangle rcImage = PRectangle::FromInts(0, 0, images.GetWidth(), rcItem.bottom - rcItem.top);
 						surfaceItem->DrawRGBAImage(rcImage,

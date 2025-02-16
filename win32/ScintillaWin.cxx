@@ -43,6 +43,9 @@
 #include <zmouse.h>
 #include <ole2.h>
 
+#include <wrl.h>
+using Microsoft::WRL::ComPtr;
+
 #if !defined(DISABLE_D2D)
 #define USE_D2D 1
 #endif
@@ -369,47 +372,44 @@ namespace Scintilla::Internal {
 
 #if defined(USE_D2D)
 
+using HwndRenderTarget = ComPtr<ID2D1HwndRenderTarget>;
+
 // There may be either a Hwnd or DC render target
 struct RenderTargets {
 	HwndRenderTarget pHwndRT;
 	DCRenderTarget pDCRT;
-	D2DeviceContext pDeviceContext;
+	ComPtr<ID2D1DeviceContext> pDeviceContext;
 	bool valid = true;
-	ID2D1RenderTarget *RenderTarget() const noexcept {
+	[[nodiscard]] ID2D1RenderTarget *RenderTarget() const noexcept {
 		if (pHwndRT)
-			return pHwndRT.get();
+			return pHwndRT.Get();
 		if (pDCRT)
-			return pDCRT.get();
+			return pDCRT.Get();
 		if (pDeviceContext)
-			return pDeviceContext.get();
+			return pDeviceContext.Get();
 		return nullptr;
 	}
 	void Release() noexcept {
-		pHwndRT.reset();
-		pDCRT.reset();
-		pDeviceContext.reset();
+		pHwndRT = nullptr;
+		pDCRT = nullptr;
+		pDeviceContext = nullptr;
 	}
 };
-
-using D2D1Device = std::unique_ptr<ID2D1Device, UnknownReleaser>;
-using DXGIDevice = std::unique_ptr<IDXGIDevice, UnknownReleaser>;
 
 // These resources are device-dependent but not window-dependent
 struct DirectDevice {
 	D3D11Device pDirect3DDevice;
-	D3D11DeviceContext pDirect3DContext;
-	D2D1Device pDirect2DDevice;
-	DXGIDevice pDXGIDevice;
+	ComPtr<ID2D1Device> pDirect2DDevice;
+	ComPtr<IDXGIDevice> pDXGIDevice;
 
 	void Release() noexcept;
 	HRESULT CreateDevice() noexcept;
 };
 
 void DirectDevice::Release() noexcept {
-	pDirect3DDevice.reset();
-	pDirect3DContext.reset();
-	pDirect2DDevice.reset();
-	pDXGIDevice.reset();
+	pDirect3DDevice = nullptr;
+	pDirect2DDevice = nullptr;
+	pDXGIDevice = nullptr;
 }
 
 HRESULT DirectDevice::CreateDevice() noexcept {
@@ -417,30 +417,25 @@ HRESULT DirectDevice::CreateDevice() noexcept {
 		return E_FAIL;
 	}
 
-	HRESULT hr = CreateD3D(pDirect3DDevice, pDirect3DContext);
+	HRESULT hr = CreateD3D(pDirect3DDevice);
 	if (FAILED(hr)) {
-		Platform::DebugPrintf("Failed to create D3D device 0x%lx\n", hr);
 		return hr;
 	}
 
-	hr = UniquePtrFromQI(pDirect3DDevice.get(), __uuidof(IDXGIDevice), pDXGIDevice);
+	hr = pDirect3DDevice.As(&pDXGIDevice);
 	if (FAILED(hr)) {
 		Platform::DebugPrintf("Failed to create DXGI device 0x%lx\n", hr);
 		return hr;
 	}
 
-	ID2D1Device *pDirect2DDevice_{};
-	hr = pD2DFactory->CreateDevice(pDXGIDevice.get(), &pDirect2DDevice_);
+	hr = pD2DFactory->CreateDevice(pDXGIDevice.Get(), pDirect2DDevice.ReleaseAndGetAddressOf());
 	if (FAILED(hr)) {
 		Platform::DebugPrintf("Failed to create D2D device 0x%lx\n", hr);
 		return hr;
 	}
-	pDirect2DDevice.reset(pDirect2DDevice_);
 
 	return S_OK;
 }
-
-using DXGISwapChain = std::unique_ptr<IDXGISwapChain1, UnknownReleaser>;
 
 #endif
 
@@ -492,7 +487,7 @@ class ScintillaWin :
 
 #if defined(USE_D2D)
 	DirectDevice device;
-	DXGISwapChain pDXGISwapChain;
+	ComPtr<IDXGISwapChain1> pDXGISwapChain;
 	RenderTargets targets;
 	// rendering parameters for current monitor
 	HMONITOR hCurrentMonitor;
@@ -764,25 +759,13 @@ void ScintillaWin::Finalise() {
 
 #if defined(USE_D2D)
 
+namespace {
+
 HRESULT CreateHwndRenderTarget(const D2D1_RENDER_TARGET_PROPERTIES *renderTargetProperties,
 	const D2D1_HWND_RENDER_TARGET_PROPERTIES *hwndRenderTargetProperties, HwndRenderTarget &hwndRT) noexcept {
-	hwndRT.reset();
-	ID2D1HwndRenderTarget *pHwndRT{};
-	const HRESULT hr = pD2DFactory->CreateHwndRenderTarget(renderTargetProperties, hwndRenderTargetProperties, &pHwndRT);
-	if (SUCCEEDED(hr) && pHwndRT) {
-		hwndRT.reset(pHwndRT);
-	}
-	return hr;
+	return pD2DFactory->CreateHwndRenderTarget(renderTargetProperties, hwndRenderTargetProperties, hwndRT.ReleaseAndGetAddressOf());
 }
 
-HRESULT CreateDeviceContext(ID2D1Device *pDirect2DDevice, D2DeviceContext &deviceContext) noexcept {
-	deviceContext.reset();
-	ID2D1DeviceContext *pD2DC{};
-	const HRESULT hr = pDirect2DDevice->CreateDeviceContext(D2D1_DEVICE_CONTEXT_OPTIONS_NONE, &pD2DC);
-	if (SUCCEEDED(hr) && pD2DC) {
-		deviceContext.reset(pD2DC);
-	}
-	return hr;
 }
 
 bool ScintillaWin::UpdateRenderingParams(bool force) noexcept {
@@ -799,18 +782,17 @@ bool ScintillaWin::UpdateRenderingParams(bool force) noexcept {
 		return false;
 	}
 
-	IDWriteRenderingParams *mrpTemp{};
-	HRESULT hr = pIDWriteFactory->CreateMonitorRenderingParams(monitor, &mrpTemp);
+	ComPtr<IDWriteRenderingParams> upMrp;
+	HRESULT hr = pIDWriteFactory->CreateMonitorRenderingParams(monitor, upMrp.GetAddressOf());
 	if (FAILED(hr)) {
 		return false;
 	}
-	std::unique_ptr<IDWriteRenderingParams, UnknownReleaser> upMrp(mrpTemp);
 
 	// Cast to IDWriteRenderingParams1 so can call GetGrayscaleEnhancedContrast
 	WriteRenderingParams monitorRenderingParams{};
-	hr = UniquePtrFromQI(upMrp.get(), __uuidof(IDWriteRenderingParams1), monitorRenderingParams);
+	hr = upMrp.As(&monitorRenderingParams);
 
-	IDWriteRenderingParams1 *customClearTypeRenderingParams{};
+	WriteRenderingParams customClearTypeRenderingParams;
 	UINT clearTypeContrast = 0;
 	if (SUCCEEDED(hr) && monitorRenderingParams &&
 		::SystemParametersInfo(SPI_GETFONTSMOOTHINGCONTRAST, 0, &clearTypeContrast, 0) != 0) {
@@ -822,14 +804,14 @@ bool ScintillaWin::UpdateRenderingParams(bool force) noexcept {
 				monitorRenderingParams->GetClearTypeLevel(),
 				monitorRenderingParams->GetPixelGeometry(),
 				monitorRenderingParams->GetRenderingMode(),
-				&customClearTypeRenderingParams);
+				customClearTypeRenderingParams.GetAddressOf());
 		}
 	}
 
 	hCurrentMonitor = monitor;
 	deviceScaleFactor = Internal::GetDeviceScaleFactorWhenGdiScalingActive(hRootWnd);
 	renderingParams->defaultRenderingParams = std::move(monitorRenderingParams);
-	renderingParams->customRenderingParams.reset(customClearTypeRenderingParams);
+	renderingParams->customRenderingParams = std::move(customClearTypeRenderingParams);
 	return true;
 }
 
@@ -838,7 +820,7 @@ HRESULT ScintillaWin::Create3D() noexcept {
 		return S_OK;
 	}
 	targets.Release();
-	pDXGISwapChain.reset();
+	pDXGISwapChain = nullptr;
 	device.Release();
 	const HRESULT hr = device.CreateDevice();
 	if (FAILED(hr)) {
@@ -873,7 +855,8 @@ void ScintillaWin::CreateRenderTarget() {
 	} else if (technology == Technology::DirectWrite1) {
 		HRESULT hr = Create3D();	// Need pDirect2DDevice
 		if (SUCCEEDED(hr)) {
-			hr = CreateDeviceContext(device.pDirect2DDevice.get(), targets.pDeviceContext);
+			hr = device.pDirect2DDevice->CreateDeviceContext(D2D1_DEVICE_CONTEXT_OPTIONS_NONE,
+				targets.pDeviceContext.ReleaseAndGetAddressOf());
 			if (FAILED(hr)) {
 				Platform::DebugPrintf("Failed CreateDeviceContext 0x%lx\n", hr);
 			} else {
@@ -910,11 +893,10 @@ void ScintillaWin::CreateRenderTarget() {
 HRESULT ScintillaWin::SetBackBuffer(HWND hwnd, IDXGISwapChain1 *pSwapChain) {
 	assert(targets.pDeviceContext);
 	// Back buffer as an IDXGISurface
-	IDXGISurface *dxgiBackBuffer_{};
-	HRESULT hr = pSwapChain->GetBuffer(0, IID_PPV_ARGS(&dxgiBackBuffer_));
+	ComPtr<IDXGISurface> dxgiBackBuffer;
+	HRESULT hr = pSwapChain->GetBuffer(0, IID_PPV_ARGS(dxgiBackBuffer.GetAddressOf()));
 	if (FAILED(hr))
 		return hr;
-	std::unique_ptr<IDXGISurface, UnknownReleaser> dxgiBackBuffer(dxgiBackBuffer_);
 
 	const FLOAT dpiX = static_cast<FLOAT>(DpiForWindow(hwnd));
 	const FLOAT dpiY = dpiX;
@@ -923,14 +905,13 @@ HRESULT ScintillaWin::SetBackBuffer(HWND hwnd, IDXGISwapChain1 *pSwapChain) {
 	const D2D1_BITMAP_PROPERTIES1 bitmapProperties =
 		D2D1::BitmapProperties1(D2D1_BITMAP_OPTIONS_TARGET | D2D1_BITMAP_OPTIONS_CANNOT_DRAW,
 			D2D1::PixelFormat(DXGI_FORMAT_B8G8R8A8_UNORM, D2D1_ALPHA_MODE_IGNORE), dpiX, dpiY);
-	ID2D1Bitmap1 *pDirect2DBackBuffer{};
-	hr = targets.pDeviceContext->CreateBitmapFromDxgiSurface(dxgiBackBuffer.get(), &bitmapProperties, &pDirect2DBackBuffer);
+	ComPtr<ID2D1Bitmap1> pDirect2DBackBuffer;
+	hr = targets.pDeviceContext->CreateBitmapFromDxgiSurface(dxgiBackBuffer.Get(), &bitmapProperties, pDirect2DBackBuffer.GetAddressOf());
 	if (FAILED(hr))
 		return hr;
 
 	// Bitmap is render target
-	targets.pDeviceContext->SetTarget(pDirect2DBackBuffer);
-	ReleaseUnknown(pDirect2DBackBuffer);
+	targets.pDeviceContext->SetTarget(pDirect2DBackBuffer.Get());
 
 	return S_OK;
 }
@@ -938,22 +919,20 @@ HRESULT ScintillaWin::SetBackBuffer(HWND hwnd, IDXGISwapChain1 *pSwapChain) {
 HRESULT ScintillaWin::CreateSwapChain(HWND hwnd) {
 	// Sets pDXGISwapChain but only when each call succeeds
 	// Needs pDXGIDevice, pDirect3DDevice
-	pDXGISwapChain.reset();
+	pDXGISwapChain = nullptr;
 	assert(device.pDXGIDevice);
 
 	// At each stage, place object in a unique_ptr to ensure release occurs
 
-	IDXGIAdapter *dxgiAdapter_{};
-	HRESULT hr = device.pDXGIDevice->GetAdapter(&dxgiAdapter_);
+	ComPtr<IDXGIAdapter> dxgiAdapter;
+	HRESULT hr = device.pDXGIDevice->GetAdapter(dxgiAdapter.GetAddressOf());
 	if (FAILED(hr))
 		return hr;
-	std::unique_ptr<IDXGIAdapter, UnknownReleaser> dxgiAdapter(dxgiAdapter_);
 
-	IDXGIFactory2 *dxgiFactory_{};
-	hr = dxgiAdapter->GetParent(IID_PPV_ARGS(&dxgiFactory_));
+	ComPtr<IDXGIFactory2> dxgiFactory;
+	hr = dxgiAdapter->GetParent(IID_PPV_ARGS(dxgiFactory.GetAddressOf()));
 	if (FAILED(hr))
 		return hr;
-	std::unique_ptr<IDXGIFactory2, UnknownReleaser> dxgiFactory(dxgiFactory_);
 
 	DXGI_SWAP_CHAIN_DESC1 swapChainDesc{};
 	swapChainDesc.Width = 0;
@@ -969,14 +948,13 @@ HRESULT ScintillaWin::CreateSwapChain(HWND hwnd) {
 	swapChainDesc.Flags = 0;
 
 	// DXGI swap chain for window
-	IDXGISwapChain1 *pSwapChain_{};
-	hr = dxgiFactory->CreateSwapChainForHwnd(device.pDirect3DDevice.get(), hwnd, &swapChainDesc,
-		nullptr, nullptr, &pSwapChain_);
+	ComPtr<IDXGISwapChain1> pSwapChain;
+	hr = dxgiFactory->CreateSwapChainForHwnd(device.pDirect3DDevice.Get(), hwnd, &swapChainDesc,
+		nullptr, nullptr, pSwapChain.GetAddressOf());
 	if (FAILED(hr))
 		return hr;
-	DXGISwapChain pSwapChain(pSwapChain_);
 
-	hr = SetBackBuffer(hwnd, pSwapChain.get());
+	hr = SetBackBuffer(hwnd, pSwapChain.Get());
 	if (FAILED(hr))
 		return hr;
 
@@ -1810,7 +1788,7 @@ void ScintillaWin::SizeWindow() {
 		targets.pDeviceContext->SetTarget(NULL);	// ResizeBuffers fails if bitmap still owned by swap chain
 		hrResize = pDXGISwapChain->ResizeBuffers(0, 0, 0, DXGI_FORMAT_UNKNOWN, 0);
 		if (SUCCEEDED(hrResize)) {
-			hrResize = SetBackBuffer(MainHWND(), pDXGISwapChain.get());
+			hrResize = SetBackBuffer(MainHWND(), pDXGISwapChain.Get());
 		} else {
 			Platform::DebugPrintf("Failed ResizeBuffers 0x%lx\n", hrResize);
 		}
@@ -3988,7 +3966,7 @@ LRESULT PASCAL ScintillaWin::CTWndProc(
 					// If above SUCCEEDED, then pCTRenderTarget not nullptr
 					assert(pCTRenderTarget);
 					if (pCTRenderTarget) {
-						surfaceWindow->Init(pCTRenderTarget.get(), hWnd);
+						surfaceWindow->Init(pCTRenderTarget.Get(), hWnd);
 						pCTRenderTarget->BeginDraw();
 					}
 #endif

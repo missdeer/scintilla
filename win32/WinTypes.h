@@ -38,25 +38,6 @@ struct UnknownReleaser {
 	}
 };
 
-// Wrap COM IUnknown::QueryInterface to produce std::unique_ptr objects to help
-// ensure safe reference counting.
-template<typename T>
-inline HRESULT UniquePtrFromQI(IUnknown *source, REFIID riid, std::unique_ptr<T, UnknownReleaser> &destination) noexcept {
-	T *ptr{};
-	HRESULT hr = E_FAIL;
-	try {
-		hr = source->QueryInterface(riid, reinterpret_cast<void **>(&ptr));
-	} catch (...) {
-		// Shouldn't have exceptions from QueryInterface but not marked noexcept
-	}
-	if (SUCCEEDED(hr)) {
-		destination.reset(ptr);
-	} else {
-		destination.reset();
-	}
-	return hr;
-}
-
 /// Find a function in a DLL and convert to a function pointer.
 /// This avoids undefined and conditionally defined behaviour.
 template<typename T>
