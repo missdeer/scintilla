@@ -133,6 +133,9 @@ size_t ActionDuration::ActionsInAllowedTime(double secondsAllowed) const noexcep
 	return std::lround(secondsAllowed / Duration());
 }
 
+const CharacterExtracted characterEmpty(unicodeReplacementChar, 0);
+const CharacterExtracted characterBadByte(unicodeReplacementChar, 1);
+
 CharacterExtracted::CharacterExtracted(const unsigned char *charBytes, size_t widthCharBytes) noexcept {
 	const int utf8status = UTF8Classify(charBytes, widthCharBytes);
 	if (utf8status & UTF8MaskInvalid) {
@@ -960,7 +963,7 @@ bool Document::NextCharacter(Sci::Position &pos, int moveDir) const noexcept {
 
 CharacterExtracted Document::CharacterAfter(Sci::Position position) const noexcept {
 	if (position >= LengthNoExcept()) {
-		return CharacterExtracted(unicodeReplacementChar, 0);
+		return characterEmpty;
 	}
 	const unsigned char leadByte = cb.UCharAt(position);
 	if (!dbcsCodePage || UTF8IsAscii(leadByte)) {
@@ -986,7 +989,7 @@ CharacterExtracted Document::CharacterAfter(Sci::Position position) const noexce
 
 CharacterExtracted Document::CharacterBefore(Sci::Position position) const noexcept {
 	if (position <= 0) {
-		return CharacterExtracted(unicodeReplacementChar, 0);
+		return characterEmpty;
 	}
 	const unsigned char previousByte = cb.UCharAt(position - 1);
 	if (0 == dbcsCodePage) {
@@ -1011,7 +1014,7 @@ CharacterExtracted Document::CharacterBefore(Sci::Position position) const noexc
 			}
 			// Else invalid UTF-8 so return position of isolated trail byte
 		}
-		return CharacterExtracted(unicodeReplacementChar, 1);
+		return characterBadByte;
 	} else {
 		// Moving backwards in DBCS is complex so use NextPosition
 		const Sci::Position posStartCharacter = NextPosition(position, -1);
@@ -1259,7 +1262,7 @@ constexpr bool IsBaseOfGrapheme(CharacterCategory cc) {
 
 CharacterExtracted LastCharacter(std::string_view text) noexcept {
 	if (text.empty())
-		return { unicodeReplacementChar, 1 };
+		return characterEmpty;
 	const size_t length = text.length();
 	size_t trail = length;
 	while ((trail > 0) && (length - trail < UTF8MaxBytes) && UTF8IsTrailByte(text[trail - 1]))
@@ -1267,7 +1270,7 @@ CharacterExtracted LastCharacter(std::string_view text) noexcept {
 	const size_t start = (trail > 0) ? trail - 1 : trail;
 	const int utf8status = UTF8Classify(text.substr(start));
 	if (utf8status & UTF8MaskInvalid) {
-		return { unicodeReplacementChar, 1 };
+		return characterBadByte;
 	}
 	return { static_cast<unsigned int>(UnicodeFromUTF8(text.substr(start))),
 		static_cast<unsigned int>(utf8status & UTF8MaskWidth) };
@@ -1287,18 +1290,7 @@ bool Scintilla::Internal::DiscardLastCombinedCharacter(std::string_view &text) n
 
 	std::string_view truncated = text;
 	while (truncated.length() > UTF8MaxBytes) {
-		/*
 		// Give up when short
-		std::string_view::iterator it = truncated.end() - 1;
-		// For UTF-8 go back to the start of last character.
-		for (int trail = 0; trail < UTF8MaxBytes - 1 && UTF8IsTrailByte(*it); trail++) {
-			--it;
-		}
-		const size_t countBytes = truncated.end() - it;
-		const std::string_view svLastCharacter = truncated.substr(truncated.length() - countBytes);
-		const CharacterCategory cc = CategoriseCharacter(UnicodeFromUTF8(svLastCharacter));
-		truncated.remove_suffix(countBytes);
-		*/
 		const CharacterExtracted ce = LastCharacter(truncated);
 		const CharacterCategory cc = CategoriseCharacter(static_cast<int>(ce.character));
 		truncated.remove_suffix(ce.widthBytes);
