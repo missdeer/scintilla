@@ -2514,11 +2514,11 @@ LineCharacterIndexType Document::LineCharacterIndex() const noexcept {
 }
 
 void Document::AllocateLineCharacterIndex(LineCharacterIndexType lineCharacterIndex) {
-	return cb.AllocateLineCharacterIndex(lineCharacterIndex);
+	cb.AllocateLineCharacterIndex(lineCharacterIndex);
 }
 
 void Document::ReleaseLineCharacterIndex(LineCharacterIndexType lineCharacterIndex) {
-	return cb.ReleaseLineCharacterIndex(lineCharacterIndex);
+	cb.ReleaseLineCharacterIndex(lineCharacterIndex);
 }
 
 Sci::Line Document::LinesTotal() const noexcept {
@@ -2638,10 +2638,13 @@ void Document::SetViewState(void *view, ViewStateShared pVSS) {
 }
 
 ViewStateShared Document::GetViewState(void *view) const noexcept {
-	const std::map<void *, ViewStateShared>::const_iterator it = viewData.find(view);
+	try {
+		const std::map<void *, ViewStateShared>::const_iterator it = viewData.find(view);
 
-	if (it != viewData.end()) {
-		return it->second;
+		if (it != viewData.end()) {
+			return it->second;
+		}
+	} catch (...) {
 	}
 	return {};
 }
@@ -3360,8 +3363,8 @@ bool MatchOnLines(const Document *doc, const Regex &regexp, const RESearchRange 
 		const Sci::Position lineStartPos = doc->LineStart(line);
 		const Sci::Position lineEndPos = doc->LineEnd(line);
 		const Range lineRange = resr.LineRange(line, lineStartPos, lineEndPos);
-		Iterator itStart(doc, lineRange.start);
-		Iterator itEnd(doc, lineRange.end);
+		const Iterator itStart(doc, lineRange.start);
+		const Iterator itEnd(doc, lineRange.end);
 		const std::regex_constants::match_flag_type flagsMatch = MatchFlags(doc, lineRange.start, lineRange.end, lineStartPos, lineEndPos);
 		std::regex_iterator<Iterator> it(itStart, itEnd, regexp, flagsMatch);
 		for (const std::regex_iterator<Iterator> last; it != last; ++it) {
