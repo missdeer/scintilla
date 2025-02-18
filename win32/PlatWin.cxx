@@ -208,6 +208,8 @@ HRESULT CreateDCRenderTarget(const D2D1_RENDER_TARGET_PROPERTIES *renderTargetPr
 	return pD2DFactory->CreateDCRenderTarget(renderTargetProperties, dcRT.ReleaseAndGetAddressOf());
 }
 
+namespace {
+
 constexpr D2D_COLOR_F ColorFromColourAlpha(ColourRGBA colour) noexcept {
 	return D2D_COLOR_F{
 		colour.GetRedComponent(),
@@ -217,38 +219,49 @@ constexpr D2D_COLOR_F ColorFromColourAlpha(ColourRGBA colour) noexcept {
 	};
 }
 
-using BrushSolid = std::unique_ptr<ID2D1SolidColorBrush, UnknownReleaser>;
+using BrushSolid = ComPtr<ID2D1SolidColorBrush>;
 
 BrushSolid BrushSolidCreate(ID2D1RenderTarget *pTarget, COLORREF colour) noexcept {
-	ID2D1SolidColorBrush *pBrush = nullptr;
+	BrushSolid brush;
 	const D2D_COLOR_F col = ColorFromColourAlpha(ColourRGBA::FromRGB(colour));
-	const HRESULT hr = pTarget->CreateSolidColorBrush(col, &pBrush);
-	if (FAILED(hr) || !pBrush) {
+	if (FAILED(pTarget->CreateSolidColorBrush(col, brush.GetAddressOf()))) {
 		return {};
 	}
-	return BrushSolid(pBrush);
+	return brush;
 }
 
-using Geometry = std::unique_ptr<ID2D1PathGeometry, UnknownReleaser>;
+using Geometry = ComPtr<ID2D1PathGeometry>;
 
 Geometry GeometryCreate() noexcept {
-	ID2D1PathGeometry *geometry = nullptr;
-	const HRESULT hr = pD2DFactory->CreatePathGeometry(&geometry);
-	if (FAILED(hr) || !geometry) {
+	Geometry geometry;
+	if (FAILED(pD2DFactory->CreatePathGeometry(geometry.GetAddressOf()))) {
 		return {};
 	}
-	return Geometry(geometry);
+	return geometry;
 }
 
-using GeometrySink = std::unique_ptr<ID2D1GeometrySink, UnknownReleaser>;
+using GeometrySink = ComPtr<ID2D1GeometrySink>;
 
 GeometrySink GeometrySinkCreate(ID2D1PathGeometry *geometry) noexcept {
-	ID2D1GeometrySink *sink = nullptr;
-	const HRESULT hr = geometry->Open(&sink);
-	if (FAILED(hr) || !sink) {
+	GeometrySink sink;
+	if (FAILED(geometry->Open(sink.GetAddressOf()))) {
 		return {};
 	}
-	return GeometrySink(sink);
+	return sink;
+}
+
+using StrokeStyle = ComPtr<ID2D1StrokeStyle>;
+
+StrokeStyle StrokeStyleCreate(const D2D1_STROKE_STYLE_PROPERTIES &strokeStyleProperties) noexcept {
+	StrokeStyle strokeStyle;
+	const HRESULT hr = pD2DFactory->CreateStrokeStyle(
+		strokeStyleProperties, nullptr, 0, strokeStyle.GetAddressOf());
+	if (FAILED(hr)) {
+		return {};
+	}
+	return strokeStyle;
+}
+
 }
 
 #endif
@@ -902,7 +915,7 @@ void SurfaceGDI::FillRectangleAligned(PRectangle rc, Fill fill) {
 }
 
 void SurfaceGDI::FillRectangle(PRectangle rc, Surface &surfacePattern) {
-	HBRUSH br;
+	HBRUSH br{};
 	if (SurfaceGDI *psgdi = dynamic_cast<SurfaceGDI *>(&surfacePattern); psgdi && psgdi->bitmap) {
 		br = ::CreatePatternBrush(psgdi->bitmap);
 	} else {	// Something is wrong so display in red
@@ -1445,7 +1458,7 @@ class SurfaceD2D : public Surface, public ISetRenderingParams {
 	bool ownRenderTarget = false;
 	int clipsActive = 0;
 
-	ID2D1SolidColorBrush *pBrush = nullptr;
+	BrushSolid pBrush = nullptr;
 
 	static constexpr FontQuality invalidFontQuality = FontQuality::QualityMask;
 	FontQuality fontQuality = invalidFontQuality;
@@ -1559,7 +1572,7 @@ SurfaceD2D::~SurfaceD2D() noexcept {
 }
 
 void SurfaceD2D::Clear() noexcept {
-	ReleaseUnknown(pBrush);
+	pBrush = nullptr;
 	if (pRenderTarget) {
 		while (clipsActive) {
 			pRenderTarget->PopAxisAlignedClip();
@@ -1631,7 +1644,7 @@ void SurfaceD2D::D2DPenColourAlpha(ColourRGBA fore) noexcept {
 		} else {
 			const HRESULT hr = pRenderTarget->CreateSolidColorBrush(col, &pBrush);
 			if (!SUCCEEDED(hr)) {
-				ReleaseUnknown(pBrush);
+				pBrush = nullptr;
 			}
 		}
 	}
@@ -1682,22 +1695,17 @@ void SurfaceD2D::LineDraw(Point start, Point end, Stroke stroke) {
 	strokeProps.dashOffset = 0;
 
 	// get the stroke style to apply
-	ID2D1StrokeStyle *pStrokeStyle = nullptr;
-	const HRESULT hr = pD2DFactory->CreateStrokeStyle(
-		strokeProps, nullptr, 0, &pStrokeStyle);
-	if (SUCCEEDED(hr)) {
+	if (const StrokeStyle pStrokeStyle = StrokeStyleCreate(strokeProps)) {
 		pRenderTarget->DrawLine(
 			DPointFromPoint(start),
-			DPointFromPoint(end), pBrush, stroke.WidthF(), pStrokeStyle);
+			DPointFromPoint(end), pBrush.Get(), stroke.WidthF(), pStrokeStyle.Get());
 	}
-
-	ReleaseUnknown(pStrokeStyle);
 }
 
 Geometry SurfaceD2D::GeometricFigure(const Point *pts, size_t npts, D2D1_FIGURE_BEGIN figureBegin) noexcept {
 	Geometry geometry = GeometryCreate();
 	if (geometry) {
-		if (const GeometrySink sink = GeometrySinkCreate(geometry.get())) {
+		if (const GeometrySink sink = GeometrySinkCreate(geometry.Get())) {
 			sink->BeginFigure(DPointFromPoint(pts[0]), figureBegin);
 			for (size_t i = 1; i < npts; i++) {
 				sink->AddLine(DPointFromPoint(pts[i]));
@@ -1733,13 +1741,9 @@ void SurfaceD2D::PolyLine(const Point *pts, size_t npts, Stroke stroke) {
 	strokeProps.dashOffset = 0;
 
 	// get the stroke style to apply
-	ID2D1StrokeStyle *pStrokeStyle = nullptr;
-	const HRESULT hr = pD2DFactory->CreateStrokeStyle(
-		strokeProps, nullptr, 0, &pStrokeStyle);
-	if (SUCCEEDED(hr)) {
-		pRenderTarget->DrawGeometry(geometry.get(), pBrush, stroke.WidthF(), pStrokeStyle);
+	if (const StrokeStyle pStrokeStyle = StrokeStyleCreate(strokeProps)) {
+		pRenderTarget->DrawGeometry(geometry.Get(), pBrush.Get(), stroke.WidthF(), pStrokeStyle.Get());
 	}
-	ReleaseUnknown(pStrokeStyle);
 }
 
 void SurfaceD2D::Polygon(const Point *pts, size_t npts, FillStroke fillStroke) {
@@ -1749,9 +1753,9 @@ void SurfaceD2D::Polygon(const Point *pts, size_t npts, FillStroke fillStroke) {
 		PLATFORM_ASSERT(geometry);
 		if (geometry) {
 			D2DPenColourAlpha(fillStroke.fill.colour);
-			pRenderTarget->FillGeometry(geometry.get(), pBrush);
+			pRenderTarget->FillGeometry(geometry.Get(), pBrush.Get());
 			D2DPenColourAlpha(fillStroke.stroke.colour);
-			pRenderTarget->DrawGeometry(geometry.get(), pBrush, fillStroke.stroke.WidthF());
+			pRenderTarget->DrawGeometry(geometry.Get(), pBrush.Get(), fillStroke.stroke.WidthF());
 		}
 	}
 }
@@ -1765,9 +1769,9 @@ void SurfaceD2D::RectangleDraw(PRectangle rc, FillStroke fillStroke) {
 	const D2D1_RECT_F rectOutline = RectangleInset(rect, halfStroke);
 
 	D2DPenColourAlpha(fillStroke.fill.colour);
-	pRenderTarget->FillRectangle(&rectFill, pBrush);
+	pRenderTarget->FillRectangle(&rectFill, pBrush.Get());
 	D2DPenColourAlpha(fillStroke.stroke.colour);
-	pRenderTarget->DrawRectangle(&rectOutline, pBrush, fillStroke.stroke.WidthF());
+	pRenderTarget->DrawRectangle(&rectOutline, pBrush.Get(), fillStroke.stroke.WidthF());
 }
 
 void SurfaceD2D::RectangleFrame(PRectangle rc, Stroke stroke) {
@@ -1775,7 +1779,7 @@ void SurfaceD2D::RectangleFrame(PRectangle rc, Stroke stroke) {
 		const XYPOSITION halfStroke = stroke.width / 2.0f;
 		const D2D1_RECT_F rectangle1 = RectangleFromPRectangle(rc.Inset(halfStroke));
 		D2DPenColourAlpha(stroke.colour);
-		pRenderTarget->DrawRectangle(&rectangle1, pBrush, stroke.WidthF());
+		pRenderTarget->DrawRectangle(&rectangle1, pBrush.Get(), stroke.WidthF());
 	}
 }
 
@@ -1783,7 +1787,7 @@ void SurfaceD2D::FillRectangle(PRectangle rc, Fill fill) {
 	if (pRenderTarget) {
 		D2DPenColourAlpha(fill.colour);
 		const D2D1_RECT_F rectangle = RectangleFromPRectangle(rc);
-		pRenderTarget->FillRectangle(&rectangle, pBrush);
+		pRenderTarget->FillRectangle(&rectangle, pBrush.Get());
 	}
 }
 
@@ -1797,21 +1801,19 @@ void SurfaceD2D::FillRectangle(PRectangle rc, Surface &surfacePattern) {
 	if (!psurfOther) {
 		throw std::runtime_error("SurfaceD2D::FillRectangle: wrong Surface type.");
 	}
-	ID2D1Bitmap *pBitmap = nullptr;
-	HRESULT hr = psurfOther->GetBitmap(&pBitmap);
+	ComPtr<ID2D1Bitmap> pBitmap;
+	HRESULT hr = psurfOther->GetBitmap(pBitmap.GetAddressOf());
 	if (SUCCEEDED(hr) && pBitmap) {
-		ID2D1BitmapBrush *pBitmapBrush = nullptr;
+		ComPtr<ID2D1BitmapBrush> pBitmapBrush;
 		const D2D1_BITMAP_BRUSH_PROPERTIES brushProperties =
 	        D2D1::BitmapBrushProperties(D2D1_EXTEND_MODE_WRAP, D2D1_EXTEND_MODE_WRAP,
 			D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR);
 		// Create the bitmap brush.
-		hr = pRenderTarget->CreateBitmapBrush(pBitmap, brushProperties, &pBitmapBrush);
-		ReleaseUnknown(pBitmap);
+		hr = pRenderTarget->CreateBitmapBrush(pBitmap.Get(), brushProperties, pBitmapBrush.GetAddressOf());
 		if (SUCCEEDED(hr) && pBitmapBrush) {
 			pRenderTarget->FillRectangle(
 				RectangleFromPRectangle(rc),
-				pBitmapBrush);
-			ReleaseUnknown(pBitmapBrush);
+				pBitmapBrush.Get());
 		}
 	}
 }
@@ -1825,19 +1827,19 @@ void SurfaceD2D::RoundedRectangle(PRectangle rc, FillStroke fillStroke) {
 				RectangleFromPRectangle(rc),
 				radius, radius };
 			D2DPenColourAlpha(fillStroke.fill.colour);
-			pRenderTarget->FillRoundedRectangle(roundedRectFill, pBrush);
+			pRenderTarget->FillRoundedRectangle(roundedRectFill, pBrush.Get());
 		} else {
 			const D2D1_ROUNDED_RECT roundedRectFill = {
 				RectangleFromPRectangle(rc.Inset(1.0)),
 				radius-1, radius-1 };
 			D2DPenColourAlpha(fillStroke.fill.colour);
-			pRenderTarget->FillRoundedRectangle(roundedRectFill, pBrush);
+			pRenderTarget->FillRoundedRectangle(roundedRectFill, pBrush.Get());
 
 			const D2D1_ROUNDED_RECT roundedRect = {
 				RectangleFromPRectangle(rc.Inset(0.5)),
 				radius, radius };
 			D2DPenColourAlpha(fillStroke.stroke.colour);
-			pRenderTarget->DrawRoundedRectangle(roundedRect, pBrush, fillStroke.stroke.WidthF());
+			pRenderTarget->DrawRoundedRectangle(roundedRect, pBrush.Get(), fillStroke.stroke.WidthF());
 		}
 	}
 }
@@ -1851,21 +1853,21 @@ void SurfaceD2D::AlphaRectangle(PRectangle rc, XYPOSITION cornerSize, FillStroke
 		if (cornerSize == 0) {
 			// When corner size is zero, draw square rectangle to prevent blurry pixels at corners
 			D2DPenColourAlpha(fillStroke.fill.colour);
-			pRenderTarget->FillRectangle(rectFill, pBrush);
+			pRenderTarget->FillRectangle(rectFill, pBrush.Get());
 
 			D2DPenColourAlpha(fillStroke.stroke.colour);
-			pRenderTarget->DrawRectangle(rectOutline, pBrush, fillStroke.stroke.WidthF());
+			pRenderTarget->DrawRectangle(rectOutline, pBrush.Get(), fillStroke.stroke.WidthF());
 		} else {
 			const float cornerSizeF = static_cast<float>(cornerSize);
 			const D2D1_ROUNDED_RECT roundedRectFill = {
 				rectFill, cornerSizeF - 1.0f, cornerSizeF - 1.0f };
 			D2DPenColourAlpha(fillStroke.fill.colour);
-			pRenderTarget->FillRoundedRectangle(roundedRectFill, pBrush);
+			pRenderTarget->FillRoundedRectangle(roundedRectFill, pBrush.Get());
 
 			const D2D1_ROUNDED_RECT roundedRect = {
 				rectOutline, cornerSizeF, cornerSizeF};
 			D2DPenColourAlpha(fillStroke.stroke.colour);
-			pRenderTarget->DrawRoundedRectangle(roundedRect, pBrush, fillStroke.stroke.WidthF());
+			pRenderTarget->DrawRoundedRectangle(roundedRect, pBrush.Get(), fillStroke.stroke.WidthF());
 		}
 	}
 }
@@ -1889,22 +1891,20 @@ void SurfaceD2D::GradientRectangle(PRectangle rc, const std::vector<ColourStop> 
 		for (const ColourStop &stop : stops) {
 			gradientStops.push_back({ static_cast<FLOAT>(stop.position), ColorFromColourAlpha(stop.colour) });
 		}
-		ID2D1GradientStopCollection *pGradientStops = nullptr;
+		ComPtr<ID2D1GradientStopCollection> pGradientStops;
 		HRESULT hr = pRenderTarget->CreateGradientStopCollection(
-			gradientStops.data(), static_cast<UINT32>(gradientStops.size()), &pGradientStops);
+			gradientStops.data(), static_cast<UINT32>(gradientStops.size()), pGradientStops.GetAddressOf());
 		if (FAILED(hr) || !pGradientStops) {
 			return;
 		}
-		ID2D1LinearGradientBrush *pBrushLinear = nullptr;
+		ComPtr<ID2D1LinearGradientBrush> pBrushLinear;
 		hr = pRenderTarget->CreateLinearGradientBrush(
-			lgbp, pGradientStops, &pBrushLinear);
+			lgbp, pGradientStops.Get(), pBrushLinear.GetAddressOf());
 		if (SUCCEEDED(hr) && pBrushLinear) {
 			const D2D1_RECT_F rectangle = RectangleFromPRectangle(PRectangle(
 				std::round(rc.left), rc.top, std::round(rc.right), rc.bottom));
-			pRenderTarget->FillRectangle(&rectangle, pBrushLinear);
-			ReleaseUnknown(pBrushLinear);
+			pRenderTarget->FillRectangle(&rectangle, pBrushLinear.Get());
 		}
-		ReleaseUnknown(pGradientStops);
 	}
 }
 
@@ -1920,16 +1920,15 @@ void SurfaceD2D::DrawRGBAImage(PRectangle rc, int width, int height, const unsig
 		std::vector<unsigned char> image(RGBAImage::bytesPerPixel * height * width);
 		RGBAImage::BGRAFromRGBA(image.data(), pixelsImage, static_cast<ptrdiff_t>(height) * width);
 
-		ID2D1Bitmap *bitmap = nullptr;
+		ComPtr<ID2D1Bitmap> bitmap;
 		const D2D1_SIZE_U size = D2D1::SizeU(width, height);
 		const D2D1_BITMAP_PROPERTIES props = {{DXGI_FORMAT_B8G8R8A8_UNORM,
 		    D2D1_ALPHA_MODE_PREMULTIPLIED}, 72.0, 72.0};
 		const HRESULT hr = pRenderTarget->CreateBitmap(size, image.data(),
-                  width * 4, &props, &bitmap);
+                  width * 4, &props, bitmap.GetAddressOf());
 		if (SUCCEEDED(hr)) {
 			const D2D1_RECT_F rcDestination = RectangleFromPRectangle(rc);
-			pRenderTarget->DrawBitmap(bitmap, rcDestination);
-			ReleaseUnknown(bitmap);
+			pRenderTarget->DrawBitmap(bitmap.Get(), rcDestination);
 		}
 	}
 }
@@ -1943,13 +1942,13 @@ void SurfaceD2D::Ellipse(PRectangle rc, FillStroke fillStroke) {
 	const D2D1_ELLIPSE ellipseFill = { centre, radiusFill, radiusFill };
 
 	D2DPenColourAlpha(fillStroke.fill.colour);
-	pRenderTarget->FillEllipse(ellipseFill, pBrush);
+	pRenderTarget->FillEllipse(ellipseFill, pBrush.Get());
 
 	const FLOAT radiusOutline = static_cast<FLOAT>(rc.Width() / 2.0f - fillStroke.stroke.width / 2.0f);
 	const D2D1_ELLIPSE ellipseOutline = { centre, radiusOutline, radiusOutline };
 
 	D2DPenColourAlpha(fillStroke.stroke.colour);
-	pRenderTarget->DrawEllipse(ellipseOutline, pBrush, fillStroke.stroke.WidthF());
+	pRenderTarget->DrawEllipse(ellipseOutline, pBrush.Get(), fillStroke.stroke.WidthF());
 }
 
 void SurfaceD2D::Stadium(PRectangle rc, FillStroke fillStroke, Ends ends) {
@@ -1968,12 +1967,12 @@ void SurfaceD2D::Stadium(PRectangle rc, FillStroke fillStroke, Ends ends) {
 		const D2D1_ROUNDED_RECT roundedRectFill = { RectangleInset(rect, fillStroke.stroke.WidthF()),
 			radiusFill, radiusFill };
 		D2DPenColourAlpha(fillStroke.fill.colour);
-		pRenderTarget->FillRoundedRectangle(roundedRectFill, pBrush);
+		pRenderTarget->FillRoundedRectangle(roundedRectFill, pBrush.Get());
 
 		const D2D1_ROUNDED_RECT roundedRect = { RectangleInset(rect, halfStroke),
 			radius, radius };
 		D2DPenColourAlpha(fillStroke.stroke.colour);
-		pRenderTarget->DrawRoundedRectangle(roundedRect, pBrush, fillStroke.stroke.WidthF());
+		pRenderTarget->DrawRoundedRectangle(roundedRect, pBrush.Get(), fillStroke.stroke.WidthF());
 	} else {
 		const Ends leftSide = static_cast<Ends>(static_cast<int>(ends) & 0xf);
 		const Ends rightSide = static_cast<Ends>(static_cast<int>(ends) & 0xf0);
@@ -1983,7 +1982,7 @@ void SurfaceD2D::Stadium(PRectangle rc, FillStroke fillStroke, Ends ends) {
 		const Geometry pathGeometry = GeometryCreate();
 		if (!pathGeometry)
 			return;
-		if (const GeometrySink pSink = GeometrySinkCreate(pathGeometry.get())) {
+		if (const GeometrySink pSink = GeometrySinkCreate(pathGeometry.Get())) {
 			switch (leftSide) {
 				case Ends::leftFlat:
 					pSink->BeginFigure(DPointFromPoint(Point(rc.left + halfStroke, rc.top + halfStroke)), D2D1_FIGURE_BEGIN_FILLED);
@@ -2037,23 +2036,22 @@ void SurfaceD2D::Stadium(PRectangle rc, FillStroke fillStroke, Ends ends) {
 			pSink->Close();
 		}
 		D2DPenColourAlpha(fillStroke.fill.colour);
-		pRenderTarget->FillGeometry(pathGeometry.get(), pBrush);
+		pRenderTarget->FillGeometry(pathGeometry.Get(), pBrush.Get());
 		D2DPenColourAlpha(fillStroke.stroke.colour);
-		pRenderTarget->DrawGeometry(pathGeometry.get(), pBrush, fillStroke.stroke.WidthF());
+		pRenderTarget->DrawGeometry(pathGeometry.Get(), pBrush.Get(), fillStroke.stroke.WidthF());
 	}
 }
 
 void SurfaceD2D::Copy(PRectangle rc, Point from, Surface &surfaceSource) {
 	SurfaceD2D &surfOther = dynamic_cast<SurfaceD2D &>(surfaceSource);
-	ID2D1Bitmap *pBitmap = nullptr;
-	const HRESULT hr = surfOther.GetBitmap(&pBitmap);
+	ComPtr<ID2D1Bitmap> pBitmap;
+	const HRESULT hr = surfOther.GetBitmap(pBitmap.GetAddressOf());
 	if (SUCCEEDED(hr) && pBitmap) {
 		const D2D1_RECT_F rcDestination = RectangleFromPRectangle(rc);
 		const D2D1_RECT_F rcSource = RectangleFromPRectangle(PRectangle(
 			from.x, from.y, from.x + rc.Width(), from.y + rc.Height()));
-		pRenderTarget->DrawBitmap(pBitmap, rcDestination, 1.0f,
+		pRenderTarget->DrawBitmap(pBitmap.Get(), rcDestination, 1.0f,
 			D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR, rcSource);
-		ReleaseUnknown(pBitmap);
 	}
 }
 
@@ -2475,7 +2473,7 @@ void SurfaceD2D::DrawTextCommon(PRectangle rc, const Font *font_, XYPOSITION yba
 				&pTextLayout);
 		if (SUCCEEDED(hr)) {
 			const D2D1_POINT_2F origin = DPointFromPoint(Point(rc.left, ybase - pfm->yAscent));
-			pRenderTarget->DrawTextLayout(origin, pTextLayout, pBrush, d2dDrawTextOptions);
+			pRenderTarget->DrawTextLayout(origin, pTextLayout, pBrush.Get(), d2dDrawTextOptions);
 			ReleaseUnknown(pTextLayout);
 		}
 
@@ -3018,7 +3016,7 @@ public:
 			return false;
 		}
 
-		const GeometrySink sink = GeometrySinkCreate(geometry.get());
+		const GeometrySink sink = GeometrySinkCreate(geometry.Get());
 		if (!sink) {
 			return false;
 		}
@@ -3034,11 +3032,11 @@ public:
 		}
 
 		if (const BrushSolid pBrushFill = BrushSolidCreate(pTarget.Get(), fillColour)) {
-			pTarget->FillGeometry(geometry.get(), pBrushFill.get());
+			pTarget->FillGeometry(geometry.Get(), pBrushFill.Get());
 		}
 
 		if (const BrushSolid pBrushStroke = BrushSolidCreate(pTarget.Get(), strokeColour)) {
-			pTarget->DrawGeometry(geometry.get(), pBrushStroke.get(), scale);
+			pTarget->DrawGeometry(geometry.Get(), pBrushStroke.Get(), scale);
 		}
 
 		hr = pTarget->EndDraw();
@@ -3063,7 +3061,7 @@ public:
 		}
 
 		const DWORD penWidth = std::lround(scale);
-		HPEN pen;
+		HPEN pen{};
 		if (penWidth > 1) {
 			const LOGBRUSH brushParameters { BS_SOLID, strokeColour, 0 };
 			pen = ::ExtCreatePen(PS_GEOMETRIC | PS_ENDCAP_ROUND | PS_JOIN_MITER,
