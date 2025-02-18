@@ -1462,9 +1462,11 @@ class BlobInline;
 class SurfaceD2D : public Surface, public ISetRenderingParams {
 	SurfaceMode mode;
 
-	ID2D1RenderTarget *pRenderTarget = nullptr;
-	ID2D1BitmapRenderTarget *pBitmapRenderTarget = nullptr;
-	bool ownRenderTarget = false;
+	// Text measuring surface: both pRenderTarget and pBitmapRenderTarget are null.
+	// Window surface: pRenderTarget is valid but not pBitmapRenderTarget.
+	// Bitmap drawing surface: both pRenderTarget and pBitmapRenderTarget are valid and the same.
+	ComPtr<ID2D1RenderTarget> pRenderTarget;
+	ComPtr<ID2D1BitmapRenderTarget> pBitmapRenderTarget;
 	int clipsActive = 0;
 
 	BrushSolid pBrush = nullptr;
@@ -1478,7 +1480,7 @@ class SurfaceD2D : public Surface, public ISetRenderingParams {
 	void Clear() noexcept;
 	void SetFontQuality(FontQuality extraFontFlag);
 	HRESULT GetBitmap(ID2D1Bitmap **ppBitmap);
-	void SetDeviceScaleFactor(const ID2D1RenderTarget *const pRenderTarget) noexcept;
+	void SetDeviceScaleFactor(const ID2D1RenderTarget *const pD2D1RenderTarget) noexcept;
 
 public:
 	SurfaceD2D() noexcept;
@@ -1565,12 +1567,11 @@ SurfaceD2D::SurfaceD2D(ID2D1RenderTarget *pRenderTargetCompatible, int width, in
 #endif
 	desiredFormat.alphaMode = D2D1_ALPHA_MODE_IGNORE;
 	const HRESULT hr = pRenderTargetCompatible->CreateCompatibleRenderTarget(
-		&desiredSize, nullptr, &desiredFormat, D2D1_COMPATIBLE_RENDER_TARGET_OPTIONS_NONE, &pBitmapRenderTarget);
+		&desiredSize, nullptr, &desiredFormat, D2D1_COMPATIBLE_RENDER_TARGET_OPTIONS_NONE, pBitmapRenderTarget.GetAddressOf());
 	if (SUCCEEDED(hr)) {
 		pRenderTarget = pBitmapRenderTarget;
-		SetDeviceScaleFactor(pRenderTarget);
+		SetDeviceScaleFactor(pRenderTarget.Get());
 		pRenderTarget->BeginDraw();
-		ownRenderTarget = true;
 	}
 	mode = mode_;
 	logPixelsY = logPixelsY_;
@@ -1587,13 +1588,11 @@ void SurfaceD2D::Clear() noexcept {
 			pRenderTarget->PopAxisAlignedClip();
 			clipsActive--;
 		}
-		if (ownRenderTarget) {
+		if (pBitmapRenderTarget) {
 			pRenderTarget->EndDraw();
-			ReleaseUnknown(pRenderTarget);
-			ownRenderTarget = false;
 		}
-		pRenderTarget = nullptr;
 	}
+	pRenderTarget = nullptr;
 	pBitmapRenderTarget = nullptr;
 }
 
@@ -1615,7 +1614,7 @@ int SurfaceD2D::SupportsFeature(Supports feature) noexcept {
 }
 
 bool SurfaceD2D::Initialised() {
-	return pRenderTarget != nullptr;
+	return pRenderTarget;
 }
 
 void SurfaceD2D::Init(WindowID wid) {
@@ -1627,11 +1626,11 @@ void SurfaceD2D::Init(SurfaceID sid, WindowID wid) {
 	Release();
 	SetScale(wid);
 	pRenderTarget = static_cast<ID2D1RenderTarget *>(sid);
-	SetDeviceScaleFactor(pRenderTarget);
+	SetDeviceScaleFactor(pRenderTarget.Get());
 }
 
 std::unique_ptr<Surface> SurfaceD2D::AllocatePixMap(int width, int height) {
-	std::unique_ptr<SurfaceD2D> surf = std::make_unique<SurfaceD2D>(pRenderTarget, width, height, mode, logPixelsY);
+	std::unique_ptr<SurfaceD2D> surf = std::make_unique<SurfaceD2D>(pRenderTarget.Get(), width, height, mode, logPixelsY);
 	surf->SetRenderingParams(renderingParams);
 	return surf;
 }
