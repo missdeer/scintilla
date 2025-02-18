@@ -262,6 +262,18 @@ StrokeStyle StrokeStyleCreate(const D2D1_STROKE_STYLE_PROPERTIES &strokeStylePro
 	return strokeStyle;
 }
 
+using TextLayout = ComPtr<IDWriteTextLayout>;
+
+TextLayout LayoutCreate(std::wstring_view wsv, IDWriteTextFormat *pTextFormat, FLOAT maxWidth=10000.0F, FLOAT maxHeight=1000.0F) noexcept {
+	TextLayout layout;
+	const HRESULT hr = pIDWriteFactory->CreateTextLayout(wsv.data(), static_cast<UINT32>(wsv.length()),
+		pTextFormat, maxWidth, maxHeight, layout.GetAddressOf());
+	if (FAILED(hr)) {
+		return {};
+	}
+	return layout;
+}
+
 }
 
 #endif
@@ -417,7 +429,7 @@ struct FontGDI : public FontWin {
 
 #if defined(USE_D2D)
 struct FontDirectWrite : public FontWin {
-	IDWriteTextFormat *pTextFormat = nullptr;
+	ComPtr<IDWriteTextFormat> pTextFormat;
 	FontQuality extraFontFlag = FontQuality::QualityDefault;
 	CharacterSet characterSet = CharacterSet::Ansi;
 	FLOAT yAscent = 2.0f;
@@ -435,22 +447,19 @@ struct FontDirectWrite : public FontWin {
 			static_cast<DWRITE_FONT_WEIGHT>(fp.weight),
 			style,
 			static_cast<DWRITE_FONT_STRETCH>(fp.stretch),
-				fHeight, wsLocale.c_str(), &pTextFormat);
+				fHeight, wsLocale.c_str(), pTextFormat.GetAddressOf());
 		if (hr == E_INVALIDARG) {
 			// Possibly a bad locale name like "/" so try "en-us".
 			hr = pIDWriteFactory->CreateTextFormat(wsFace.c_str(), nullptr,
 				static_cast<DWRITE_FONT_WEIGHT>(fp.weight),
 				style,
 				static_cast<DWRITE_FONT_STRETCH>(fp.stretch),
-				fHeight, L"en-us", &pTextFormat);
+				fHeight, L"en-us", pTextFormat.ReleaseAndGetAddressOf());
 		}
 		if (SUCCEEDED(hr)) {
 			pTextFormat->SetWordWrapping(DWRITE_WORD_WRAPPING_NO_WRAP);
 
-			IDWriteTextLayout *pTextLayout = nullptr;
-			hr = pIDWriteFactory->CreateTextLayout(L"X", 1, pTextFormat,
-					100.0f, 100.0f, &pTextLayout);
-			if (SUCCEEDED(hr) && pTextLayout) {
+			if (TextLayout pTextLayout = LayoutCreate(L"X", pTextFormat.Get())) {
 				constexpr int maxLines = 2;
 				DWRITE_LINE_METRICS lineMetrics[maxLines]{};
 				UINT32 lineCount = 0;
@@ -465,7 +474,6 @@ struct FontDirectWrite : public FontWin {
 						yInternalLeading = lineMetrics[0].height - emHeight;
 					}
 				}
-				ReleaseUnknown(pTextLayout);
 				pTextFormat->SetLineSpacing(DWRITE_LINE_SPACING_METHOD_UNIFORM, lineMetrics[0].height, lineMetrics[0].baseline);
 			}
 		}
@@ -475,9 +483,7 @@ struct FontDirectWrite : public FontWin {
 	FontDirectWrite(FontDirectWrite &&) = delete;
 	FontDirectWrite &operator=(const FontDirectWrite &) = delete;
 	FontDirectWrite &operator=(FontDirectWrite &&) = delete;
-	~FontDirectWrite() noexcept override {
-		ReleaseUnknown(pTextFormat);
-	}
+	~FontDirectWrite() noexcept override = default;
 	HFONT HFont() const noexcept override {
 		LOGFONTW lf = {};
 		const HRESULT hr = pTextFormat->GetFontFamilyName(lf.lfFaceName, LF_FACESIZE);
@@ -594,6 +600,9 @@ public:
 			tlen = ::MultiByteToWideChar(codePage, 0, text.data(), static_cast<int>(text.length()),
 				buffer, static_cast<int>(text.length()));
 		}
+	}
+	std::wstring_view AsView() const noexcept {
+		return std::wstring_view(buffer, tlen);
 	}
 };
 typedef VarBuffer<XYPOSITION, stackBufferLength> TextPositions;
@@ -2160,7 +2169,7 @@ COM_DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE BlobInline::GetBreakConditions(
 }
 
 class ScreenLineLayout : public IScreenLineLayout {
-	IDWriteTextLayout *textLayout = nullptr;
+	TextLayout textLayout;
 	std::string text;
 	std::wstring buffer;
 	std::vector<BlobInline> blobs;
@@ -2174,7 +2183,7 @@ public:
 	ScreenLineLayout(ScreenLineLayout &&) = delete;
 	ScreenLineLayout &operator=(const ScreenLineLayout &) = delete;
 	ScreenLineLayout &operator=(ScreenLineLayout &&) = delete;
-	~ScreenLineLayout() noexcept override;
+	~ScreenLineLayout() noexcept override = default;
 	size_t PositionFromX(XYPOSITION xDistance, bool charPosition) override;
 	XYPOSITION XFromPosition(size_t caretPosition) override;
 	std::vector<Interval> FindRangeIntervals(size_t start, size_t end) override;
@@ -2288,23 +2297,17 @@ ScreenLineLayout::ScreenLineLayout(const IScreenLine *screenLine) {
 	buffer = ReplaceRepresentation(screenLine->Text());
 
 	// Create a text layout
-	const HRESULT hrCreate = pIDWriteFactory->CreateTextLayout(
-		buffer.c_str(),
-		static_cast<UINT32>(buffer.length()),
-		pfm->pTextFormat,
+	textLayout = LayoutCreate(
+		buffer,
+		pfm->pTextFormat.Get(),
 		static_cast<FLOAT>(screenLine->Width()),
-		static_cast<FLOAT>(screenLine->Height()),
-		&textLayout);
-	if (!SUCCEEDED(hrCreate)) {
+		static_cast<FLOAT>(screenLine->Height()));
+	if (!textLayout) {
 		return;
 	}
 
 	// Fill the textLayout chars with their own formats
-	FillTextLayoutFormats(screenLine, textLayout, blobs);
-}
-
-ScreenLineLayout::~ScreenLineLayout() noexcept {
-	ReleaseUnknown(textLayout);
+	FillTextLayoutFormats(screenLine, textLayout.Get(), blobs);
 }
 
 // Get the position from the provided x
@@ -2463,18 +2466,14 @@ void SurfaceD2D::DrawTextCommon(PRectangle rc, const Font *font_, XYPOSITION yba
 		}
 
 		// Explicitly creating a text layout appears a little faster
-		IDWriteTextLayout *pTextLayout = nullptr;
-		const HRESULT hr = pIDWriteFactory->CreateTextLayout(
-				tbuf.buffer,
-				tbuf.tlen,
-				pfm->pTextFormat,
+		TextLayout pTextLayout = LayoutCreate(
+				tbuf.AsView(),
+				pfm->pTextFormat.Get(),
 				static_cast<FLOAT>(rc.Width()),
-				static_cast<FLOAT>(rc.Height()),
-				&pTextLayout);
-		if (SUCCEEDED(hr)) {
+				static_cast<FLOAT>(rc.Height()));
+		if (pTextLayout) {
 			const D2D1_POINT_2F origin = DPointFromPoint(Point(rc.left, ybase - pfm->yAscent));
-			pRenderTarget->DrawTextLayout(origin, pTextLayout, pBrush.Get(), d2dDrawTextOptions);
-			ReleaseUnknown(pTextLayout);
+			pRenderTarget->DrawTextLayout(origin, pTextLayout.Get(), pBrush.Get(), d2dDrawTextOptions);
 		}
 
 		if (fuOptions & ETO_CLIPPED) {
@@ -2526,18 +2525,13 @@ HRESULT MeasurePositions(TextPositions &poses, const TextWide &tbuf, IDWriteText
 	// Initialize poses for safety.
 	std::fill(poses.buffer, poses.buffer + tbuf.tlen, 0.0f);
 	// Create a layout
-	IDWriteTextLayout *pTextLayout = nullptr;
-	const HRESULT hrCreate = pIDWriteFactory->CreateTextLayout(tbuf.buffer, tbuf.tlen, pTextFormat, 10000.0, 1000.0, &pTextLayout);
-	if (!SUCCEEDED(hrCreate)) {
-		return hrCreate;
-	}
+	TextLayout pTextLayout = LayoutCreate(tbuf.AsView(), pTextFormat);
 	if (!pTextLayout) {
 		return E_FAIL;
 	}
 	VarBuffer<DWRITE_CLUSTER_METRICS, stackBufferLength> cm(tbuf.tlen);
 	UINT32 count = 0;
 	const HRESULT hrGetCluster = pTextLayout->GetClusterMetrics(cm.buffer, tbuf.tlen, &count);
-	ReleaseUnknown(pTextLayout);
 	if (!SUCCEEDED(hrGetCluster)) {
 		return hrGetCluster;
 	}
@@ -2562,7 +2556,7 @@ void SurfaceD2D::MeasureWidths(const Font *font_, std::string_view text, XYPOSIT
 	const int codePageText = pfm->CodePageText(mode.codePage);
 	const TextWide tbuf(text, codePageText);
 	TextPositions poses(tbuf.tlen);
-	if (FAILED(MeasurePositions(poses, tbuf, pfm->pTextFormat))) {
+	if (FAILED(MeasurePositions(poses, tbuf, pfm->pTextFormat.Get()))) {
 		return;
 	}
 	if (codePageText == CpUtf8) {
@@ -2614,13 +2608,10 @@ XYPOSITION SurfaceD2D::WidthText(const Font *font_, std::string_view text) {
 	if (pfm->pTextFormat) {
 		const TextWide tbuf(text, pfm->CodePageText(mode.codePage));
 		// Create a layout
-		IDWriteTextLayout *pTextLayout = nullptr;
-		const HRESULT hr = pIDWriteFactory->CreateTextLayout(tbuf.buffer, tbuf.tlen, pfm->pTextFormat, 1000.0, 1000.0, &pTextLayout);
-		if (SUCCEEDED(hr) && pTextLayout) {
+		if (TextLayout pTextLayout = LayoutCreate(tbuf.AsView(), pfm->pTextFormat.Get())) {
 			DWRITE_TEXT_METRICS textMetrics;
 			if (SUCCEEDED(pTextLayout->GetMetrics(&textMetrics)))
 				width = textMetrics.widthIncludingTrailingWhitespace;
-			ReleaseUnknown(pTextLayout);
 		}
 	}
 	return width;
@@ -2662,7 +2653,7 @@ void SurfaceD2D::MeasureWidthsUTF8(const Font *font_, std::string_view text, XYP
 	const FontDirectWrite *pfm = FontDirectWrite::Cast(font_);
 	const TextWide tbuf(text, CpUtf8);
 	TextPositions poses(tbuf.tlen);
-	if (FAILED(MeasurePositions(poses, tbuf, pfm->pTextFormat))) {
+	if (FAILED(MeasurePositions(poses, tbuf, pfm->pTextFormat.Get()))) {
 		return;
 	}
 	// Map the widths given for UTF-16 characters back onto the UTF-8 input string
@@ -2690,13 +2681,10 @@ XYPOSITION SurfaceD2D::WidthTextUTF8(const Font * font_, std::string_view text) 
 	if (pfm->pTextFormat) {
 		const TextWide tbuf(text, CpUtf8);
 		// Create a layout
-		IDWriteTextLayout *pTextLayout = nullptr;
-		const HRESULT hr = pIDWriteFactory->CreateTextLayout(tbuf.buffer, tbuf.tlen, pfm->pTextFormat, 1000.0, 1000.0, &pTextLayout);
-		if (SUCCEEDED(hr)) {
+		if (TextLayout pTextLayout = LayoutCreate(tbuf.AsView(), pfm->pTextFormat.Get())) {
 			DWRITE_TEXT_METRICS textMetrics;
 			if (SUCCEEDED(pTextLayout->GetMetrics(&textMetrics)))
 				width = textMetrics.widthIncludingTrailingWhitespace;
-			ReleaseUnknown(pTextLayout);
 		}
 	}
 	return width;
@@ -2727,16 +2715,11 @@ XYPOSITION SurfaceD2D::AverageCharWidth(const Font *font_) {
 	const FontDirectWrite *pfm = FontDirectWrite::Cast(font_);
 	if (pfm->pTextFormat) {
 		// Create a layout
-		IDWriteTextLayout *pTextLayout = nullptr;
-		static constexpr WCHAR wszAllAlpha[] = L"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
-		const size_t lenAllAlpha = wcslen(wszAllAlpha);
-		const HRESULT hr = pIDWriteFactory->CreateTextLayout(wszAllAlpha, static_cast<UINT32>(lenAllAlpha),
-			pfm->pTextFormat, 1000.0, 1000.0, &pTextLayout);
-		if (SUCCEEDED(hr) && pTextLayout) {
+		static constexpr std::wstring_view wsvAllAlpha = L"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+		if (TextLayout pTextLayout = LayoutCreate(wsvAllAlpha, pfm->pTextFormat.Get())) {
 			DWRITE_TEXT_METRICS textMetrics;
 			if (SUCCEEDED(pTextLayout->GetMetrics(&textMetrics)))
-				width = textMetrics.width / lenAllAlpha;
-			ReleaseUnknown(pTextLayout);
+				width = textMetrics.width / wsvAllAlpha.length();
 		}
 	}
 	return width;
