@@ -1056,10 +1056,6 @@ ColourRGBA GradientValue(const std::vector<ColourStop> &stops, XYPOSITION propor
 	return ColourRGBA();
 }
 
-constexpr SIZE SizeOfRect(RECT rc) noexcept {
-	return { rc.right - rc.left, rc.bottom - rc.top };
-}
-
 constexpr BLENDFUNCTION mergeAlpha = { AC_SRC_OVER, 0, 255, AC_SRC_ALPHA };
 
 }

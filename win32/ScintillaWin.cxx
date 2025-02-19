@@ -357,10 +357,9 @@ RECT GetClientRect(HWND hwnd) noexcept {
 #if defined(USE_D2D)
 
 D2D1_SIZE_U GetSizeUFromRect(const RECT &rc, const int scaleFactor) noexcept {
-	const long width = rc.right - rc.left;
-	const long height = rc.bottom - rc.top;
-	const UINT32 scaledWidth = width * scaleFactor;
-	const UINT32 scaledHeight = height * scaleFactor;
+	const SIZE size = SizeOfRect(rc);
+	const UINT32 scaledWidth = size.cx * scaleFactor;
+	const UINT32 scaledHeight = size.cy * scaleFactor;
 	return D2D1::SizeU(scaledWidth, scaledHeight);
 }
 
