@@ -135,7 +135,7 @@ TEST_CASE("SelectionPosition") {
 TEST_CASE("SelectionSegment") {
 
 	SECTION("SelectionSegment") {
-		SelectionSegment ss;
+		const SelectionSegment ss;
 		REQUIRE(ss.start == invalid);
 		REQUIRE(ss.end == invalid);
 	}
@@ -145,7 +145,7 @@ TEST_CASE("SelectionSegment") {
 TEST_CASE("SelectionRange") {
 
 	SECTION("SelectionRange") {
-		SelectionRange sr;
+		const SelectionRange sr;
 		REQUIRE(sr.anchor == invalid);
 		REQUIRE(sr.caret == invalid);
 	}
