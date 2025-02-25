@@ -3143,7 +3143,7 @@ void Editor::ChangeCaseOfSelection(CaseMapping caseMapping) {
 		SelectionRange currentNoVS = current;
 		currentNoVS.ClearVirtualSpace();
 		const size_t rangeBytes = currentNoVS.Length();
-		if (rangeBytes > 0) {
+		if (rangeBytes > 0 && !RangeContainsProtected(currentNoVS)) {
 			std::string sText = RangeText(currentNoVS.Start().Position(), currentNoVS.End().Position());
 
 			std::string sMapped = CaseMapString(sText, caseMapping);
