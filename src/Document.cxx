@@ -1229,8 +1229,8 @@ void DiscardEndFragment(std::string_view &text) noexcept {
 }
 
 constexpr bool IsBaseOfGrapheme(CharacterCategory cc) {
-	// \p{L}\p{N}\p{P}\p{Sm}\p{Sc}\p{So}\p{Zs}
 	switch (cc) {
+		// \p{L}\p{N}\p{P}\p{Sm}\p{Sc}\p{So}\p{Zs}
 	case ccLu:
 	case ccLl:
 	case ccLt:
@@ -1250,12 +1250,16 @@ constexpr bool IsBaseOfGrapheme(CharacterCategory cc) {
 	case ccSc:
 	case ccSo:
 	case ccZs:
+		// Control
+	case ccCc:
+	case ccCs:
+	case ccCo:
 		return true;
 	default:
 		// ccMn, ccMc, ccMe,
 		// ccSk,
 		// ccZl, ccZp,
-		// ccCc, ccCf, ccCs, ccCo, ccCn
+		// ccCf, ccCn
 		return false;
 	}
 }
@@ -1287,6 +1291,8 @@ bool Scintilla::Internal::DiscardLastCombinedCharacter(std::string_view &text) n
 	// ccs-base := [\p{L}\p{N}\p{P}\p{S}\p{Zs}]
 	// ccs-extend := [\p{M}\p{Join_Control}]
 	// Modified to move Sk (Symbol Modifier) from ccs-base to ccs-extend to preserve modified emoji
+	// May break before and after Control which is defined as most of ccC? but not some of ccCf and ccCn
+	// so treat ccCc, ccCs, ccCo as base for now.
 
 	std::string_view truncated = text;
 	while (truncated.length() > UTF8MaxBytes) {
