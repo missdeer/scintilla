@@ -4148,7 +4148,18 @@ void Platform::DebugPrintf(const char *, ...) noexcept {
 }
 #endif
 
-static bool assertionPopUps = true;
+namespace {
+
+void ReleaseLibrary(HMODULE &hLib) noexcept {
+	if (hLib) {
+		FreeLibrary(hLib);
+		hLib = {};
+	}
+}
+
+bool assertionPopUps = true;
+
+}
 
 bool Platform::ShowAssertionPopUps(bool assertionPopUps_) noexcept {
 	const bool ret = assertionPopUps;
@@ -4180,17 +4191,6 @@ void Platform_Initialise(void *hInstance) noexcept {
 	hinstPlatformRes = static_cast<HINSTANCE>(hInstance);
 	LoadDpiForWindow();
 	ListBoxX_Register();
-}
-
-namespace {
-
-void ReleaseLibrary(HMODULE &hLib) noexcept {
-	if (hLib) {
-		FreeLibrary(hLib);
-		hLib = {};
-	}
-}
-
 }
 
 void Platform_Finalise(bool fromDllMain) noexcept {

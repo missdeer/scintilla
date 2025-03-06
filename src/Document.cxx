@@ -620,11 +620,14 @@ void Document::ClearLevels() {
 	Levels()->ClearLevels();
 }
 
-static bool IsSubordinate(FoldLevel levelStart, FoldLevel levelTry) noexcept {
+namespace {
+
+constexpr bool IsSubordinate(FoldLevel levelStart, FoldLevel levelTry) noexcept {
 	if (LevelIsWhitespace(levelTry))
 		return true;
-	else
-		return LevelNumber(levelStart) < LevelNumber(levelTry);
+	return LevelNumber(levelStart) < LevelNumber(levelTry);
+}
+
 }
 
 Sci::Line Document::GetLastChild(Sci::Line lineParent, std::optional<FoldLevel> level, Sci::Line lastLine) {
@@ -1280,6 +1283,25 @@ CharacterExtracted LastCharacter(std::string_view text) noexcept {
 		static_cast<unsigned int>(utf8status & UTF8MaskWidth) };
 }
 
+constexpr Sci::Position NextTab(Sci::Position pos, Sci::Position tabSize) noexcept {
+	return ((pos / tabSize) + 1) * tabSize;
+}
+
+std::string CreateIndentation(Sci::Position indent, int tabSize, bool insertSpaces) {
+	std::string indentation;
+	if (!insertSpaces) {
+		while (indent >= tabSize) {
+			indentation += '\t';
+			indent -= tabSize;
+		}
+	}
+	while (indent > 0) {
+		indentation += ' ';
+		indent--;
+	}
+	return indentation;
+}
+
 }
 
 bool Scintilla::Internal::DiscardLastCombinedCharacter(std::string_view &text) noexcept {
@@ -1706,25 +1728,6 @@ void Document::DelCharBack(Sci::Position pos) {
 	} else {
 		DeleteChars(pos - 1, 1);
 	}
-}
-
-static constexpr Sci::Position NextTab(Sci::Position pos, Sci::Position tabSize) noexcept {
-	return ((pos / tabSize) + 1) * tabSize;
-}
-
-static std::string CreateIndentation(Sci::Position indent, int tabSize, bool insertSpaces) {
-	std::string indentation;
-	if (!insertSpaces) {
-		while (indent >= tabSize) {
-			indentation += '\t';
-			indent -= tabSize;
-		}
-	}
-	while (indent > 0) {
-		indentation += ' ';
-		indent--;
-	}
-	return indentation;
 }
 
 int SCI_METHOD Document::GetLineIndentation(Sci_Position line) {
@@ -2981,7 +2984,9 @@ Sci::Position Document::ExtendStyleRange(Sci::Position pos, int delta, bool sing
 	return pos;
 }
 
-static char BraceOpposite(char ch) noexcept {
+namespace {
+
+constexpr char BraceOpposite(char ch) noexcept {
 	switch (ch) {
 	case '(':
 		return ')';
@@ -3002,6 +3007,8 @@ static char BraceOpposite(char ch) noexcept {
 	default:
 		return '\0';
 	}
+}
+
 }
 
 // TODO: should be able to extend styled region to find matching brace
