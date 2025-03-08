@@ -124,7 +124,7 @@ constexpr int IndicatorTarget = IndicatorInput + 1;
 constexpr int IndicatorConverted = IndicatorInput + 2;
 constexpr int IndicatorUnknown = IndicatorInput + 3;
 
-typedef UINT_PTR (WINAPI *SetCoalescableTimerSig)(HWND hwnd, UINT_PTR nIDEvent,
+using SetCoalescableTimerSig = UINT_PTR (WINAPI *)(HWND hwnd, UINT_PTR nIDEvent,
 	UINT uElapse, TIMERPROC lpTimerFunc, ULONG uToleranceDelay);
 
 }
@@ -275,26 +275,26 @@ public:
 			::ImmReleaseContext(hwnd, hIMC);
 	}
 
-	unsigned int GetImeCaretPos() const noexcept {
+	[[nodiscard]] unsigned int GetImeCaretPos() const noexcept {
 		return ImmGetCompositionStringW(hIMC, GCS_CURSORPOS, nullptr, 0);
 	}
 
-	std::vector<BYTE> GetImeAttributes() const {
+	[[nodiscard]] std::vector<BYTE> GetImeAttributes() const {
 		const int attrLen = ::ImmGetCompositionStringW(hIMC, GCS_COMPATTR, nullptr, 0);
 		std::vector<BYTE> attr(attrLen, 0);
-		::ImmGetCompositionStringW(hIMC, GCS_COMPATTR, &attr[0], static_cast<DWORD>(attr.size()));
+		::ImmGetCompositionStringW(hIMC, GCS_COMPATTR, attr.data(), static_cast<DWORD>(attr.size()));
 		return attr;
 	}
 
-	LONG GetCompositionStringLength(DWORD dwIndex) const noexcept {
+	[[nodiscard]] LONG GetCompositionStringLength(DWORD dwIndex) const noexcept {
 		const LONG byteLen = ::ImmGetCompositionStringW(hIMC, dwIndex, nullptr, 0);
 		return byteLen / sizeof(wchar_t);
 	}
 
-	std::wstring GetCompositionString(DWORD dwIndex) const {
+	[[nodiscard]] std::wstring GetCompositionString(DWORD dwIndex) const {
 		const LONG byteLen = ::ImmGetCompositionStringW(hIMC, dwIndex, nullptr, 0);
 		std::wstring wcs(byteLen / 2, 0);
-		::ImmGetCompositionStringW(hIMC, dwIndex, &wcs[0], byteLen);
+		::ImmGetCompositionStringW(hIMC, dwIndex, wcs.data(), byteLen);
 		return wcs;
 	}
 };
@@ -480,7 +480,7 @@ class ScintillaWin :
 	static ATOM callClassAtom;
 
 	float deviceScaleFactor = 1.f;
-	int GetFirstIntegralMultipleDeviceScaleFactor() const noexcept {
+	[[nodiscard]] int GetFirstIntegralMultipleDeviceScaleFactor() const noexcept {
 		 return static_cast<int>(std::ceil(deviceScaleFactor));
 	}
 
@@ -511,7 +511,7 @@ class ScintillaWin :
 	void EnsureRenderTarget(HDC hdc);
 #endif
 	void DropRenderTarget() noexcept;
-	HWND MainHWND() const noexcept;
+	[[nodiscard]] HWND MainHWND() const noexcept;
 
 	static sptr_t DirectFunction(
 		    sptr_t ptr, UINT iMessage, uptr_t wParam, sptr_t lParam);
@@ -541,7 +541,7 @@ class ScintillaWin :
 	void ImeStartComposition();
 	void ImeEndComposition();
 	LRESULT ImeOnReconvert(LPARAM lParam);
-	LRESULT ImeOnDocumentFeed(LPARAM lParam) const;
+	[[nodiscard]] LRESULT ImeOnDocumentFeed(LPARAM lParam) const;
 	sptr_t HandleCompositionWindowed(uptr_t wParam, sptr_t lParam);
 	sptr_t HandleCompositionInline(uptr_t wParam, sptr_t lParam);
 	static bool KoreanIME() noexcept;
@@ -553,10 +553,10 @@ class ScintillaWin :
 	void ToggleHanja();
 	void AddWString(std::wstring_view wsv, CharacterSource charSource);
 
-	UINT CodePageOfDocument() const noexcept;
-	bool ValidCodePage(int codePage) const override;
-	std::string UTF8FromEncoded(std::string_view encoded) const override;
-	std::string EncodedFromUTF8(std::string_view utf8) const override;
+	[[nodiscard]] UINT CodePageOfDocument() const noexcept;
+	[[nodiscard]] bool ValidCodePage(int codePage) const override;
+	[[nodiscard]] std::string UTF8FromEncoded(std::string_view encoded) const override;
+	[[nodiscard]] std::string EncodedFromUTF8(std::string_view utf8) const override;
 
 	std::string EncodeWString(std::wstring_view wsv);
 	sptr_t DefWndProc(Message iMessage, uptr_t wParam, sptr_t lParam) override;
@@ -579,7 +579,7 @@ class ScintillaWin :
 	void SetVerticalScrollPos() override;
 	void SetHorizontalScrollPos() override;
 	void HorizontalScrollToClamped(int xPos);
-	HorizontalScrollRange GetHorizontalScrollRange() const;
+	[[nodiscard]] HorizontalScrollRange GetHorizontalScrollRange() const;
 	bool ModifyScrollBars(Sci::Line nMax, Sci::Line nPage) override;
 	void NotifyChange() override;
 	void NotifyFocus(bool focus) override;
@@ -604,9 +604,9 @@ class ScintillaWin :
 	void FullPaint();
 	void FullPaintDC(HDC hdc);
 	bool IsCompatibleDC(HDC hOtherDC) noexcept;
-	DWORD EffectFromState(DWORD grfKeyState) const noexcept;
+	[[nodiscard]] DWORD EffectFromState(DWORD grfKeyState) const noexcept;
 
-	bool IsVisible() const noexcept;
+	[[nodiscard]] bool IsVisible() const noexcept;
 	int SetScrollInfo(int nBar, LPCSCROLLINFO lpsi, BOOL bRedraw) noexcept;
 	bool GetScrollInfo(int nBar, LPSCROLLINFO lpsi) noexcept;
 	bool ChangeScrollRange(int nBar, int nMin, int nMax, UINT nPage) noexcept;
@@ -615,7 +615,7 @@ class ScintillaWin :
 	sptr_t GetText(uptr_t wParam, sptr_t lParam);
 	Window::Cursor ContextCursor(Point pt);
 	sptr_t ShowContextMenu(unsigned int iMessage, uptr_t wParam, sptr_t lParam);
-	PRectangle GetClientRectangle() const override;
+	[[nodiscard]] PRectangle GetClientRectangle() const override;
 	void SizeWindow();
 	sptr_t MouseMessage(unsigned int iMessage, uptr_t wParam, sptr_t lParam);
 	sptr_t KeyMessage(unsigned int iMessage, uptr_t wParam, sptr_t lParam);
@@ -651,13 +651,13 @@ public:
 	static bool Register(HINSTANCE hInstance_) noexcept;
 	static bool Unregister() noexcept;
 
-	bool DragIsRectangularOK(CLIPFORMAT fmt) const noexcept {
+	[[nodiscard]] bool DragIsRectangularOK(CLIPFORMAT fmt) const noexcept {
 		return drag.rectangular && (fmt == cfColumnSelect);
 	}
 
 private:
 	// For use in creating a system caret
-	bool HasCaretSizeChanged() const noexcept;
+	[[nodiscard]] bool HasCaretSizeChanged() const noexcept;
 	BOOL CreateSystemCaret();
 	BOOL DestroySystemCaret() noexcept;
 	HBITMAP sysCaretBitmap;
@@ -1200,7 +1200,7 @@ Sci::Position ScintillaWin::EncodedFromUTF8(const char *utf8, char *encoded) con
 		const std::string_view utf8Input(utf8, inputLength);
 		const int charsLen = WideCharLenFromMultiByte(CpUtf8, utf8Input);
 		std::wstring characters(charsLen, L'\0');
-		WideCharFromMultiByte(CpUtf8, utf8Input, &characters[0], charsLen);
+		WideCharFromMultiByte(CpUtf8, utf8Input, characters.data(), charsLen);
 
 		const int encodedLen = MultiByteLenFromWideChar(CodePageOfDocument(), characters);
 		if (encoded) {
@@ -1378,7 +1378,7 @@ void ScintillaWin::SelectionToHangul() {
 
 	if (utf16Len > 0) {
 		std::string documentStr(documentStrLen, '\0');
-		pdoc->GetCharRange(&documentStr[0], selStart, documentStrLen);
+		pdoc->GetCharRange(documentStr.data(), selStart, documentStrLen);
 
 		std::wstring uniStr = StringDecode(documentStr, CodePageOfDocument());
 		const bool converted = HanjaDict::GetHangulOfHanja(uniStr);
@@ -1387,7 +1387,7 @@ void ScintillaWin::SelectionToHangul() {
 			documentStr = StringEncode(uniStr, CodePageOfDocument());
 			UndoGroup ug(pdoc);
 			ClearSelection();
-			InsertPaste(&documentStr[0], documentStr.size());
+			InsertPaste(documentStr.data(), documentStr.size());
 		}
 	}
 }
@@ -1410,7 +1410,7 @@ void ScintillaWin::EscapeHanja() {
 	// So enlarge it enough to Maximum 4 as in UTF-8.
 	constexpr size_t safeLength = UTF8MaxBytes + 1;
 	std::string oneChar(safeLength, '\0');
-	pdoc->GetCharRange(&oneChar[0], currentPos, oneCharLen);
+	pdoc->GetCharRange(oneChar.data(), currentPos, oneCharLen);
 
 	std::wstring uniChar = StringDecode(oneChar, CodePageOfDocument());
 
@@ -1419,7 +1419,7 @@ void ScintillaWin::EscapeHanja() {
 		// Set the candidate box position since IME may show it.
 		SetCandidateWindowPos();
 		// IME_ESC_HANJA_MODE appears to receive the first character only.
-		if (::ImmEscapeW(GetKeyboardLayout(0), imc.hIMC, IME_ESC_HANJA_MODE, &uniChar[0])) {
+		if (::ImmEscapeW(GetKeyboardLayout(0), imc.hIMC, IME_ESC_HANJA_MODE, uniChar.data())) {
 			SetSelection(currentPos, currentPos + oneCharLen);
 		}
 	}
@@ -1692,7 +1692,7 @@ sptr_t ScintillaWin::GetText(uptr_t wParam, sptr_t lParam) {
 			sizeRequestedRange = pdoc->Length();
 		}
 		std::string docBytes(sizeRequestedRange, '\0');
-		pdoc->GetCharRange(&docBytes[0], 0, sizeRequestedRange);
+		pdoc->GetCharRange(docBytes.data(), 0, sizeRequestedRange);
 		const size_t uLen = UTF16FromUTF8(docBytes, ptr, lengthWanted);
 		ptr[uLen] = L'\0';
 		return uLen;
@@ -2811,7 +2811,7 @@ public:
 			}
 			const size_t nUtf16Mixed = WideCharFromMultiByte(cp,
 				std::string_view(mixed, lenMixed),
-				&utf16Mixed[0],
+				utf16Mixed.data(),
 				utf16Mixed.size());
 
 			if (nUtf16Mixed == 0) {
@@ -2837,7 +2837,7 @@ public:
 				}
 			}
 
-			const std::wstring_view wsvFolded(&utf16Folded[0], lenFlat);
+			const std::wstring_view wsvFolded(utf16Folded.data(), lenFlat);
 			const size_t lenOut = MultiByteLenFromWideChar(cp, wsvFolded);
 
 			if (lenOut < sizeFolded) {
@@ -2973,7 +2973,7 @@ public:
 	operator bool() const noexcept {
 		return ptr != nullptr;
 	}
-	SIZE_T Size() const noexcept {
+	[[nodiscard]] SIZE_T Size() const noexcept {
 		return ::GlobalSize(hand);
 	}
 };
@@ -3136,7 +3136,7 @@ STDMETHODIMP FormatEnumerator::Reset() {
 STDMETHODIMP FormatEnumerator::Clone(IEnumFORMATETC **ppenum) {
 	FormatEnumerator *pfe;
 	try {
-		pfe = new FormatEnumerator(pos, &formats[0], formats.size());
+		pfe = new FormatEnumerator(pos, formats.data(), formats.size());
 	} catch (...) {
 		return E_OUTOFMEMORY;
 	}
@@ -3375,7 +3375,7 @@ LRESULT ScintillaWin::ImeOnReconvert(LPARAM lParam) {
 		return rcSize; // Immediately be back with rcSize of memory block.
 
 	wchar_t *rcFeedStart = reinterpret_cast<wchar_t*>(rc + 1);
-	memcpy(rcFeedStart, &rcFeed[0], rcFeedLen);
+	memcpy(rcFeedStart, rcFeed.data(), rcFeedLen);
 
 	std::string rcCompString = RangeText(mainStart, mainEnd);
 	std::wstring rcCompWstring = StringDecode(rcCompString, codePage);
@@ -3453,7 +3453,7 @@ LRESULT ScintillaWin::ImeOnDocumentFeed(LPARAM lParam) const {
 		return rcSize;
 
 	wchar_t *rcFeedStart = reinterpret_cast<wchar_t*>(rc + 1);
-	memcpy(rcFeedStart, &rcFeed[0], rcFeedLen);
+	memcpy(rcFeedStart, rcFeed.data(), rcFeedLen);
 
 	IMContext imc(MainHWND());
 	if (!imc.hIMC)
@@ -3886,7 +3886,7 @@ BOOL ScintillaWin::CreateSystemCaret() {
 		sysCaretHeight;
 	std::vector<BYTE> bits(bitmapSize);
 	sysCaretBitmap = ::CreateBitmap(sysCaretWidth, sysCaretHeight, 1,
-		1, &bits[0]);
+		1, bits.data());
 	const BOOL retval = ::CreateCaret(
 		MainHWND(), sysCaretBitmap,
 		sysCaretWidth, sysCaretHeight);

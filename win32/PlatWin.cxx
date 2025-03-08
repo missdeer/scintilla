@@ -100,9 +100,9 @@ void LoadD2DOnce() noexcept {
 		}
 	}
 
-	typedef HRESULT (WINAPI *D2D1CFSig)(D2D1_FACTORY_TYPE factoryType, REFIID riid,
+	using D2D1CFSig = HRESULT (WINAPI *)(D2D1_FACTORY_TYPE factoryType, REFIID riid,
 		CONST D2D1_FACTORY_OPTIONS *pFactoryOptions, IUnknown **factory);
-	typedef HRESULT (WINAPI *DWriteCFSig)(DWRITE_FACTORY_TYPE factoryType, REFIID iid,
+	using DWriteCFSig = HRESULT (WINAPI *)(DWRITE_FACTORY_TYPE factoryType, REFIID iid,
 		IUnknown **factory);
 
 	hDLLD2D = ::LoadLibraryEx(TEXT("D2D1.DLL"), {}, loadLibraryFlags);
@@ -3212,7 +3212,7 @@ public:
 
 	char *SetWords(const char *s) {
 		words = std::vector<char>(s, s+strlen(s)+1);
-		return &words[0];
+		return words.data();
 	}
 };
 
