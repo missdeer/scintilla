@@ -373,6 +373,12 @@ void ScintillaEditBase::mouseMoveEvent(QMouseEvent *event)
 	sqt->ButtonMoveWithModifiers(pos, TimeOfEvent(time), modifiers);
 }
 
+void ScintillaEditBase::leaveEvent(QEvent *event)
+{
+	QWidget::leaveEvent(event);
+	sqt->MouseLeave();
+}
+
 void ScintillaEditBase::contextMenuEvent(QContextMenuEvent *event)
 {
 	const Point pos = PointFromQPoint(event->globalPos());
