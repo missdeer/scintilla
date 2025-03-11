@@ -24,6 +24,10 @@ constexpr RECT RectFromPRectangle(PRectangle prc) noexcept {
 	return rc;
 }
 
+constexpr PRectangle PRectangleFromRECT(RECT rc) noexcept {
+	return PRectangle::FromInts(rc.left, rc.top, rc.right, rc.bottom);
+}
+
 constexpr POINT POINTFromPoint(Point pt) noexcept {
 	return POINT{ static_cast<LONG>(pt.x), static_cast<LONG>(pt.y) };
 }

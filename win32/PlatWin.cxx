@@ -2765,7 +2765,7 @@ void Window::Destroy() noexcept {
 PRectangle Window::GetPosition() const {
 	RECT rc;
 	::GetWindowRect(HwndFromWindowID(wid), &rc);
-	return PRectangle::FromInts(rc.left, rc.top, rc.right, rc.bottom);
+	return PRectangleFromRECT(rc);
 }
 
 void Window::SetPosition(PRectangle rc) {
@@ -2829,7 +2829,7 @@ PRectangle Window::GetClientPosition() const {
 	RECT rc={0,0,0,0};
 	if (wid)
 		::GetClientRect(HwndFromWindowID(wid), &rc);
-	return PRectangle::FromInts(rc.left, rc.top, rc.right, rc.bottom);
+	return PRectangleFromRECT(rc);
 }
 
 void Window::Show(bool show) {
@@ -3637,7 +3637,7 @@ void ListBoxX::AdjustWindowRect(PRectangle *rc, UINT dpiAdjust) const noexcept {
 	} else {
 		::AdjustWindowRectEx(&rcw, frameStyle, false, WS_EX_WINDOWEDGE);
 	}
-	*rc = PRectangle::FromInts(rcw.left, rcw.top, rcw.right, rcw.bottom);
+	*rc = PRectangleFromRECT(rcw);
 }
 
 int ListBoxX::ItemHeight() const noexcept {
