@@ -3673,8 +3673,9 @@ POINT ListBoxX::MaxTrackSize() const noexcept {
 
 void ListBoxX::SetRedraw(bool on) noexcept {
 	::SendMessage(lb, WM_SETREDRAW, on, 0);
-	if (on)
-		::InvalidateRect(lb, nullptr, TRUE);
+	if (on) {
+		::RedrawWindow(lb, {}, {}, RDW_ERASE | RDW_FRAME | RDW_INVALIDATE | RDW_ALLCHILDREN);
+	}
 }
 
 void ListBoxX::ResizeToCursor() {
