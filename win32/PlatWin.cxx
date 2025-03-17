@@ -781,7 +781,7 @@ int SurfaceGDI::SupportsFeature(Supports feature) noexcept {
 }
 
 bool SurfaceGDI::Initialised() {
-	return hdc != 0;
+	return hdc;
 }
 
 void SurfaceGDI::Init(WindowID wid) {
