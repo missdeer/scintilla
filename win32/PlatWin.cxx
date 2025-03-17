@@ -944,6 +944,39 @@ void SurfaceGDI::RoundedRectangle(PRectangle rc, FillStroke fillStroke) {
 
 namespace {
 
+constexpr BITMAPV5HEADER BitMapHeader(int width, int height) noexcept {
+	constexpr int pixelBits = 32;
+
+	// Divide each pixel up in the expected BGRA manner.
+	// Compatible with DXGI_FORMAT_B8G8R8A8_UNORM.
+	constexpr DWORD maskRed = 0x00FF0000U;
+	constexpr DWORD maskGreen = 0x0000FF00U;
+	constexpr DWORD maskBlue = 0x000000FFU;
+	constexpr DWORD maskAlpha = 0xFF000000U;
+
+	BITMAPV5HEADER bi{};
+	bi.bV5Size = sizeof(BITMAPV5HEADER);
+	bi.bV5Width = width;
+	bi.bV5Height = height;
+	bi.bV5Planes = 1;
+	bi.bV5BitCount = pixelBits;
+	bi.bV5Compression = BI_BITFIELDS;
+	// The following mask specification specifies a supported 32 BPP alpha format for Windows XP.
+	bi.bV5RedMask = maskRed;
+	bi.bV5GreenMask = maskGreen;
+	bi.bV5BlueMask = maskBlue;
+	bi.bV5AlphaMask = maskAlpha;
+	return bi;
+}
+
+HBITMAP BitMapSection(HDC hdc, int width, int height, DWORD **pixels) noexcept {
+	const BITMAPV5HEADER bi = BitMapHeader(width, height);
+	void *image = nullptr;
+	HBITMAP hbm = ::CreateDIBSection(hdc, reinterpret_cast<const BITMAPINFO *>(&bi), DIB_RGB_COLORS, &image, {}, 0);
+	*pixels = static_cast<DWORD *>(image);
+	return hbm;
+}
+
 constexpr DWORD dwordFromBGRA(byte b, byte g, byte r, byte a) noexcept {
 	return (a << 24) | (r << 16) | (g << 8) | b;
 }
@@ -1005,15 +1038,10 @@ DIBSection::DIBSection(HDC hdc, SIZE size_) noexcept {
 	size = size_;
 
 	// -size.y makes bitmap start from top
-	const BITMAPINFO bpih = { {sizeof(BITMAPINFOHEADER), size.cx, -size.cy, 1, 32, BI_RGB, 0, 0, 0, 0, 0},
-		{{0, 0, 0, 0}} };
-	void *image = nullptr;
-	hbmMem = CreateDIBSection(hMemDC, &bpih, DIB_RGB_COLORS, &image, {}, 0);
-	if (!hbmMem || !image) {
-		return;
+	hbmMem = BitMapSection(hMemDC, size.cx, -size.cy, &pixels);
+	if (hbmMem) {
+		hbmOld = SelectBitmap(hMemDC, hbmMem);
 	}
-	pixels = static_cast<DWORD *>(image);
-	hbmOld = SelectBitmap(hMemDC, hbmMem);
 }
 
 DIBSection::~DIBSection() noexcept {
@@ -2899,21 +2927,7 @@ public:
 		}
 
 		// https://learn.microsoft.com/en-us/windows/win32/menurc/using-cursors#creating-a-cursor
-		BITMAPV5HEADER bi {};
-		bi.bV5Size = sizeof(BITMAPV5HEADER);
-		bi.bV5Width = width;
-		bi.bV5Height = height;
-		bi.bV5Planes = 1;
-		bi.bV5BitCount = 32;
-		bi.bV5Compression = BI_BITFIELDS;
-		// The following mask specification specifies a supported 32 BPP alpha format for Windows XP.
-		bi.bV5RedMask   = 0x00FF0000U;
-		bi.bV5GreenMask = 0x0000FF00U;
-		bi.bV5BlueMask  = 0x000000FFU;
-		bi.bV5AlphaMask = 0xFF000000U;
-
-		// Create the DIB section with an alpha channel.
-		hBitmap = CreateDIBSection(hMemDC, reinterpret_cast<BITMAPINFO *>(&bi), DIB_RGB_COLORS, reinterpret_cast<void **>(&pixels), nullptr, 0);
+		hBitmap = BitMapSection(hMemDC, width, height, &pixels);
 		if (hBitmap) {
 			hOldBitmap = SelectBitmap(hMemDC, hBitmap);
 		}
