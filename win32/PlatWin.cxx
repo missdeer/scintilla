@@ -3323,13 +3323,12 @@ class ListBoxX : public ListBox {
 	bool unicodeMode = false;
 	int codePage = 0;
 	int desiredVisibleRows = 9;
-	unsigned int maxItemCharacters = 0;
+	int maxItemCharacters = 0;
 	unsigned int aveCharWidth = 8;
 	Window *parent = nullptr;
 	int ctrlID = 0;
 	UINT dpi = USER_DEFAULT_SCREEN_DPI;
 	IListBoxDelegate *delegate = nullptr;
-	const char *widestItem = nullptr;
 	unsigned int maxCharWidth = 1;
 	WPARAM resizeHit = 0;
 	PRectangle rcPreSize;
@@ -3472,22 +3471,26 @@ PRectangle ListBoxX::GetDesiredRect() {
 
 	int width = MinClientWidth();
 	int textSize = 0;
-	int len = 0;
 	int averageCharWidth = 8;
-	if (widestItem) {
-		len = static_cast<int>(strlen(widestItem));
-		// Make a measuring surface
-		std::unique_ptr<Surface> surfaceItem(Surface::Allocate(technology));
-		surfaceItem->Init(GetID());
-		surfaceItem->SetMode(SurfaceMode(codePage, false));
-		textSize = static_cast<int>(std::ceil(surfaceItem->WidthText(fontWin.get(), widestItem)));
-		maxCharWidth = static_cast<int>(std::ceil(surfaceItem->WidthText(fontWin.get(), "W")));
-		averageCharWidth = static_cast<int>(surfaceItem->AverageCharWidth(fontWin.get()));
+
+	// Make a measuring surface
+	std::unique_ptr<Surface> surfaceItem(Surface::Allocate(technology));
+	surfaceItem->Init(GetID());
+	surfaceItem->SetMode(SurfaceMode(codePage, false));
+
+	// Find the widest item in pixels
+	const int items = lti.Count();
+	for (int i = 0; i < items; i++) {
+		const ListItemData item = lti.Get(i);
+		const int itemTextSize = static_cast<int>(std::ceil(
+			surfaceItem->WidthText(fontWin.get(), item.text)));
+		textSize = std::max(textSize, itemTextSize);
 	}
 
-	const int widthDesired = std::max(textSize, (len + 1) * averageCharWidth);
-	if (width < widthDesired)
-		width = widthDesired;
+	maxCharWidth = static_cast<int>(std::ceil(surfaceItem->WidthText(fontWin.get(), "W")));
+	averageCharWidth = static_cast<int>(surfaceItem->AverageCharWidth(fontWin.get()));
+
+	width = std::max({ width, textSize, (maxItemCharacters + 1) * averageCharWidth });
 
 	rcDesired.right = rcDesired.left + TextOffset() + width + (TextInset.x * 2);
 	if (Length() > rows)
@@ -3511,7 +3514,6 @@ int ListBoxX::CaretFromEdge() {
 void ListBoxX::Clear() noexcept {
 	ListBox_ResetContent(lb);
 	maxItemCharacters = 0;
-	widestItem = nullptr;
 	lti.Clear();
 }
 
@@ -3645,11 +3647,7 @@ void ListBoxX::AppendListItem(const char *text, const char *numword) {
 	}
 
 	lti.AllocItem(text, pixId);
-	const unsigned int len = static_cast<unsigned int>(strlen(text));
-	if (maxItemCharacters < len) {
-		maxItemCharacters = len;
-		widestItem = text;
-	}
+	maxItemCharacters = std::max(maxItemCharacters, static_cast<int>(strlen(text)));
 }
 
 void ListBoxX::SetDelegate(IListBoxDelegate *lbDelegate) {
