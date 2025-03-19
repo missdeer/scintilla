@@ -1024,22 +1024,89 @@ constexpr DWORD dwordMultiplied(ColourRGBA colour) noexcept {
 		colour.GetAlpha());
 }
 
+// Manage the lifetime of a memory HBITMAP and its HDC so there are no leaks.
+class GDIBitMap {
+	HDC hdc{};
+	HBITMAP hbm{};
+	HBITMAP hbmOriginal{};
+
+public:
+	GDIBitMap() noexcept = default;
+	// Deleted so GDIBitMap objects can not be copied.
+	GDIBitMap(const GDIBitMap &) = delete;
+	GDIBitMap(GDIBitMap &&) = delete;
+	// Move would be OK but not needed yet
+	GDIBitMap &operator=(const GDIBitMap &) = delete;
+	GDIBitMap &operator=(GDIBitMap &&) = delete;
+	~GDIBitMap() noexcept;
+
+	void Create(HDC hdcBase, int width, int height, DWORD **pixels) noexcept;
+	void Release() noexcept;
+	HBITMAP Extract() noexcept;
+
+	[[nodiscard]] HDC DC() const noexcept {
+		return hdc;
+	}
+	[[nodiscard]] explicit operator bool() const noexcept {
+		return hdc && hbm;
+	}
+};
+
+GDIBitMap::~GDIBitMap() noexcept {
+	Release();
+}
+
+void GDIBitMap::Create(HDC hdcBase, int width, int height, DWORD **pixels) noexcept {
+	Release();
+
+	hdc = CreateCompatibleDC(hdcBase);
+	if (!hdc) {
+		return;
+	}
+
+	hbm = BitMapSection(hdc, width, height, pixels);
+	if (!hbm) {
+		return;
+	}
+	hbmOriginal = SelectBitmap(hdc, hbm);
+}
+
+void GDIBitMap::Release() noexcept {
+	if (hbmOriginal) {
+		// Deselect HBITMAP from HDC so it may be deleted.
+		SelectBitmap(hdc, hbmOriginal);
+	}
+	hbmOriginal = {};
+	if (hbm) {
+		::DeleteObject(hbm);
+	}
+	hbm = {};
+	if (hdc) {
+		::DeleteDC(hdc);
+	}
+	hdc = {};
+}
+
+HBITMAP GDIBitMap::Extract() noexcept {
+	// Deselect HBITMAP from HDC but keep so can delete.
+	// The caller will make a copy, not take ownership.
+	HBITMAP ret = hbm;
+	if (hbmOriginal) {
+		SelectBitmap(hdc, hbmOriginal);
+		hbmOriginal = {};
+	}
+	return ret;
+}
+
+// DIBSection is bitmap with some drawing operations used by SurfaceGDI.
 class DIBSection {
-	HDC hMemDC {};
-	HBITMAP hbmMem {};
-	HBITMAP hbmOld {};
+	GDIBitMap bm;
 	SIZE size {};
 	DWORD *pixels = nullptr;
 public:
 	DIBSection(HDC hdc, SIZE size_) noexcept;
-	// Deleted so DIBSection objects can not be copied.
-	DIBSection(const DIBSection&) = delete;
-	DIBSection(DIBSection&&) = delete;
-	DIBSection &operator=(const DIBSection&) = delete;
-	DIBSection &operator=(DIBSection&&) = delete;
-	~DIBSection() noexcept;
-	operator bool() const noexcept {
-		return hMemDC && hbmMem && pixels;
+	explicit operator bool() const noexcept {
+		return bm && pixels;
 	}
 	[[nodiscard]] DWORD *Pixels() const noexcept {
 		return pixels;
@@ -1048,7 +1115,7 @@ public:
 		return reinterpret_cast<unsigned char *>(pixels);
 	}
 	[[nodiscard]] HDC DC() const noexcept {
-		return hMemDC;
+		return bm.DC();
 	}
 	void SetPixel(LONG x, LONG y, DWORD value) noexcept {
 		PLATFORM_ASSERT(x >= 0);
@@ -1060,34 +1127,9 @@ public:
 	void SetSymmetric(LONG x, LONG y, DWORD value) noexcept;
 };
 
-DIBSection::DIBSection(HDC hdc, SIZE size_) noexcept {
-	hMemDC = ::CreateCompatibleDC(hdc);
-	if (!hMemDC) {
-		return;
-	}
-
-	size = size_;
-
+DIBSection::DIBSection(HDC hdc, SIZE size_) noexcept : size(size_) {
 	// -size.y makes bitmap start from top
-	hbmMem = BitMapSection(hMemDC, size.cx, -size.cy, &pixels);
-	if (hbmMem) {
-		hbmOld = SelectBitmap(hMemDC, hbmMem);
-	}
-}
-
-DIBSection::~DIBSection() noexcept {
-	if (hbmOld) {
-		SelectBitmap(hMemDC, hbmOld);
-		hbmOld = {};
-	}
-	if (hbmMem) {
-		::DeleteObject(hbmMem);
-		hbmMem = {};
-	}
-	if (hMemDC) {
-		::DeleteDC(hMemDC);
-		hMemDC = {};
-	}
+	bm.Create(hdc, size.cx, -size.cy, &pixels);
 }
 
 void DIBSection::SetSymmetric(LONG x, LONG y, DWORD value) noexcept {
@@ -2921,9 +2963,7 @@ std::optional<DWORD> RegGetDWORD(HKEY hKey, LPCWSTR valueName) noexcept {
 }
 
 class CursorHelper {
-	HDC hMemDC {};
-	HBITMAP hBitmap {};
-	HBITMAP hOldBitmap {};
+	GDIBitMap bm;
 	DWORD *pixels = nullptr;
 	const int width;
 	const int height;
@@ -2939,33 +2979,15 @@ class CursorHelper {
 	};
 
 public:
-	~CursorHelper() {
-		if (hOldBitmap) {
-			SelectBitmap(hMemDC, hOldBitmap);
-		}
-		if (hBitmap) {
-			::DeleteObject(hBitmap);
-		}
-		if (hMemDC) {
-			::DeleteDC(hMemDC);
-		}
-	}
+	~CursorHelper() = default;
 
 	CursorHelper(int width_, int height_) noexcept : width{width_}, height{height_} {
-		hMemDC = ::CreateCompatibleDC({});
-		if (!hMemDC) {
-			return;
-		}
-
 		// https://learn.microsoft.com/en-us/windows/win32/menurc/using-cursors#creating-a-cursor
-		hBitmap = BitMapSection(hMemDC, width, height, &pixels);
-		if (hBitmap) {
-			hOldBitmap = SelectBitmap(hMemDC, hBitmap);
-		}
+		bm.Create({}, width, height, &pixels);
 	}
 
-	[[nodiscard]] bool HasBitmap() const noexcept {
-		return hOldBitmap != nullptr;
+	[[nodiscard]] explicit operator bool() const noexcept {
+		return static_cast<bool>(bm);
 	}
 
 	HCURSOR Create() noexcept {
@@ -2975,8 +2997,7 @@ public:
 		if (hMonoBitmap) {
 			// https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-createiconindirect
 			// hBitmap should not already be selected into a device context
-			SelectBitmap(hMemDC, hOldBitmap);
-			hOldBitmap = {};
+			HBITMAP hBitmap = bm.Extract();
 			ICONINFO info = {false, static_cast<DWORD>(width - 1), 0, hMonoBitmap, hBitmap};
 			cursor = ::CreateIconIndirect(&info);
 			::DeleteObject(hMonoBitmap);
@@ -3009,7 +3030,7 @@ public:
 		}
 
 		const RECT rc = {0, 0, width, height};
-		hr = pTarget->BindDC(hMemDC, &rc);
+		hr = pTarget->BindDC(bm.DC(), &rc);
 		if (FAILED(hr)) {
 			return false;
 		}
@@ -3087,12 +3108,12 @@ public:
 			pen = ::CreatePen(PS_INSIDEFRAME, 1, strokeColour);
 		}
 
-		HPEN penOld = SelectPen(hMemDC, pen);
+		HPEN penOld = SelectPen(bm.DC(), pen);
 		HBRUSH brush = ::CreateSolidBrush(fillColour);
-		HBRUSH brushOld = SelectBrush(hMemDC, brush);
-		::Polygon(hMemDC, points, static_cast<int>(nPoints));
-		SelectPen(hMemDC, penOld);
-		SelectBrush(hMemDC, brushOld);
+		HBRUSH brushOld = SelectBrush(bm.DC(), brush);
+		::Polygon(bm.DC(), points, static_cast<int>(nPoints));
+		SelectPen(bm.DC(), penOld);
+		SelectBrush(bm.DC(), brushOld);
 		::DeleteObject(pen);
 		::DeleteObject(brush);
 
@@ -3168,7 +3189,7 @@ HCURSOR LoadReverseArrowCursor(UINT dpi) noexcept {
 	}
 
 	CursorHelper cursorHelper(width, height);
-	if (!cursorHelper.HasBitmap()) {
+	if (!cursorHelper) {
 		return {};
 	}
 
@@ -3278,35 +3299,18 @@ ColourRGBA ColourElement(std::optional<ColourRGBA> colour, int nIndex) {
 }
 
 struct LBGraphics {
-	HDC hMemDC{};
-	HBITMAP hBitmap{};
-	HBITMAP hOldBitmap{};
+	GDIBitMap bm;
 	std::unique_ptr<Surface> pixmapLine;
 #if defined(USE_D2D)
 	DCRenderTarget pBMDCTarget;
 #endif
-
-	~LBGraphics() {
-		Release();
-	}
 
 	void Release() noexcept {
 		pixmapLine.reset();
 #if defined(USE_D2D)
 		pBMDCTarget = nullptr;
 #endif
-		if (hOldBitmap) {
-			SelectBitmap(hMemDC, hOldBitmap);
-		}
-		hOldBitmap = {};
-		if (hBitmap) {
-			::DeleteObject(hBitmap);
-		}
-		hBitmap = {};
-		if (hMemDC) {
-			::DeleteDC(hMemDC);
-		}
-		hMemDC = {};
+		bm.Release();
 	}
 };
 
@@ -3633,7 +3637,7 @@ void ListBoxX::Draw(DRAWITEMSTRUCT *pDrawItem) {
 
 	// Blit from hMemDC to hDC
 	const SIZE extent = SizeOfRect(pDrawItem->rcItem);
-	::BitBlt(pDrawItem->hDC, pDrawItem->rcItem.left, pDrawItem->rcItem.top, extent.cx, extent.cy, graphics.hMemDC, 0, 0, SRCCOPY);
+	::BitBlt(pDrawItem->hDC, pDrawItem->rcItem.left, pDrawItem->rcItem.top, extent.cx, extent.cy, graphics.bm.DC(), 0, 0, SRCCOPY);
 }
 
 void ListBoxX::AppendListItem(const char *text, const char *numword) {
@@ -3915,18 +3919,12 @@ void ListBoxX::CentreItem(int n) {
 }
 
 void ListBoxX::AllocateBitMap() {
-	graphics.hMemDC = ::CreateCompatibleDC({});
-	if (!graphics.hMemDC) {
-		return;
-	}
-
 	const SIZE extent { GetClientExtent().x, lineHeight };
 
-	graphics.hBitmap = BitMapSection(graphics.hMemDC, extent.cx, -extent.cy, nullptr);
-	if (!graphics.hBitmap) {
+	graphics.bm.Create({}, extent.cx, -extent.cy, nullptr);
+	if (!graphics.bm) {
 		return;
 	}
-	graphics.hOldBitmap = SelectBitmap(graphics.hMemDC, graphics.hBitmap);
 
 	// Make a surface
 	graphics.pixmapLine = Surface::Allocate(technology);
@@ -3948,7 +3946,7 @@ void ListBoxX::AllocateBitMap() {
 		}
 
 		const RECT rcExtent = { 0, 0, extent.cx, extent.cy };
-		hr = graphics.pBMDCTarget->BindDC(graphics.hMemDC, &rcExtent);
+		hr = graphics.pBMDCTarget->BindDC(graphics.bm.DC(), &rcExtent);
 		if (SUCCEEDED(hr)) {
 			graphics.pixmapLine->Init(graphics.pBMDCTarget.Get(), GetID());
 		}
@@ -3957,7 +3955,7 @@ void ListBoxX::AllocateBitMap() {
 #endif
 
 	// Either technology == Technology::Default or USE_D2D turned off
-	graphics.pixmapLine->Init(graphics.hMemDC, GetID());
+	graphics.pixmapLine->Init(graphics.bm.DC(), GetID());
 }
 
 LRESULT PASCAL ListBoxX::ControlWndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam) {
