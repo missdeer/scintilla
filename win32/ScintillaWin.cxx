@@ -513,6 +513,9 @@ class ScintillaWin :
 		    sptr_t ptr, UINT iMessage, uptr_t wParam, sptr_t lParam, int *pStatus);
 	static LRESULT PASCAL SWndProc(
 		    HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam);
+
+	void CTPaint(HWND hWnd);
+	LRESULT CTProcessMessage(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam);
 	static LRESULT PASCAL CTWndProc(
 		    HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam);
 
@@ -3891,99 +3894,110 @@ BOOL ScintillaWin::DestroySystemCaret() noexcept {
 	return retval;
 }
 
+void ScintillaWin::CTPaint(HWND hWnd) {
+	Painter painter(hWnd);
+	std::unique_ptr<Surface> surfaceWindow(Surface::Allocate(technology));
+#if defined(USE_D2D)
+	HwndRenderTarget pCTRenderTarget;
+#endif
+	const RECT rc = GetClientRect(hWnd);
+	if (technology == Technology::Default) {
+		surfaceWindow->Init(painter.ps.hdc, hWnd);
+	} else {
+#if defined(USE_D2D)
+		const int scaleFactor = GetFirstIntegralMultipleDeviceScaleFactor();
+
+		// Create a Direct2D render target.
+		D2D1_HWND_RENDER_TARGET_PROPERTIES dhrtp{};
+		dhrtp.hwnd = hWnd;
+		dhrtp.pixelSize = ::GetSizeUFromRect(rc, scaleFactor);
+		dhrtp.presentOptions = (technology == Technology::DirectWriteRetain) ?
+				       D2D1_PRESENT_OPTIONS_RETAIN_CONTENTS : D2D1_PRESENT_OPTIONS_NONE;
+
+		D2D1_RENDER_TARGET_PROPERTIES drtp{};
+		drtp.type = D2D1_RENDER_TARGET_TYPE_DEFAULT;
+		drtp.pixelFormat.format = DXGI_FORMAT_UNKNOWN;
+		drtp.pixelFormat.alphaMode = D2D1_ALPHA_MODE_UNKNOWN;
+		drtp.dpiX = 96.f * scaleFactor;
+		drtp.dpiY = 96.f * scaleFactor;
+		drtp.usage = D2D1_RENDER_TARGET_USAGE_NONE;
+		drtp.minLevel = D2D1_FEATURE_LEVEL_DEFAULT;
+
+		const HRESULT hr = CreateHwndRenderTarget(&drtp, &dhrtp, pCTRenderTarget);
+		if (!SUCCEEDED(hr)) {
+			surfaceWindow->Release();
+			return;
+		}
+		// If above SUCCEEDED, then pCTRenderTarget not nullptr
+		assert(pCTRenderTarget);
+		if (pCTRenderTarget) {
+			surfaceWindow->Init(pCTRenderTarget.Get(), hWnd);
+			pCTRenderTarget->BeginDraw();
+		}
+#endif
+	}
+	surfaceWindow->SetMode(CurrentSurfaceMode());
+	SetRenderingParams(surfaceWindow.get());
+	ct.PaintCT(surfaceWindow.get());
+#if defined(USE_D2D)
+	if (pCTRenderTarget)
+		pCTRenderTarget->EndDraw();
+#endif
+	surfaceWindow->Release();
+}
+
+LRESULT ScintillaWin::CTProcessMessage(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam) {
+	try {
+		switch (iMessage) {
+		case WM_NCDESTROY:
+			SetWindowPointer(hWnd, nullptr);
+			break;
+		case WM_PAINT:
+			CTPaint(hWnd);
+			return 0;
+		case WM_NCLBUTTONDOWN:
+		case WM_NCLBUTTONDBLCLK: {
+				POINT pt = POINTFromLParam(lParam);
+				::ScreenToClient(hWnd, &pt);
+				ct.MouseClick(PointFromPOINT(pt));
+				CallTipClick();
+				return 0;
+			}
+		case WM_LBUTTONDOWN:
+			// This does not fire due to the hit test code
+			ct.MouseClick(PointFromLParam(lParam));
+			CallTipClick();
+			return 0;
+		case WM_SETCURSOR:
+			::SetCursor(::LoadCursor({}, IDC_ARROW));
+			return 0;
+		case WM_NCHITTEST:
+			return HTCAPTION;
+		default:
+			break;
+		}
+	} catch (...) {
+		errorStatus = Status::Failure;
+	}
+
+	return ::DefWindowProc(hWnd, iMessage, wParam, lParam);
+}
+
 LRESULT PASCAL ScintillaWin::CTWndProc(
 	HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam) {
 	// Find C++ object associated with window.
 	ScintillaWin *sciThis = static_cast<ScintillaWin *>(PointerFromWindow(hWnd));
-	try {
-		// ctp will be zero if WM_CREATE not seen yet
-		if (sciThis == nullptr) {
-			if (iMessage == WM_CREATE) {
-				// Associate CallTip object with window
-				CREATESTRUCT *pCreate = static_cast<CREATESTRUCT *>(PtrFromSPtr(lParam));
-				SetWindowPointer(hWnd, pCreate->lpCreateParams);
-				return 0;
-			}
-			return ::DefWindowProc(hWnd, iMessage, wParam, lParam);
-		} else {
-			if (iMessage == WM_NCDESTROY) {
-				SetWindowPointer(hWnd, nullptr);
-				return ::DefWindowProc(hWnd, iMessage, wParam, lParam);
-			} else if (iMessage == WM_PAINT) {
-				Painter painter(hWnd);
-				std::unique_ptr<Surface> surfaceWindow(Surface::Allocate(sciThis->technology));
-#if defined(USE_D2D)
-				HwndRenderTarget pCTRenderTarget;
-#endif
-				const RECT rc = GetClientRect(hWnd);
-				if (sciThis->technology == Technology::Default) {
-					surfaceWindow->Init(painter.ps.hdc, hWnd);
-				} else {
-#if defined(USE_D2D)
-					const int scaleFactor = sciThis->GetFirstIntegralMultipleDeviceScaleFactor();
-
-					// Create a Direct2D render target.
-					D2D1_HWND_RENDER_TARGET_PROPERTIES dhrtp {};
-					dhrtp.hwnd = hWnd;
-					dhrtp.pixelSize = ::GetSizeUFromRect(rc, scaleFactor);
-					dhrtp.presentOptions = (sciThis->technology == Technology::DirectWriteRetain) ?
-						D2D1_PRESENT_OPTIONS_RETAIN_CONTENTS : D2D1_PRESENT_OPTIONS_NONE;
-
-					D2D1_RENDER_TARGET_PROPERTIES drtp {};
-					drtp.type = D2D1_RENDER_TARGET_TYPE_DEFAULT;
-					drtp.pixelFormat.format = DXGI_FORMAT_UNKNOWN;
-					drtp.pixelFormat.alphaMode = D2D1_ALPHA_MODE_UNKNOWN;
-					drtp.dpiX = 96.f * scaleFactor;
-					drtp.dpiY = 96.f * scaleFactor;
-					drtp.usage = D2D1_RENDER_TARGET_USAGE_NONE;
-					drtp.minLevel = D2D1_FEATURE_LEVEL_DEFAULT;
-
-					const HRESULT hr = CreateHwndRenderTarget(&drtp, &dhrtp, pCTRenderTarget);
-					if (!SUCCEEDED(hr)) {
-						surfaceWindow->Release();
-						return 0;
-					}
-					// If above SUCCEEDED, then pCTRenderTarget not nullptr
-					assert(pCTRenderTarget);
-					if (pCTRenderTarget) {
-						surfaceWindow->Init(pCTRenderTarget.Get(), hWnd);
-						pCTRenderTarget->BeginDraw();
-					}
-#endif
-				}
-				surfaceWindow->SetMode(sciThis->CurrentSurfaceMode());
-				sciThis->SetRenderingParams(surfaceWindow.get());
-				sciThis->ct.PaintCT(surfaceWindow.get());
-#if defined(USE_D2D)
-				if (pCTRenderTarget)
-					pCTRenderTarget->EndDraw();
-#endif
-				surfaceWindow->Release();
-				return 0;
-			} else if ((iMessage == WM_NCLBUTTONDOWN) || (iMessage == WM_NCLBUTTONDBLCLK)) {
-				POINT pt = POINTFromLParam(lParam);
-				::ScreenToClient(hWnd, &pt);
-				sciThis->ct.MouseClick(PointFromPOINT(pt));
-				sciThis->CallTipClick();
-				return 0;
-			} else if (iMessage == WM_LBUTTONDOWN) {
-				// This does not fire due to the hit test code
-				sciThis->ct.MouseClick(PointFromLParam(lParam));
-				sciThis->CallTipClick();
-				return 0;
-			} else if (iMessage == WM_SETCURSOR) {
-				::SetCursor(::LoadCursor({}, IDC_ARROW));
-				return 0;
-			} else if (iMessage == WM_NCHITTEST) {
-				return HTCAPTION;
-			} else {
-				return ::DefWindowProc(hWnd, iMessage, wParam, lParam);
-			}
+	// sciThis will be zero if WM_CREATE not seen yet
+	if (sciThis == nullptr) {
+		if (iMessage == WM_CREATE) {
+			// Associate CallTip object with window
+			CREATESTRUCT *pCreate = static_cast<CREATESTRUCT *>(PtrFromSPtr(lParam));
+			SetWindowPointer(hWnd, pCreate->lpCreateParams);
+			return 0;
 		}
-	} catch (...) {
-		sciThis->errorStatus = Status::Failure;
+		return ::DefWindowProc(hWnd, iMessage, wParam, lParam);
 	}
-	return ::DefWindowProc(hWnd, iMessage, wParam, lParam);
+	return sciThis->CTProcessMessage(hWnd, iMessage, wParam, lParam);
 }
 
 sptr_t ScintillaWin::DirectFunction(
