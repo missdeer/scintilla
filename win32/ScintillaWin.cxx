@@ -262,7 +262,7 @@ class IMContext {
 	HWND hwnd;
 public:
 	HIMC hIMC;
-	IMContext(HWND hwnd_) noexcept :
+	explicit IMContext(HWND hwnd_) noexcept :
 		hwnd(hwnd_), hIMC(::ImmGetContext(hwnd_)) {
 	}
 	// Deleted so IMContext objects can not be copied.
@@ -306,7 +306,7 @@ class ReverseArrowCursor {
 	bool valid = false;
 
 public:
-	ReverseArrowCursor() noexcept {}
+	ReverseArrowCursor() noexcept = default;
 	// Deleted so ReverseArrowCursor objects can not be copied.
 	ReverseArrowCursor(const ReverseArrowCursor &) = delete;
 	ReverseArrowCursor(ReverseArrowCursor &&) = delete;
@@ -494,12 +494,6 @@ class ScintillaWin :
 #endif
 
 	explicit ScintillaWin(HWND hwnd);
-	// Deleted so ScintillaWin objects can not be copied.
-	ScintillaWin(const ScintillaWin &) = delete;
-	ScintillaWin(ScintillaWin &&) = delete;
-	ScintillaWin &operator=(const ScintillaWin &) = delete;
-	ScintillaWin &operator=(ScintillaWin &&) = delete;
-	// ~ScintillaWin() in public section
 
 	void Finalise() override;
 #if defined(USE_D2D)
@@ -626,6 +620,11 @@ class ScintillaWin :
 	sptr_t SciMessage(Message iMessage, uptr_t wParam, sptr_t lParam);
 
 public:
+	// Deleted so ScintillaWin objects can not be copied.
+	ScintillaWin(const ScintillaWin &) = delete;
+	ScintillaWin(ScintillaWin &&) = delete;
+	ScintillaWin &operator=(const ScintillaWin &) = delete;
+	ScintillaWin &operator=(ScintillaWin &&) = delete;
 	~ScintillaWin() override;
 
 	// Public for benefit of Scintilla_DirectFunction
@@ -2935,8 +2934,7 @@ class GlobalMemory {
 	HGLOBAL hand {};
 public:
 	void *ptr {};
-	GlobalMemory() noexcept {
-	}
+	GlobalMemory() noexcept = default;
 	explicit GlobalMemory(HGLOBAL hand_) noexcept : hand(hand_) {
 		if (hand) {
 			ptr = ::GlobalLock(hand);
@@ -2969,7 +2967,7 @@ public:
 	void SetClip(UINT uFormat) noexcept {
 		::SetClipboardData(uFormat, Unlock());
 	}
-	operator bool() const noexcept {
+	explicit operator bool() const noexcept {
 		return ptr != nullptr;
 	}
 	[[nodiscard]] SIZE_T Size() const noexcept {
@@ -2996,7 +2994,7 @@ bool OpenClipboardRetry(HWND hwnd) noexcept {
 class Clipboard {
 	bool opened = false;
 public:
-	Clipboard(HWND hwnd) noexcept : opened(::OpenClipboardRetry(hwnd)) {
+	explicit Clipboard(HWND hwnd) noexcept : opened(::OpenClipboardRetry(hwnd)) {
 	}
 	// Deleted so Clipboard objects can not be copied.
 	Clipboard(const Clipboard &) = delete;
@@ -3008,7 +3006,7 @@ public:
 			::CloseClipboard();
 		}
 	}
-	constexpr operator bool() const noexcept {
+	explicit constexpr operator bool() const noexcept {
 		return opened;
 	}
 };
