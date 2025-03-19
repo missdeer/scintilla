@@ -832,20 +832,14 @@ HRESULT ScintillaWin::Create3D() noexcept {
 
 void ScintillaWin::CreateRenderTarget() {
 	HWND hw = MainHWND();
-	const RECT rc = GetClientRect(hw);
 
 	// Create a Direct2D render target.
-	D2D1_RENDER_TARGET_PROPERTIES drtp{};
-	drtp.type = D2D1_RENDER_TARGET_TYPE_DEFAULT;
-	drtp.usage = D2D1_RENDER_TARGET_USAGE_NONE;
-	drtp.minLevel = D2D1_FEATURE_LEVEL_DEFAULT;
 
 	if (technology == Technology::DirectWriteDC) {
-		drtp.dpiX = 96.f;
-		drtp.dpiY = 96.f;
-		// Explicit pixel format needed.
-		drtp.pixelFormat = D2D1::PixelFormat(DXGI_FORMAT_B8G8R8A8_UNORM,
-			D2D1_ALPHA_MODE_IGNORE);
+		const D2D1_RENDER_TARGET_PROPERTIES drtp = D2D1::RenderTargetProperties(
+			D2D1_RENDER_TARGET_TYPE_DEFAULT,
+			{ DXGI_FORMAT_B8G8R8A8_UNORM, D2D1_ALPHA_MODE_IGNORE },
+			dpiDefault, dpiDefault);
 
 		const HRESULT hr = CreateDCRenderTarget(&drtp, targets.pDCRT);
 		if (FAILED(hr)) {
@@ -870,17 +864,24 @@ void ScintillaWin::CreateRenderTarget() {
 		}
 
 	} else { // DirectWrite or DirectWriteRetain
-		const int integralDeviceScaleFactor = GetFirstIntegralMultipleDeviceScaleFactor();
-		drtp.dpiX = 96.f * integralDeviceScaleFactor;
-		drtp.dpiY = 96.f * integralDeviceScaleFactor;
-		drtp.pixelFormat = D2D1::PixelFormat(DXGI_FORMAT_UNKNOWN,
-			D2D1_ALPHA_MODE_UNKNOWN);
 
-		D2D1_HWND_RENDER_TARGET_PROPERTIES dhrtp{};
-		dhrtp.hwnd = hw;
-		dhrtp.pixelSize = ::GetSizeUFromRect(rc, integralDeviceScaleFactor);
-		dhrtp.presentOptions = (technology == Technology::DirectWriteRetain) ?
+		const RECT rc = GetClientRect(hw);
+
+		const int integralDeviceScaleFactor = GetFirstIntegralMultipleDeviceScaleFactor();
+		const FLOAT dpiTarget = dpiDefault * integralDeviceScaleFactor;
+
+		const D2D1_RENDER_TARGET_PROPERTIES drtp = D2D1::RenderTargetProperties(
+			D2D1_RENDER_TARGET_TYPE_DEFAULT,
+			{ DXGI_FORMAT_UNKNOWN, D2D1_ALPHA_MODE_UNKNOWN },
+			dpiTarget, dpiTarget);
+
+		const D2D1_PRESENT_OPTIONS presentOptions = (technology == Technology::DirectWriteRetain) ?
 			D2D1_PRESENT_OPTIONS_RETAIN_CONTENTS : D2D1_PRESENT_OPTIONS_NONE;
+
+		const D2D1_HWND_RENDER_TARGET_PROPERTIES dhrtp = D2D1::HwndRenderTargetProperties(
+			hw,
+			::GetSizeUFromRect(rc, integralDeviceScaleFactor),
+			presentOptions);
 
 		const HRESULT hr = CreateHwndRenderTarget(&drtp, &dhrtp, targets.pHwndRT);
 		if (FAILED(hr)) {
@@ -3908,20 +3909,21 @@ void ScintillaWin::CTPaint(HWND hWnd) {
 		const int scaleFactor = GetFirstIntegralMultipleDeviceScaleFactor();
 
 		// Create a Direct2D render target.
-		D2D1_HWND_RENDER_TARGET_PROPERTIES dhrtp{};
-		dhrtp.hwnd = hWnd;
-		dhrtp.pixelSize = ::GetSizeUFromRect(rc, scaleFactor);
-		dhrtp.presentOptions = (technology == Technology::DirectWriteRetain) ?
-				       D2D1_PRESENT_OPTIONS_RETAIN_CONTENTS : D2D1_PRESENT_OPTIONS_NONE;
 
-		D2D1_RENDER_TARGET_PROPERTIES drtp{};
-		drtp.type = D2D1_RENDER_TARGET_TYPE_DEFAULT;
-		drtp.pixelFormat.format = DXGI_FORMAT_UNKNOWN;
-		drtp.pixelFormat.alphaMode = D2D1_ALPHA_MODE_UNKNOWN;
-		drtp.dpiX = 96.f * scaleFactor;
-		drtp.dpiY = 96.f * scaleFactor;
-		drtp.usage = D2D1_RENDER_TARGET_USAGE_NONE;
-		drtp.minLevel = D2D1_FEATURE_LEVEL_DEFAULT;
+		const FLOAT dpiTarget = dpiDefault * scaleFactor;
+
+		const D2D1_RENDER_TARGET_PROPERTIES drtp = D2D1::RenderTargetProperties(
+			D2D1_RENDER_TARGET_TYPE_DEFAULT,
+			{ DXGI_FORMAT_UNKNOWN, D2D1_ALPHA_MODE_UNKNOWN },
+			dpiTarget, dpiTarget);
+
+		const D2D1_PRESENT_OPTIONS presentOptions = (technology == Technology::DirectWriteRetain) ?
+			D2D1_PRESENT_OPTIONS_RETAIN_CONTENTS : D2D1_PRESENT_OPTIONS_NONE;
+
+		const D2D1_HWND_RENDER_TARGET_PROPERTIES dhrtp = D2D1::HwndRenderTargetProperties(
+			hWnd,
+			::GetSizeUFromRect(rc, scaleFactor),
+			presentOptions);
 
 		const HRESULT hr = CreateHwndRenderTarget(&drtp, &dhrtp, pCTRenderTarget);
 		if (!SUCCEEDED(hr)) {

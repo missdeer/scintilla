@@ -1770,7 +1770,7 @@ void SurfaceD2D::SetDeviceScaleFactor(const ID2D1RenderTarget *const pD2D1Render
 	FLOAT dpiX = 0.f;
 	FLOAT dpiY = 0.f;
 	pD2D1RenderTarget->GetDpi(&dpiX, &dpiY);
-	deviceScaleFactor = static_cast<int>(dpiX / 96.f);
+	deviceScaleFactor = static_cast<int>(dpiX / dpiDefault);
 }
 
 int SurfaceD2D::PixelDivisions() {
@@ -3012,16 +3012,9 @@ public:
 			return false;
 		}
 
-		D2D1_RENDER_TARGET_PROPERTIES drtp {};
-		drtp.type = D2D1_RENDER_TARGET_TYPE_DEFAULT;
-		drtp.usage = D2D1_RENDER_TARGET_USAGE_NONE;
-		drtp.minLevel = D2D1_FEATURE_LEVEL_DEFAULT;
-		drtp.dpiX = 96.f;
-		drtp.dpiY = 96.f;
-		drtp.pixelFormat = D2D1::PixelFormat(
-			DXGI_FORMAT_B8G8R8A8_UNORM,
-			D2D1_ALPHA_MODE_PREMULTIPLIED
-		);
+		const D2D1_RENDER_TARGET_PROPERTIES drtp = D2D1::RenderTargetProperties(
+			D2D1_RENDER_TARGET_TYPE_DEFAULT,
+			{ DXGI_FORMAT_B8G8R8A8_UNORM, D2D1_ALPHA_MODE_PREMULTIPLIED });
 
 		DCRenderTarget pTarget;
 		HRESULT hr = CreateDCRenderTarget(&drtp, pTarget);
