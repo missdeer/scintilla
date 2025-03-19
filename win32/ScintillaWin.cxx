@@ -1271,25 +1271,24 @@ sptr_t ScintillaWin::WndPaint() {
 	// Redirect assertions to debug output and save current state
 	const bool assertsPopup = Platform::ShowAssertionPopUps(false);
 	paintState = PaintState::painting;
-	PAINTSTRUCT ps = {};
 
 	// Removed since this interferes with reporting other assertions as it occurs repeatedly
 	//PLATFORM_ASSERT(hRgnUpdate == NULL);
 	hRgnUpdate = ::CreateRectRgn(0, 0, 0, 0);
 	::GetUpdateRgn(MainHWND(), hRgnUpdate, FALSE);
-	::BeginPaint(MainHWND(), &ps);
-	rcPaint = PRectangleFromRECT(ps.rcPaint);
-	const PRectangle rcClient = GetClientRectangle();
-	paintingAllText = BoundsContains(rcPaint, hRgnUpdate, rcClient);
-	if (!PaintDC(ps.hdc)) {
-		paintState = PaintState::abandoned;
+	{
+		Painter painter(MainHWND());
+		rcPaint = PRectangleFromRECT(painter.ps.rcPaint);
+		const PRectangle rcClient = GetClientRectangle();
+		paintingAllText = BoundsContains(rcPaint, hRgnUpdate, rcClient);
+		if (!PaintDC(painter.ps.hdc)) {
+			paintState = PaintState::abandoned;
+		}
 	}
 	if (hRgnUpdate) {
 		::DeleteRgn(hRgnUpdate);
 		hRgnUpdate = {};
 	}
-
-	::EndPaint(MainHWND(), &ps);
 	if (paintState == PaintState::abandoned) {
 		// Painting area was insufficient to cover new styling or brace highlight positions
 		FullPaint();
@@ -3927,15 +3926,14 @@ LRESULT PASCAL ScintillaWin::CTWndProc(
 				SetWindowPointer(hWnd, nullptr);
 				return ::DefWindowProc(hWnd, iMessage, wParam, lParam);
 			} else if (iMessage == WM_PAINT) {
-				PAINTSTRUCT ps;
-				::BeginPaint(hWnd, &ps);
+				Painter painter(hWnd);
 				std::unique_ptr<Surface> surfaceWindow(Surface::Allocate(sciThis->technology));
 #if defined(USE_D2D)
 				HwndRenderTarget pCTRenderTarget;
 #endif
 				const RECT rc = GetClientRect(hWnd);
 				if (sciThis->technology == Technology::Default) {
-					surfaceWindow->Init(ps.hdc, hWnd);
+					surfaceWindow->Init(painter.ps.hdc, hWnd);
 				} else {
 #if defined(USE_D2D)
 					const int scaleFactor = sciThis->GetFirstIntegralMultipleDeviceScaleFactor();
@@ -3959,7 +3957,6 @@ LRESULT PASCAL ScintillaWin::CTWndProc(
 					const HRESULT hr = CreateHwndRenderTarget(&drtp, &dhrtp, pCTRenderTarget);
 					if (!SUCCEEDED(hr)) {
 						surfaceWindow->Release();
-						::EndPaint(hWnd, &ps);
 						return 0;
 					}
 					// If above SUCCEEDED, then pCTRenderTarget not nullptr
@@ -3978,7 +3975,6 @@ LRESULT PASCAL ScintillaWin::CTWndProc(
 					pCTRenderTarget->EndDraw();
 #endif
 				surfaceWindow->Release();
-				::EndPaint(hWnd, &ps);
 				return 0;
 			} else if ((iMessage == WM_NCLBUTTONDOWN) || (iMessage == WM_NCLBUTTONDBLCLK)) {
 				POINT pt = POINTFromLParam(lParam);

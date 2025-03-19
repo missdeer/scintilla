@@ -60,6 +60,18 @@ int SystemMetricsForDpi(int nIndex, UINT dpi) noexcept;
 
 HCURSOR LoadReverseArrowCursor(UINT dpi) noexcept;
 
+// Encapsulate WM_PAINT handling so that EndPaint is always called even with unexpected returns or exceptions.
+struct Painter {
+	HWND hWnd{};
+	PAINTSTRUCT ps{};
+	explicit Painter(HWND hWnd_) noexcept : hWnd(hWnd_) {
+		::BeginPaint(hWnd, &ps);
+	}
+	~Painter() {
+		::EndPaint(hWnd, &ps);
+	}
+};
+
 class MouseWheelDelta {
 	int wheelDelta = 0;
 public:

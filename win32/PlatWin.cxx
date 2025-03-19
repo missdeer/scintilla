@@ -4041,9 +4041,7 @@ LRESULT ListBoxX::WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam
 		break;
 
 	case WM_PAINT: {
-			PAINTSTRUCT ps;
-			::BeginPaint(hWnd, &ps);
-			::EndPaint(hWnd, &ps);
+			Painter painter(hWnd);
 		}
 		break;
 
