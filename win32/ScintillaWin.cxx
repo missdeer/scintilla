@@ -1783,7 +1783,7 @@ void ScintillaWin::SizeWindow() {
 	}
 	if ((technology == Technology::DirectWrite1) && pDXGISwapChain && targets.pDeviceContext &&
 		(paintState == PaintState::notPainting)) {
-		targets.pDeviceContext->SetTarget(NULL);	// ResizeBuffers fails if bitmap still owned by swap chain
+		targets.pDeviceContext->SetTarget(nullptr);	// ResizeBuffers fails if bitmap still owned by swap chain
 		hrResize = pDXGISwapChain->ResizeBuffers(0, 0, 0, DXGI_FORMAT_UNKNOWN, 0);
 		if (SUCCEEDED(hrResize)) {
 			hrResize = SetBackBuffer(MainHWND(), pDXGISwapChain.Get());
@@ -2546,12 +2546,12 @@ bool ScintillaWin::SetIdle(bool on) {
 	if (idler.state != on) {
 		if (on) {
 			idler.idlerID = ::SetTimer(MainHWND(), idleTimerID, 10, nullptr)
-				? reinterpret_cast<IdlerID>(idleTimerID) : 0;
+				? reinterpret_cast<IdlerID>(idleTimerID) : nullptr;
 		} else {
 			::KillTimer(MainHWND(), reinterpret_cast<uptr_t>(idler.idlerID));
-			idler.idlerID = 0;
+			idler.idlerID = nullptr;
 		}
-		idler.state = idler.idlerID != 0;
+		idler.state = idler.idlerID != nullptr;
 	}
 	return idler.state;
 }
@@ -2602,7 +2602,7 @@ void ScintillaWin::SetTrackMouseLeaveEvent(bool on) noexcept {
 void ScintillaWin::HideCursorIfPreferred() noexcept {
 	// SPI_GETMOUSEVANISH from OS.
 	if (typingWithoutCursor && !cursorIsHidden) {
-		::SetCursor(NULL);
+		::SetCursor({});
 		cursorIsHidden = true;
 	}
 }
@@ -3062,7 +3062,7 @@ void ScintillaWin::CreateCallTipWindow(PRectangle) {
 	if (!ct.wCallTip.Created()) {
 		HWND wnd = ::CreateWindow(callClassName, TEXT("ACallTip"),
 					     WS_POPUP, 100, 100, 150, 20,
-					     MainHWND(), 0,
+					     MainHWND(), {},
 					     GetWindowInstance(MainHWND()),
 					     this);
 		ct.wCallTip = wnd;
@@ -3530,7 +3530,7 @@ void ScintillaWin::CopyToClipboard(const SelectionText &selectedText) {
 	}
 
 	if (selectedText.rectangular) {
-		::SetClipboardData(cfColumnSelect, 0);
+		::SetClipboardData(cfColumnSelect, {});
 
 		GlobalMemory borlandSelection;
 		borlandSelection.Allocate(1);
@@ -3541,8 +3541,8 @@ void ScintillaWin::CopyToClipboard(const SelectionText &selectedText) {
 	}
 
 	if (selectedText.lineCopy) {
-		::SetClipboardData(cfLineSelect, 0);
-		::SetClipboardData(cfVSLineTag, 0);
+		::SetClipboardData(cfLineSelect, {});
+		::SetClipboardData(cfVSLineTag, {});
 	}
 }
 
@@ -3808,7 +3808,7 @@ STDMETHODIMP ScintillaWin::GetData(FORMATETC *pFEIn, STGMEDIUM *pSTM) {
 
 	GlobalMemory uniText;
 	CopyToGlobal(uniText, drag);
-	pSTM->hGlobal = uniText ? uniText.Unlock() : 0;
+	pSTM->hGlobal = uniText ? uniText.Unlock() : HGLOBAL{};
 	pSTM->pUnkForRelease = nullptr;
 	return S_OK;
 }
@@ -3823,7 +3823,7 @@ void ScintillaWin::Prepare() noexcept {
 	wndclassc.cbWndExtra = sizeof(ScintillaWin *);
 	wndclassc.hInstance = hInstance;
 	wndclassc.lpfnWndProc = ScintillaWin::CTWndProc;
-	wndclassc.hCursor = ::LoadCursor(NULL, IDC_ARROW);
+	wndclassc.hCursor = ::LoadCursor({}, IDC_ARROW);
 	wndclassc.lpszClassName = callClassName;
 
 	callClassAtom = ::RegisterClassEx(&wndclassc);
@@ -3988,7 +3988,7 @@ LRESULT PASCAL ScintillaWin::CTWndProc(
 				sciThis->CallTipClick();
 				return 0;
 			} else if (iMessage == WM_SETCURSOR) {
-				::SetCursor(::LoadCursor(NULL, IDC_ARROW));
+				::SetCursor(::LoadCursor({}, IDC_ARROW));
 				return 0;
 			} else if (iMessage == WM_NCHITTEST) {
 				return HTCAPTION;
