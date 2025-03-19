@@ -1194,20 +1194,19 @@ Sci::Position ScintillaWin::EncodedFromUTF8(const char *utf8, char *encoded) con
 			memcpy(encoded, utf8, inputLength);
 		}
 		return inputLength;
-	} else {
-		// Need to convert
-		const std::string_view utf8Input(utf8, inputLength);
-		const int charsLen = WideCharLenFromMultiByte(CpUtf8, utf8Input);
-		std::wstring characters(charsLen, L'\0');
-		WideCharFromMultiByte(CpUtf8, utf8Input, characters.data(), charsLen);
-
-		const int encodedLen = MultiByteLenFromWideChar(CodePageOfDocument(), characters);
-		if (encoded) {
-			MultiByteFromWideChar(CodePageOfDocument(), characters, encoded, encodedLen);
-			encoded[encodedLen] = '\0';
-		}
-		return encodedLen;
 	}
+	// Need to convert
+	const std::string_view utf8Input(utf8, inputLength);
+	const int charsLen = WideCharLenFromMultiByte(CpUtf8, utf8Input);
+	std::wstring characters(charsLen, L'\0');
+	WideCharFromMultiByte(CpUtf8, utf8Input, characters.data(), charsLen);
+
+	const int encodedLen = MultiByteLenFromWideChar(CodePageOfDocument(), characters);
+	if (encoded) {
+		MultiByteFromWideChar(CodePageOfDocument(), characters, encoded, encodedLen);
+		encoded[encodedLen] = '\0';
+	}
+	return encodedLen;
 }
 
 void ScintillaWin::SetRenderingParams([[maybe_unused]] Surface *psurf) const {
@@ -1644,30 +1643,28 @@ std::string ScintillaWin::EncodeWString(std::wstring_view wsv) {
 		std::string putf(len, 0);
 		UTF8FromUTF16(wsv, putf.data(), len);
 		return putf;
-	} else {
-		// Not in Unicode mode so convert from Unicode to current Scintilla code page
-		return StringEncode(wsv, CodePageOfDocument());
 	}
+	// Not in Unicode mode so convert from Unicode to current Scintilla code page
+	return StringEncode(wsv, CodePageOfDocument());
 }
 
 sptr_t ScintillaWin::GetTextLength() {
 	if (pdoc->dbcsCodePage == 0 || pdoc->dbcsCodePage == CpUtf8) {
 		return pdoc->CountUTF16(0, pdoc->Length());
-	} else {
-		// Count the number of UTF-16 code units line by line
-		const UINT cpSrc = CodePageOfDocument();
-		const Sci::Line lines = pdoc->LinesTotal();
-		Sci::Position codeUnits = 0;
-		std::string lineBytes;
-		for (Sci::Line line = 0; line < lines; line++) {
-			const Sci::Position start = pdoc->LineStart(line);
-			const Sci::Position width = pdoc->LineStart(line+1) - start;
-			lineBytes.resize(width);
-			pdoc->GetCharRange(lineBytes.data(), start, width);
-			codeUnits += WideCharLenFromMultiByte(cpSrc, lineBytes);
-		}
-		return codeUnits;
 	}
+	// Count the number of UTF-16 code units line by line
+	const UINT cpSrc = CodePageOfDocument();
+	const Sci::Line lines = pdoc->LinesTotal();
+	Sci::Position codeUnits = 0;
+	std::string lineBytes;
+	for (Sci::Line line = 0; line < lines; line++) {
+		const Sci::Position start = pdoc->LineStart(line);
+		const Sci::Position width = pdoc->LineStart(line+1) - start;
+		lineBytes.resize(width);
+		pdoc->GetCharRange(lineBytes.data(), start, width);
+		codeUnits += WideCharLenFromMultiByte(cpSrc, lineBytes);
+	}
+	return codeUnits;
 }
 
 sptr_t ScintillaWin::GetText(uptr_t wParam, sptr_t lParam) {
@@ -1694,49 +1691,47 @@ sptr_t ScintillaWin::GetText(uptr_t wParam, sptr_t lParam) {
 		const size_t uLen = UTF16FromUTF8(docBytes, ptr, lengthWanted);
 		ptr[uLen] = L'\0';
 		return uLen;
-	} else {
-		// Not Unicode mode
-		// Convert to Unicode using the current Scintilla code page
-		// Retrieve as UTF-16 line by line
-		const UINT cpSrc = CodePageOfDocument();
-		const Sci::Line lines = pdoc->LinesTotal();
-		Sci::Position codeUnits = 0;
-		std::string lineBytes;
-		std::wstring lineAsUTF16;
-		for (Sci::Line line = 0; line < lines && codeUnits < lengthWanted; line++) {
-			const Sci::Position start = pdoc->LineStart(line);
-			const Sci::Position width = pdoc->LineStart(line + 1) - start;
-			lineBytes.resize(width);
-			pdoc->GetCharRange(lineBytes.data(), start, width);
-			const Sci::Position codeUnitsLine = WideCharLenFromMultiByte(cpSrc, lineBytes);
-			lineAsUTF16.resize(codeUnitsLine);
-			const Sci::Position lengthLeft = lengthWanted - codeUnits;
-			WideCharFromMultiByte(cpSrc, lineBytes, lineAsUTF16.data(), lineAsUTF16.length());
-			const Sci::Position lengthToCopy = std::min(lengthLeft, codeUnitsLine);
-			lineAsUTF16.copy(ptr + codeUnits, lengthToCopy);
-			codeUnits += lengthToCopy;
-		}
-		ptr[codeUnits] = L'\0';
-		return codeUnits;
 	}
+	// Not Unicode mode
+	// Convert to Unicode using the current Scintilla code page
+	// Retrieve as UTF-16 line by line
+	const UINT cpSrc = CodePageOfDocument();
+	const Sci::Line lines = pdoc->LinesTotal();
+	Sci::Position codeUnits = 0;
+	std::string lineBytes;
+	std::wstring lineAsUTF16;
+	for (Sci::Line line = 0; line < lines && codeUnits < lengthWanted; line++) {
+		const Sci::Position start = pdoc->LineStart(line);
+		const Sci::Position width = pdoc->LineStart(line + 1) - start;
+		lineBytes.resize(width);
+		pdoc->GetCharRange(lineBytes.data(), start, width);
+		const Sci::Position codeUnitsLine = WideCharLenFromMultiByte(cpSrc, lineBytes);
+		lineAsUTF16.resize(codeUnitsLine);
+		const Sci::Position lengthLeft = lengthWanted - codeUnits;
+		WideCharFromMultiByte(cpSrc, lineBytes, lineAsUTF16.data(), lineAsUTF16.length());
+		const Sci::Position lengthToCopy = std::min(lengthLeft, codeUnitsLine);
+		lineAsUTF16.copy(ptr + codeUnits, lengthToCopy);
+		codeUnits += lengthToCopy;
+	}
+	ptr[codeUnits] = L'\0';
+	return codeUnits;
 }
 
 Window::Cursor ScintillaWin::ContextCursor(Point pt) {
 	if (inDragDrop == DragDrop::dragging) {
 		return Window::Cursor::up;
-	} else {
-		// Display regular (drag) cursor over selection
-		if (PointInSelMargin(pt)) {
-			return GetMarginCursor(pt);
-		} else if (!SelectionEmpty() && PointInSelection(pt)) {
-			return Window::Cursor::arrow;
-		} else if (PointIsHotspot(pt)) {
+	}
+	// Display regular (drag) cursor over selection
+	if (PointInSelMargin(pt)) {
+		return GetMarginCursor(pt);
+	} else if (!SelectionEmpty() && PointInSelection(pt)) {
+		return Window::Cursor::arrow;
+	} else if (PointIsHotspot(pt)) {
+		return Window::Cursor::hand;
+	} else if (hoverIndicatorPos != Sci::invalidPosition) {
+		const Sci::Position pos = PositionFromLocation(pt, true, true);
+		if (pos != Sci::invalidPosition) {
 			return Window::Cursor::hand;
-		} else if (hoverIndicatorPos != Sci::invalidPosition) {
-			const Sci::Position pos = PositionFromLocation(pt, true, true);
-			if (pos != Sci::invalidPosition) {
-				return Window::Cursor::hand;
-			}
 		}
 	}
 	return Window::Cursor::text;
@@ -2493,21 +2488,19 @@ bool ScintillaWin::ValidCodePage(int codePage) const {
 std::string ScintillaWin::UTF8FromEncoded(std::string_view encoded) const {
 	if (IsUnicodeMode()) {
 		return std::string(encoded);
-	} else {
-		// Pivot through wide string
-		std::wstring ws = StringDecode(encoded, CodePageOfDocument());
-		return StringEncode(ws, CpUtf8);
 	}
+	// Pivot through wide string
+	std::wstring ws = StringDecode(encoded, CodePageOfDocument());
+	return StringEncode(ws, CpUtf8);
 }
 
 std::string ScintillaWin::EncodedFromUTF8(std::string_view utf8) const {
 	if (IsUnicodeMode()) {
 		return std::string(utf8);
-	} else {
-		// Pivot through wide string
-		std::wstring ws = StringDecode(utf8, CpUtf8);
-		return StringEncode(ws, CodePageOfDocument());
 	}
+	// Pivot through wide string
+	std::wstring ws = StringDecode(utf8, CpUtf8);
+	return StringEncode(ws, CodePageOfDocument());
 }
 
 sptr_t ScintillaWin::DefWndProc(Message iMessage, uptr_t wParam, sptr_t lParam) {
@@ -2799,54 +2792,54 @@ class CaseFolderDBCS : public CaseFolderTable {
 public:
 	explicit CaseFolderDBCS(UINT cp_) : cp(cp_) {
 	}
-	size_t Fold(char *folded, size_t sizeFolded, const char *mixed, size_t lenMixed) override {
-		if ((lenMixed == 1) && (sizeFolded > 0)) {
-			folded[0] = mapping[static_cast<unsigned char>(mixed[0])];
-			return 1;
+	size_t Fold(char *folded, size_t sizeFolded, const char *mixed, size_t lenMixed) override;
+};
+
+size_t CaseFolderDBCS::Fold(char *folded, size_t sizeFolded, const char *mixed, size_t lenMixed) {
+	if ((lenMixed == 1) && (sizeFolded > 0)) {
+		folded[0] = mapping[static_cast<unsigned char>(mixed[0])];
+		return 1;
+	}
+	if (lenMixed > utf16Mixed.size()) {
+		utf16Mixed.resize(lenMixed + 8);
+	}
+	const size_t nUtf16Mixed = WideCharFromMultiByte(cp,
+		std::string_view(mixed, lenMixed),
+		utf16Mixed.data(),
+		utf16Mixed.size());
+
+	if (nUtf16Mixed == 0) {
+		// Failed to convert -> bad input
+		folded[0] = '\0';
+		return 1;
+	}
+
+	size_t lenFlat = 0;
+	for (size_t mixIndex = 0; mixIndex < nUtf16Mixed; mixIndex++) {
+		if ((lenFlat + 20) > utf16Folded.size())
+			utf16Folded.resize(lenFlat + 60);
+		const char *foldedUTF8 = CaseConvert(utf16Mixed[mixIndex], CaseConversion::fold);
+		if (foldedUTF8) {
+			// Maximum length of a case conversion is 6 bytes, 3 characters
+			wchar_t wFolded[20];
+			const size_t charsConverted = UTF16FromUTF8(std::string_view(foldedUTF8),
+				wFolded, std::size(wFolded));
+			for (size_t j = 0; j < charsConverted; j++)
+				utf16Folded[lenFlat++] = wFolded[j];
 		} else {
-			if (lenMixed > utf16Mixed.size()) {
-				utf16Mixed.resize(lenMixed + 8);
-			}
-			const size_t nUtf16Mixed = WideCharFromMultiByte(cp,
-				std::string_view(mixed, lenMixed),
-				utf16Mixed.data(),
-				utf16Mixed.size());
-
-			if (nUtf16Mixed == 0) {
-				// Failed to convert -> bad input
-				folded[0] = '\0';
-				return 1;
-			}
-
-			size_t lenFlat = 0;
-			for (size_t mixIndex=0; mixIndex < nUtf16Mixed; mixIndex++) {
-				if ((lenFlat + 20) > utf16Folded.size())
-					utf16Folded.resize(lenFlat + 60);
-				const char *foldedUTF8 = CaseConvert(utf16Mixed[mixIndex], CaseConversion::fold);
-				if (foldedUTF8) {
-					// Maximum length of a case conversion is 6 bytes, 3 characters
-					wchar_t wFolded[20];
-					const size_t charsConverted = UTF16FromUTF8(std::string_view(foldedUTF8),
-							wFolded, std::size(wFolded));
-					for (size_t j=0; j<charsConverted; j++)
-						utf16Folded[lenFlat++] = wFolded[j];
-				} else {
-					utf16Folded[lenFlat++] = utf16Mixed[mixIndex];
-				}
-			}
-
-			const std::wstring_view wsvFolded(utf16Folded.data(), lenFlat);
-			const size_t lenOut = MultiByteLenFromWideChar(cp, wsvFolded);
-
-			if (lenOut < sizeFolded) {
-				MultiByteFromWideChar(cp, wsvFolded, folded, lenOut);
-				return lenOut;
-			} else {
-				return 0;
-			}
+			utf16Folded[lenFlat++] = utf16Mixed[mixIndex];
 		}
 	}
-};
+
+	const std::wstring_view wsvFolded(utf16Folded.data(), lenFlat);
+	const size_t lenOut = MultiByteLenFromWideChar(cp, wsvFolded);
+
+	if (lenOut < sizeFolded) {
+		MultiByteFromWideChar(cp, wsvFolded, folded, lenOut);
+		return lenOut;
+	}
+	return 0;
+}
 
 }
 
@@ -2854,39 +2847,37 @@ std::unique_ptr<CaseFolder> ScintillaWin::CaseFolderForEncoding() {
 	const UINT cpDest = CodePageOfDocument();
 	if (cpDest == CpUtf8) {
 		return std::make_unique<CaseFolderUnicode>();
-	} else {
-		if (pdoc->dbcsCodePage == 0) {
-			std::unique_ptr<CaseFolderTable> pcf = std::make_unique<CaseFolderTable>();
-			// Only for single byte encodings
-			for (int i=0x80; i<0x100; i++) {
-				char sCharacter[2] = "A";
-				sCharacter[0] = static_cast<char>(i);
-				wchar_t wCharacter[20];
-				const unsigned int lengthUTF16 = WideCharFromMultiByte(cpDest, sCharacter,
-					wCharacter, std::size(wCharacter));
-				if (lengthUTF16 == 1) {
-					const char *caseFolded = CaseConvert(wCharacter[0], CaseConversion::fold);
-					if (caseFolded) {
-						wchar_t wLower[20];
-						const size_t charsConverted = UTF16FromUTF8(std::string_view(caseFolded),
-							wLower, std::size(wLower));
-						if (charsConverted == 1) {
-							char sCharacterLowered[20];
-							const unsigned int lengthConverted = MultiByteFromWideChar(cpDest,
-								std::wstring_view(wLower, charsConverted),
-								sCharacterLowered, std::size(sCharacterLowered));
-							if ((lengthConverted == 1) && (sCharacter[0] != sCharacterLowered[0])) {
-								pcf->SetTranslation(sCharacter[0], sCharacterLowered[0]);
-							}
-						}
+	}
+	if (pdoc->dbcsCodePage) {
+		return std::make_unique<CaseFolderDBCS>(cpDest);
+	}
+	std::unique_ptr<CaseFolderTable> pcf = std::make_unique<CaseFolderTable>();
+	// Only for single byte encodings
+	for (int i=0x80; i<0x100; i++) {
+		char sCharacter[2] = "A";
+		sCharacter[0] = static_cast<char>(i);
+		wchar_t wCharacter[20];
+		const unsigned int lengthUTF16 = WideCharFromMultiByte(cpDest, sCharacter,
+			wCharacter, std::size(wCharacter));
+		if (lengthUTF16 == 1) {
+			const char *caseFolded = CaseConvert(wCharacter[0], CaseConversion::fold);
+			if (caseFolded) {
+				wchar_t wLower[20];
+				const size_t charsConverted = UTF16FromUTF8(std::string_view(caseFolded),
+					wLower, std::size(wLower));
+				if (charsConverted == 1) {
+					char sCharacterLowered[20];
+					const unsigned int lengthConverted = MultiByteFromWideChar(cpDest,
+						std::wstring_view(wLower, charsConverted),
+						sCharacterLowered, std::size(sCharacterLowered));
+					if ((lengthConverted == 1) && (sCharacter[0] != sCharacterLowered[0])) {
+						pcf->SetTranslation(sCharacter[0], sCharacterLowered[0]);
 					}
 				}
 			}
-			return pcf;
-		} else {
-			return std::make_unique<CaseFolderDBCS>(cpDest);
 		}
 	}
+	return pcf;
 }
 
 std::string ScintillaWin::CaseMapString(const std::string &s, CaseMapping caseMapping) {
@@ -3196,11 +3187,7 @@ STDMETHODIMP DataObject::QueryGetData(FORMATETC *pFE) {
 		return S_OK;
 	}
 
-	if (SupportedFormat(pFE)) {
-		return S_OK;
-	} else {
-		return S_FALSE;
-	}
+	return SupportedFormat(pFE) ? S_OK : S_FALSE;
 }
 
 STDMETHODIMP DataObject::GetCanonicalFormatEtc(FORMATETC *, FORMATETC *pFEOut) {
@@ -3916,9 +3903,8 @@ LRESULT PASCAL ScintillaWin::CTWndProc(
 				CREATESTRUCT *pCreate = static_cast<CREATESTRUCT *>(PtrFromSPtr(lParam));
 				SetWindowPointer(hWnd, pCreate->lpCreateParams);
 				return 0;
-			} else {
-				return ::DefWindowProc(hWnd, iMessage, wParam, lParam);
 			}
+			return ::DefWindowProc(hWnd, iMessage, wParam, lParam);
 		} else {
 			if (iMessage == WM_NCDESTROY) {
 				SetWindowPointer(hWnd, nullptr);
@@ -4045,19 +4031,17 @@ LRESULT PASCAL ScintillaWin::SWndProc(
 		} catch (...) {
 		}
 		return ::DefWindowProc(hWnd, iMessage, wParam, lParam);
-	} else {
-		if (iMessage == WM_NCDESTROY) {
-			try {
-				sci->Finalise();
-				delete sci;
-			} catch (...) {
-			}
-			SetWindowPointer(hWnd, nullptr);
-			return ::DefWindowProc(hWnd, iMessage, wParam, lParam);
-		} else {
-			return sci->WndProc(static_cast<Message>(iMessage), wParam, lParam);
-		}
 	}
+	if (iMessage == WM_NCDESTROY) {
+		try {
+			sci->Finalise();
+			delete sci;
+		} catch (...) {
+		}
+		SetWindowPointer(hWnd, nullptr);
+		return ::DefWindowProc(hWnd, iMessage, wParam, lParam);
+	}
+	return sci->WndProc(static_cast<Message>(iMessage), wParam, lParam);
 }
 
 // This function is externally visible so it can be called from container when building statically.
