@@ -113,6 +113,9 @@ SRC_OBJS=\
 COMPONENT_OBJS = \
 	$(DIR_O)\HanjaDic.obj \
 	$(DIR_O)\PlatWin.obj \
+	$(DIR_O)\ListBox.obj \
+	$(DIR_O)\SurfaceGDI.obj \
+	$(DIR_O)\SurfaceD2D.obj \
 	$(DIR_O)\ScintillaBase.obj \
 	$(DIR_O)\ScintillaWin.obj \
 	$(SRC_OBJS)

@@ -3,6 +3,19 @@ $(DIR_O)/HanjaDic.o: \
 	HanjaDic.cxx \
 	WinTypes.h \
 	HanjaDic.h
+$(DIR_O)/ListBox.o: \
+	ListBox.cxx \
+	../include/ScintillaTypes.h \
+	../src/Debugging.h \
+	../src/Geometry.h \
+	../src/Platform.h \
+	../src/XPM.h \
+	../src/UniConversion.h \
+	../src/DBCS.h \
+	WinTypes.h \
+	PlatWin.h \
+	ListBox.h \
+	SurfaceD2D.h
 $(DIR_O)/PlatWin.o: \
 	PlatWin.cxx \
 	../include/ScintillaTypes.h \
@@ -13,7 +26,9 @@ $(DIR_O)/PlatWin.o: \
 	../src/UniConversion.h \
 	../src/DBCS.h \
 	WinTypes.h \
-	PlatWin.h
+	PlatWin.h \
+	ListBox.h \
+	SurfaceD2D.h
 $(DIR_O)/ScintillaDLL.o: \
 	ScintillaDLL.cxx \
 	../include/ScintillaTypes.h \
@@ -60,8 +75,34 @@ $(DIR_O)/ScintillaWin.o: \
 	../src/ScintillaBase.h \
 	WinTypes.h \
 	PlatWin.h \
+	SurfaceD2D.h \
 	HanjaDic.h \
 	ScintillaWin.h
+$(DIR_O)/SurfaceD2D.o: \
+	SurfaceD2D.cxx \
+	../include/ScintillaTypes.h \
+	../src/Debugging.h \
+	../src/Geometry.h \
+	../src/Platform.h \
+	../src/XPM.h \
+	../src/UniConversion.h \
+	../src/DBCS.h \
+	WinTypes.h \
+	PlatWin.h \
+	SurfaceGDI.h \
+	SurfaceD2D.h
+$(DIR_O)/SurfaceGDI.o: \
+	SurfaceGDI.cxx \
+	../include/ScintillaTypes.h \
+	../src/Debugging.h \
+	../src/Geometry.h \
+	../src/Platform.h \
+	../src/XPM.h \
+	../src/UniConversion.h \
+	../src/DBCS.h \
+	WinTypes.h \
+	PlatWin.h \
+	SurfaceGDI.h
 $(DIR_O)/AutoComplete.o: \
 	../src/AutoComplete.cxx \
 	../include/ScintillaTypes.h \

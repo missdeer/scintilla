@@ -99,6 +99,9 @@ using Microsoft::WRL::ComPtr;
 
 #include "WinTypes.h"
 #include "PlatWin.h"
+#if defined(USE_D2D)
+#include "SurfaceD2D.h"
+#endif
 #include "HanjaDic.h"
 #include "ScintillaWin.h"
 
