@@ -816,7 +816,7 @@ void ScintillaEditBase::notifyParent(NotificationData scn)
 			break;
 
 		case Notification::AutoCSelection:
-			emit autoCompleteSelection(scn.lParam, QString::fromUtf8(scn.text));
+			emit autoCompleteSelection(scn.lParam, sqt->IsUnicodeMode() ? QString::fromUtf8(scn.text) : QString::fromLocal8Bit(scn.text));
 			break;
 
 		case Notification::AutoCCancelled:
