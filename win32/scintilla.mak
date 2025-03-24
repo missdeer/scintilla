@@ -10,7 +10,7 @@
 
 .SUFFIXES: .cxx
 
-DIR_O=.
+DIR_O=obj
 DIR_BIN=..\bin
 
 COMPONENT=$(DIR_BIN)\Scintilla.dll
@@ -70,7 +70,10 @@ CXXFLAGS=$(CXXFLAGS) $(CXXNDEBUG)
 INCLUDES=-I../include -I../src
 CXXFLAGS=$(CXXFLAGS) $(INCLUDES)
 
-all:	$(COMPONENT) $(LIBSCI)
+all:	$(DIR_O) $(COMPONENT) $(LIBSCI)
+
+$(DIR_O):
+	mkdir "$(DIR_O)" 2>NUL || cd .
 
 clean:
 	-del /q $(DIR_O)\*.obj $(DIR_O)\*.pdb $(DIR_O)\*.asm $(COMPONENT) \
