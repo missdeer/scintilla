@@ -360,7 +360,7 @@ int SurfaceGDI::PixelDivisions() {
 }
 
 int SurfaceGDI::DeviceHeightFont(int points) {
-	return ::MulDiv(points, LogPixelsY(), 72);
+	return ::MulDiv(points, LogPixelsY(), pointsPerInch);
 }
 
 void SurfaceGDI::LineDraw(Point start, Point end, Stroke stroke) {

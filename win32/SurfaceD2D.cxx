@@ -527,7 +527,7 @@ int SurfaceD2D::PixelDivisions() {
 }
 
 int SurfaceD2D::DeviceHeightFont(int points) {
-	return ::MulDiv(points, LogPixelsY(), 72);
+	return ::MulDiv(points, LogPixelsY(), pointsPerInch);
 }
 
 void SurfaceD2D::LineDraw(Point start, Point end, Stroke stroke) {
