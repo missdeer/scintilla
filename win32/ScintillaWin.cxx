@@ -1140,7 +1140,7 @@ int WideCharLenFromMultiByte(UINT codePage, std::string_view sv) noexcept {
 }
 
 std::string StringEncode(std::wstring_view wsv, int codePage) {
-	const int cchMulti = wsv.length() ? MultiByteLenFromWideChar(codePage, wsv) : 0;
+	const int cchMulti = wsv.empty() ? 0 : MultiByteLenFromWideChar(codePage, wsv);
 	std::string sMulti(cchMulti, 0);
 	if (cchMulti) {
 		MultiByteFromWideChar(codePage, wsv, sMulti.data(), cchMulti);
@@ -1149,7 +1149,7 @@ std::string StringEncode(std::wstring_view wsv, int codePage) {
 }
 
 std::wstring StringDecode(std::string_view sv, int codePage) {
-	const int cchWide = sv.length() ? WideCharLenFromMultiByte(codePage, sv) : 0;
+	const int cchWide = sv.empty() ? 0 : WideCharLenFromMultiByte(codePage, sv);
 	std::wstring sWide(cchWide, 0);
 	if (cchWide) {
 		WideCharFromMultiByte(codePage, sv, sWide.data(), cchWide);
@@ -2888,7 +2888,7 @@ std::unique_ptr<CaseFolder> ScintillaWin::CaseFolderForEncoding() {
 }
 
 std::string ScintillaWin::CaseMapString(const std::string &s, CaseMapping caseMapping) {
-	if ((s.size() == 0) || (caseMapping == CaseMapping::same))
+	if (s.empty() || (caseMapping == CaseMapping::same))
 		return s;
 
 	const UINT cpDoc = CodePageOfDocument();
