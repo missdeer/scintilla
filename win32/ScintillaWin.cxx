@@ -86,6 +86,7 @@ using Microsoft::WRL::ComPtr;
 #include "Document.h"
 #include "CaseConvert.h"
 #include "UniConversion.h"
+#include "DBCS.h"
 #include "Selection.h"
 #include "PositionCache.h"
 #include "EditModel.h"
@@ -1328,7 +1329,7 @@ sptr_t ScintillaWin::HandleCompositionWindowed(uptr_t wParam, sptr_t lParam) {
 
 bool ScintillaWin::KoreanIME() noexcept {
 	const int codePage = InputCodePage();
-	return codePage == 949 || codePage == 1361;
+	return codePage == cp949 || codePage == cp1361;
 }
 
 void ScintillaWin::MoveImeCarets(Sci::Position offset) noexcept {
@@ -2487,9 +2488,7 @@ sptr_t ScintillaWin::WndProc(Message iMessage, uptr_t wParam, sptr_t lParam) {
 }
 
 bool ScintillaWin::ValidCodePage(int codePage) const {
-	return codePage == 0 || codePage == CpUtf8 ||
-	       codePage == 932 || codePage == 936 || codePage == 949 ||
-	       codePage == 950 || codePage == 1361;
+	return codePage == 0 || codePage == CpUtf8 || IsDBCSCodePage(codePage);
 }
 
 std::string ScintillaWin::UTF8FromEncoded(std::string_view encoded) const {
@@ -2544,7 +2543,8 @@ bool ScintillaWin::SetIdle(bool on) {
 	// and are only posted when the message queue is empty, i.e. during idle time.
 	if (idler.state != on) {
 		if (on) {
-			idler.idlerID = ::SetTimer(MainHWND(), idleTimerID, 10, nullptr)
+			constexpr UINT waitTimeMillis = 10;
+			idler.idlerID = ::SetTimer(MainHWND(), idleTimerID, waitTimeMillis, nullptr)
 				? reinterpret_cast<IdlerID>(idleTimerID) : nullptr;
 		} else {
 			::KillTimer(MainHWND(), reinterpret_cast<uptr_t>(idler.idlerID));
@@ -2790,6 +2790,8 @@ void ScintillaWin::NotifyDoubleClick(Point pt, KeyMod modifiers) {
 
 namespace {
 
+constexpr unsigned int safeFoldingSize = 20;
+
 class CaseFolderDBCS : public CaseFolderTable {
 	// Allocate the expandable storage here so that it does not need to be reallocated
 	// for each call to Fold.
@@ -2823,12 +2825,12 @@ size_t CaseFolderDBCS::Fold(char *folded, size_t sizeFolded, const char *mixed, 
 
 	size_t lenFlat = 0;
 	for (size_t mixIndex = 0; mixIndex < nUtf16Mixed; mixIndex++) {
-		if ((lenFlat + 20) > utf16Folded.size())
+		if ((lenFlat + safeFoldingSize) > utf16Folded.size())
 			utf16Folded.resize(lenFlat + 60);
 		const char *foldedUTF8 = CaseConvert(utf16Mixed[mixIndex], CaseConversion::fold);
 		if (foldedUTF8) {
 			// Maximum length of a case conversion is 6 bytes, 3 characters
-			wchar_t wFolded[20];
+			wchar_t wFolded[safeFoldingSize];
 			const size_t charsConverted = UTF16FromUTF8(std::string_view(foldedUTF8),
 				wFolded, std::size(wFolded));
 			for (size_t j = 0; j < charsConverted; j++)
@@ -2860,20 +2862,22 @@ std::unique_ptr<CaseFolder> ScintillaWin::CaseFolderForEncoding() {
 	}
 	std::unique_ptr<CaseFolderTable> pcf = std::make_unique<CaseFolderTable>();
 	// Only for single byte encodings
-	for (int i=0x80; i<0x100; i++) {
+	constexpr int highByteFirst = 0x80;
+	constexpr int highByteLast = 0xFF;
+	for (int i=highByteFirst; i<=highByteLast; i++) {
 		char sCharacter[2] = "A";
 		sCharacter[0] = static_cast<char>(i);
-		wchar_t wCharacter[20];
+		wchar_t wCharacter[safeFoldingSize];
 		const unsigned int lengthUTF16 = WideCharFromMultiByte(cpDest, sCharacter,
 			wCharacter, std::size(wCharacter));
 		if (lengthUTF16 == 1) {
 			const char *caseFolded = CaseConvert(wCharacter[0], CaseConversion::fold);
 			if (caseFolded) {
-				wchar_t wLower[20];
+				wchar_t wLower[safeFoldingSize];
 				const size_t charsConverted = UTF16FromUTF8(std::string_view(caseFolded),
 					wLower, std::size(wLower));
 				if (charsConverted == 1) {
-					char sCharacterLowered[20];
+					char sCharacterLowered[safeFoldingSize];
 					const unsigned int lengthConverted = MultiByteFromWideChar(cpDest,
 						std::wstring_view(wLower, charsConverted),
 						sCharacterLowered, std::size(sCharacterLowered));
@@ -2977,7 +2981,8 @@ public:
 // Try up to 8 times, with an initial delay of 1 ms and an exponential back off
 // for a maximum total delay of 127 ms (1+2+4+8+16+32+64).
 bool OpenClipboardRetry(HWND hwnd) noexcept {
-	for (int attempt=0; attempt<8; attempt++) {
+	constexpr int attempts = 8;
+	for (int attempt=0; attempt<attempts; attempt++) {
 		if (attempt > 0) {
 			::Sleep(1 << (attempt-1));
 		}
@@ -3573,12 +3578,13 @@ void ScintillaWin::HorizontalScrollMessage(WPARAM wParam) {
 	int xPos = xOffset;
 	const PRectangle rcText = GetTextRectangle();
 	const int pageWidth = static_cast<int>(rcText.Width() * 2 / 3);
+	constexpr int pixelsPerArrow = 20;
 	switch (LOWORD(wParam)) {
 	case SB_LINEUP:
-		xPos -= 20;
+		xPos -= pixelsPerArrow;
 		break;
 	case SB_LINEDOWN:	// May move past the logical end
-		xPos += 20;
+		xPos += pixelsPerArrow;
 		break;
 	case SB_PAGEUP:
 		xPos -= pageWidth;

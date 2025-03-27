@@ -15,21 +15,21 @@ bool DBCSIsLeadByte(int codePage, char ch) noexcept {
 	// Byte ranges found in Wikipedia articles with relevant search strings in each case
 	const unsigned char uch = ch;
 	switch (codePage) {
-	case 932:
+	case cp932:
 		// Shift_jis
 		return ((uch >= 0x81) && (uch <= 0x9F)) ||
 			((uch >= 0xE0) && (uch <= 0xFC));
 		// Lead bytes F0 to FC may be a Microsoft addition.
-	case 936:
+	case cp936:
 		// GBK
 		return (uch >= 0x81) && (uch <= 0xFE);
-	case 949:
+	case cp949:
 		// Korean Wansung KS C-5601-1987
 		return (uch >= 0x81) && (uch <= 0xFE);
-	case 950:
+	case cp950:
 		// Big5
 		return (uch >= 0x81) && (uch <= 0xFE);
-	case 1361:
+	case cp1361:
 		// Korean Johab KS C-5601-1992
 		return
 			((uch >= 0x84) && (uch <= 0xD3)) ||
@@ -41,7 +41,7 @@ bool DBCSIsLeadByte(int codePage, char ch) noexcept {
 
 bool IsDBCSValidSingleByte(int codePage, int ch) noexcept {
 	switch (codePage) {
-	case 932:
+	case cp932:
 		return ch == 0x80
 			|| (ch >= 0xA0 && ch <= 0xDF)
 			|| (ch >= 0xFD);

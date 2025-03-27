@@ -10,12 +10,18 @@
 
 namespace Scintilla::Internal {
 
+constexpr int cp932 = 932;
+constexpr int cp936 = 936;
+constexpr int cp949 = 949;
+constexpr int cp950 = 950;
+constexpr int cp1361 = 1361;
+
 constexpr bool IsDBCSCodePage(int codePage) noexcept {
-	return codePage == 932
-	       || codePage == 936
-	       || codePage == 949
-	       || codePage == 950
-	       || codePage == 1361;
+	return codePage == cp932
+	       || codePage == cp936
+	       || codePage == cp949
+	       || codePage == cp950
+	       || codePage == cp1361;
 }
 
 bool DBCSIsLeadByte(int codePage, char ch) noexcept;
