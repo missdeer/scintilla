@@ -695,12 +695,17 @@ void Menu::Show(Point pt, const Window &w) {
 	Destroy();
 }
 
+ColourRGBA ColourFromSys(int nIndex) noexcept {
+	const DWORD colourValue = ::GetSysColor(nIndex);
+	return ColourRGBA::FromRGB(colourValue);
+}
+
 ColourRGBA Platform::Chrome() {
-	return ColourRGBA::FromRGB(static_cast<int>(::GetSysColor(COLOR_3DFACE)));
+	return ColourFromSys(COLOR_3DFACE);
 }
 
 ColourRGBA Platform::ChromeHighlight() {
-	return ColourRGBA::FromRGB(static_cast<int>(::GetSysColor(COLOR_3DHIGHLIGHT)));
+	return ColourFromSys(COLOR_3DHIGHLIGHT);
 }
 
 const char *Platform::DefaultFont() {

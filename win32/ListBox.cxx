@@ -117,8 +117,7 @@ ColourRGBA ColourElement(std::optional<ColourRGBA> colour, int nIndex) {
 	if (colour.has_value()) {
 		return colour.value();
 	}
-	const DWORD colourValue = ::GetSysColor(nIndex);
-	return ColourRGBA(colourValue);
+	return ColourFromSys(nIndex);
 }
 
 struct LBGraphics {

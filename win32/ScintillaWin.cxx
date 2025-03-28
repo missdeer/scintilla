@@ -2617,7 +2617,7 @@ void ScintillaWin::UpdateBaseElements() {
 	};
 	bool changed = false;
 	for (const ElementToIndex &ei : eti) {
-		changed = vs.SetElementBase(ei.element, ColourRGBA::FromRGB(static_cast<int>(::GetSysColor(ei.nIndex)))) || changed;
+		changed = vs.SetElementBase(ei.element, ColourFromSys(ei.nIndex)) || changed;
 	}
 	if (changed) {
 		Redraw();
