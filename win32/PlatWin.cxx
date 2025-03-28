@@ -548,9 +548,10 @@ public:
 		::DeleteObject(brush);
 
 		// Set the alpha values for each pixel in the cursor.
+		constexpr DWORD opaque = 0xFF000000U;
 		for (int i = 0; i < width*height; i++) {
 			if (*pixels != 0) {
-				*pixels |= 0xFF000000U;
+				*pixels |= opaque;
 			}
 			pixels++;
 		}
