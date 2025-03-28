@@ -64,6 +64,7 @@ $(DIR_O)/ScintillaWin.o: \
 	../src/Document.h \
 	../src/CaseConvert.h \
 	../src/UniConversion.h \
+	../src/DBCS.h \
 	../src/Selection.h \
 	../src/PositionCache.h \
 	../src/EditModel.h \
