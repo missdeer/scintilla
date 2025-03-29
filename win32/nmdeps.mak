@@ -44,6 +44,7 @@ $(DIR_O)/ScintillaWin.obj: \
 	../src/Debugging.h \
 	../src/Geometry.h \
 	../src/Platform.h \
+	../src/CharacterType.h \
 	../src/CharacterCategoryMap.h \
 	../src/Position.h \
 	../src/UniqueString.h \
