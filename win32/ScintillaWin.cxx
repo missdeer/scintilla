@@ -67,6 +67,7 @@ using Microsoft::WRL::ComPtr;
 #include "Geometry.h"
 #include "Platform.h"
 
+#include "CharacterType.h"
 #include "CharacterCategoryMap.h"
 #include "Position.h"
 #include "UniqueString.h"
@@ -1604,6 +1605,11 @@ Message SciMessageFromEM(unsigned int iMessage) noexcept {
 	return static_cast<Message>(iMessage);
 }
 
+constexpr bool IsVisualCharacter(wchar_t charCode) noexcept {
+	constexpr wchar_t lastAscii = INT8_MAX;
+	return (charCode > lastAscii) || !IsControl(charCode);
+}
+
 }
 
 namespace Scintilla::Internal {
@@ -1963,20 +1969,19 @@ sptr_t ScintillaWin::KeyMessage(unsigned int iMessage, uptr_t wParam, sptr_t lPa
 
 	case WM_CHAR:
 		HideCursorIfPreferred();
-		if (((wParam >= 128) || !iscntrl(static_cast<int>(wParam))) || !lastKeyDownConsumed) {
-			wchar_t wcs[3] = { static_cast<wchar_t>(wParam), 0 };
-			unsigned int wclen = 1;
-			if (IS_HIGH_SURROGATE(wcs[0])) {
+		if (const wchar_t charCode = static_cast<wchar_t>(wParam);
+			IsVisualCharacter(charCode) || !lastKeyDownConsumed) {
+			if (IS_HIGH_SURROGATE(charCode)) {
 				// If this is a high surrogate character, we need a second one
-				lastHighSurrogateChar = wcs[0];
-				return 0;
-			} else if (IS_LOW_SURROGATE(wcs[0])) {
-				wcs[1] = wcs[0];
-				wcs[0] = lastHighSurrogateChar;
+				lastHighSurrogateChar = charCode;
+			} else {
+				std::wstring wcs({ charCode });
+				if (IS_LOW_SURROGATE(charCode)) {
+					wcs.insert(wcs.begin(), lastHighSurrogateChar);
+				}
+				AddWString(wcs, CharacterSource::DirectInput);
 				lastHighSurrogateChar = 0;
-				wclen = 2;
 			}
-			AddWString(std::wstring_view(wcs, wclen), CharacterSource::DirectInput);
 		}
 		return 0;
 
