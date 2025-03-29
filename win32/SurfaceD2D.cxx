@@ -1066,7 +1066,7 @@ void ScreenLineLayout::FillTextLayoutFormats(const IScreenLine *screenLine, IDWr
 			representationWidth = nextTab - realPt.x;
 		}
 		if (representationWidth > 0.0f) {
-			blobs.push_back(BlobInline(representationWidth));
+			blobs.emplace_back(representationWidth);
 			textLayout->SetInlineObject(&blobs.back(), textRange);
 		};
 
