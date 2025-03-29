@@ -1015,7 +1015,7 @@ class ScreenLineLayout : public IScreenLineLayout {
 	TextLayout textLayout;
 	static void FillTextLayoutFormats(const IScreenLine *screenLine, IDWriteTextLayout *textLayout, std::vector<BlobInline> &blobs);
 	static std::wstring ReplaceRepresentation(std::string_view text);
-	static size_t GetPositionInLayout(std::string_view text, size_t position);
+	static UINT32 GetPositionInLayout(std::string_view text, size_t position);
 public:
 	explicit ScreenLineLayout(const IScreenLine *screenLine);
 	// Deleted so ScreenLineLayout objects can not be copied
@@ -1115,9 +1115,9 @@ std::wstring ScreenLineLayout::ReplaceRepresentation(std::string_view text) {
 
 // Finds the position in the wide character version of the text.
 
-size_t ScreenLineLayout::GetPositionInLayout(std::string_view text, size_t position) {
+UINT32 ScreenLineLayout::GetPositionInLayout(std::string_view text, size_t position) {
 	const std::string_view textUptoPosition = text.substr(0, position);
-	return UTF16Length(textUptoPosition);
+	return static_cast<UINT32>(UTF16Length(textUptoPosition));
 }
 
 ScreenLineLayout::ScreenLineLayout(const IScreenLine *screenLine) {
@@ -1210,14 +1210,14 @@ XYPOSITION ScreenLineLayout::XFromPosition(size_t caretPosition) {
 		return 0.0;
 	}
 	// Convert byte positions to wchar_t positions
-	const size_t position = GetPositionInLayout(text, caretPosition);
+	const UINT32 position = GetPositionInLayout(text, caretPosition);
 
 	// Translate text character offset to point x,y.
 	DWRITE_HIT_TEST_METRICS caretMetrics {};
 	D2D1_POINT_2F pt {};
 
 	textLayout->HitTestTextPosition(
-		static_cast<UINT32>(position),
+		position,
 		false, // trailing if false, else leading edge
 		&pt.x,
 		&pt.y,
@@ -1237,48 +1237,48 @@ std::vector<Interval> ScreenLineLayout::FindRangeIntervals(size_t start, size_t 
 	}
 
 	// Convert byte positions to wchar_t positions
-	const size_t startPos = GetPositionInLayout(text, start);
-	const size_t endPos = GetPositionInLayout(text, end);
+	const UINT32 startPos = GetPositionInLayout(text, start);
+	const UINT32 endPos = GetPositionInLayout(text, end);
 
 	// Find selection range length
-	const size_t rangeLength = (endPos > startPos) ? (endPos - startPos) : (startPos - endPos);
+	const UINT32 rangeLength = (endPos > startPos) ? (endPos - startPos) : (startPos - endPos);
 
 	// Determine actual number of hit-test ranges
-	UINT32 actualHitTestCount = 0;
+	UINT32 hitTestCount = 2;	// Simple selection often produces just 2 hits
 
 	// First try with 2 elements and if more needed, allocate.
-	std::vector<DWRITE_HIT_TEST_METRICS> hitTestMetrics(2);
+	std::vector<DWRITE_HIT_TEST_METRICS> hitTestMetrics(hitTestCount);
 	textLayout->HitTestTextRange(
-		static_cast<UINT32>(startPos),
-		static_cast<UINT32>(rangeLength),
+		startPos,
+		rangeLength,
 		0, // x
 		0, // y
 		hitTestMetrics.data(),
-		static_cast<UINT32>(hitTestMetrics.size()),
-		&actualHitTestCount
+		hitTestCount,
+		&hitTestCount
 	);
 
-	if (actualHitTestCount == 0) {
+	if (hitTestCount == 0) {
 		return ret;
 	}
 
-	if (hitTestMetrics.size() < actualHitTestCount) {
+	if (hitTestMetrics.size() < hitTestCount) {
 		// Allocate enough room to return all hit-test metrics.
-		hitTestMetrics.resize(actualHitTestCount);
+		hitTestMetrics.resize(hitTestCount);
 		textLayout->HitTestTextRange(
-			static_cast<UINT32>(startPos),
-			static_cast<UINT32>(rangeLength),
+			startPos,
+			rangeLength,
 			0, // x
 			0, // y
 			hitTestMetrics.data(),
-			static_cast<UINT32>(hitTestMetrics.size()),
-			&actualHitTestCount
+			hitTestCount,
+			&hitTestCount
 		);
 	}
 
 	// Get the selection ranges behind the text.
 
-	for (size_t i = 0; i < actualHitTestCount; ++i) {
+	for (size_t i = 0; i < hitTestCount; ++i) {
 		// Store selection rectangle
 		const DWRITE_HIT_TEST_METRICS &htm = hitTestMetrics[i];
 		const Interval selectionInterval { htm.left, htm.left + htm.width };
