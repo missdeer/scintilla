@@ -2674,7 +2674,7 @@ int ScintillaWin::SetScrollInfo(int nBar, LPCSCROLLINFO lpsi, BOOL bRedraw) noex
 }
 
 bool ScintillaWin::GetScrollInfo(int nBar, LPSCROLLINFO lpsi) noexcept {
-	return ::GetScrollInfo(MainHWND(), nBar, lpsi) ? true : false;
+	return ::GetScrollInfo(MainHWND(), nBar, lpsi);
 }
 
 // Change the scroll position but avoid repaint if changing to same value
@@ -3343,7 +3343,7 @@ void ScintillaWin::ImeStartComposition() {
 			// The logfont for the IME is recreated here.
 			const int styleHere = pdoc->StyleIndexAt(sel.MainCaret());
 			LOGFONTW lf = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, L""};
-			int sizeZoomed = vs.styles[styleHere].size + vs.zoomLevel * FontSizeMultiplier;
+			int sizeZoomed = vs.styles[styleHere].size + (vs.zoomLevel * FontSizeMultiplier);
 			if (sizeZoomed <= 2 * FontSizeMultiplier)	// Hangs if sizeZoomed <= 1
 				sizeZoomed = 2 * FontSizeMultiplier;
 			// The negative is to allow for leading
@@ -3888,13 +3888,9 @@ bool ScintillaWin::Unregister() noexcept {
 }
 
 bool ScintillaWin::HasCaretSizeChanged() const noexcept {
-	if (
-		( (0 != vs.caret.width) && (sysCaretWidth != vs.caret.width) )
-		|| ((0 != vs.lineHeight) && (sysCaretHeight != vs.lineHeight))
-		) {
-		return true;
-	}
-	return false;
+	return
+		((0 != vs.caret.width) && (sysCaretWidth != vs.caret.width))
+		|| ((0 != vs.lineHeight) && (sysCaretHeight != vs.lineHeight));
 }
 
 BOOL ScintillaWin::CreateSystemCaret() {

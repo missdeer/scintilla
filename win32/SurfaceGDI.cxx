@@ -461,7 +461,7 @@ public:
 		PLATFORM_ASSERT(y >= 0);
 		PLATFORM_ASSERT(x < size.cx);
 		PLATFORM_ASSERT(y < size.cy);
-		pixels[y * size.cx + x] = value;
+		pixels[(y * size.cx) + x] = value;
 	}
 	void SetSymmetric(LONG x, LONG y, DWORD value) noexcept;
 };

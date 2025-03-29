@@ -786,13 +786,13 @@ void SurfaceD2D::Ellipse(PRectangle rc, FillStroke fillStroke) {
 		return;
 	const D2D1_POINT_2F centre = DPointFromPoint(rc.Centre());
 
-	const FLOAT radiusFill = static_cast<FLOAT>(rc.Width() / 2.0f - fillStroke.stroke.width);
+	const FLOAT radiusFill = static_cast<FLOAT>((rc.Width() / 2.0f) - fillStroke.stroke.width);
 	const D2D1_ELLIPSE ellipseFill = { centre, radiusFill, radiusFill };
 
 	D2DPenColourAlpha(fillStroke.fill.colour);
 	pRenderTarget->FillEllipse(ellipseFill, pBrush.Get());
 
-	const FLOAT radiusOutline = static_cast<FLOAT>(rc.Width() / 2.0f - fillStroke.stroke.width / 2.0f);
+	const FLOAT radiusOutline = static_cast<FLOAT>((rc.Width() / 2.0f) - (fillStroke.stroke.width / 2.0f));
 	const D2D1_ELLIPSE ellipseOutline = { centre, radiusOutline, radiusOutline };
 
 	D2DPenColourAlpha(fillStroke.stroke.colour);
