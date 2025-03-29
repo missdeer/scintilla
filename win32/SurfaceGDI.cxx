@@ -431,10 +431,11 @@ void SurfaceGDI::RoundedRectangle(PRectangle rc, FillStroke fillStroke) {
 	PenColour(fillStroke.stroke.colour, fillStroke.stroke.width);
 	BrushColour(fillStroke.fill.colour);
 	const RECT rcw = RectFromPRectangle(rc);
+	constexpr int cornerSize = 8;
 	::RoundRect(hdc,
 		rcw.left + 1, rcw.top,
 		rcw.right - 1, rcw.bottom,
-		8, 8);
+		cornerSize, cornerSize);
 }
 
 // DIBSection is bitmap with some drawing operations used by SurfaceGDI.
@@ -497,11 +498,15 @@ ColourRGBA GradientValue(const std::vector<ColourStop> &stops, XYPOSITION propor
 }
 
 constexpr DWORD dwordFromBGRA(byte b, byte g, byte r, byte a) noexcept {
-	return (a << 24) | (r << 16) | (g << 8) | b;
+	constexpr int aShift = 24;
+	constexpr int rShift = 16;
+	constexpr int gShift = 8;
+	return (a << aShift) | (r << rShift) | (g << gShift) | b;
 }
 
 constexpr byte AlphaScaled(unsigned char component, unsigned int alpha) noexcept {
-	return static_cast<byte>(component * alpha / 255);
+	constexpr byte maxByte = 0xFFU;
+	return (component * alpha / maxByte) & maxByte;
 }
 
 constexpr DWORD dwordMultiplied(ColourRGBA colour) noexcept {

@@ -165,7 +165,8 @@ struct FontDirectWrite : public FontWin {
 	ComPtr<IDWriteTextFormat> pTextFormat;
 	FontQuality extraFontFlag = FontQuality::QualityDefault;
 	CharacterSet characterSet = CharacterSet::Ansi;
-	FLOAT yAscent = 2.0f;
+	static constexpr FLOAT minimalAscent = 2.0f;
+	FLOAT yAscent = minimalAscent;
 	FLOAT yDescent = 1.0f;
 	FLOAT yInternalLeading = 0.0f;
 
@@ -530,6 +531,8 @@ int SurfaceD2D::DeviceHeightFont(int points) {
 	return ::MulDiv(points, LogPixelsY(), pointsPerInch);
 }
 
+constexpr FLOAT mitreLimit = 4.0f;
+
 void SurfaceD2D::LineDraw(Point start, Point end, Stroke stroke) {
 	D2DPenColourAlpha(stroke.colour);
 
@@ -538,7 +541,7 @@ void SurfaceD2D::LineDraw(Point start, Point end, Stroke stroke) {
 	strokeProps.endCap = D2D1_CAP_STYLE_SQUARE;
 	strokeProps.dashCap = D2D1_CAP_STYLE_FLAT;
 	strokeProps.lineJoin = D2D1_LINE_JOIN_MITER;
-	strokeProps.miterLimit = 4.0f;
+	strokeProps.miterLimit = mitreLimit;
 	strokeProps.dashStyle = D2D1_DASH_STYLE_SOLID;
 	strokeProps.dashOffset = 0;
 
@@ -584,7 +587,7 @@ void SurfaceD2D::PolyLine(const Point *pts, size_t npts, Stroke stroke) {
 	strokeProps.endCap = D2D1_CAP_STYLE_ROUND;
 	strokeProps.dashCap = D2D1_CAP_STYLE_FLAT;
 	strokeProps.lineJoin = D2D1_LINE_JOIN_MITER;
-	strokeProps.miterLimit = 4.0f;
+	strokeProps.miterLimit = mitreLimit;
 	strokeProps.dashStyle = D2D1_DASH_STYLE_SOLID;
 	strokeProps.dashOffset = 0;
 
