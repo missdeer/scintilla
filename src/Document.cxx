@@ -1109,6 +1109,12 @@ bool SCI_METHOD Document::IsDBCSLeadByte(char ch) const {
 	return IsDBCSLeadByteNoExcept(ch);
 }
 
+// Silence 'magic' number use since the set of DBCS lead and trail bytes differ
+// between encodings and would require many constant declarations that would just
+// obscure the behaviour.
+
+// NOLINTBEGIN(*-magic-numbers)
+
 bool Document::IsDBCSLeadByteNoExcept(char ch) const noexcept {
 	// Used inside core Scintilla
 	// Byte ranges found in Wikipedia articles with relevant search strings in each case
@@ -1191,6 +1197,8 @@ unsigned char Document::DBCSMinTrailByte() const noexcept {
 		return 0;
 	}
 }
+
+// NOLINTEND(*-magic-numbers)
 
 int Document::DBCSDrawBytes(std::string_view text) const noexcept {
 	if (text.length() <= 1) {

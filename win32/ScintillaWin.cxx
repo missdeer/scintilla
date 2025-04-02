@@ -1614,6 +1614,10 @@ constexpr bool IsVisualCharacter(wchar_t charCode) noexcept {
 
 namespace Scintilla::Internal {
 
+// Removing 'magic' numbers here would not help here.
+
+// NOLINTBEGIN(*-magic-numbers)
+
 UINT CodePageFromCharSet(CharacterSet characterSet, UINT documentCodePage) noexcept {
 	if (documentCodePage == CpUtf8) {
 		return CpUtf8;
@@ -1645,6 +1649,8 @@ UINT CodePageFromCharSet(CharacterSet characterSet, UINT documentCodePage) noexc
 	}
 	return documentCodePage;
 }
+
+// NOLINTEND(*-magic-numbers)
 
 }
 
