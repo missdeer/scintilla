@@ -1133,7 +1133,7 @@ void PositionCache::MeasureWidths(Surface *surface, const ViewStyle &vstyle, uns
 		if (AllGraphicASCII(sv)) {
 			const XYPOSITION monospaceCharacterWidth = style.monospaceCharacterWidth;
 			for (size_t i = 0; i < sv.length(); i++) {
-				positions[i] = monospaceCharacterWidth * (i+1);
+				positions[i] = monospaceCharacterWidth * static_cast<XYPOSITION>(i+1);
 			}
 			return;
 		}

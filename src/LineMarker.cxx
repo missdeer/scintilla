@@ -196,7 +196,7 @@ void LineMarker::DrawFoldingMark(Surface *surface, const PRectangle &rcWhole, Fo
 	// To centre +/-, odd strokeWidth -> odd symbol width, even -> even
 	const XYPOSITION widthSymbol =
 		((std::lround(minDimension * pixelDivisions) % 2) == (std::lround(widthStroke * pixelDivisions) % 2)) ?
-		minDimension : minDimension - 1.0f / pixelDivisions;
+		minDimension : minDimension - (1.0 / static_cast<XYPOSITION>(pixelDivisions));
 
 	const Point centre = PixelAlign(rcWhole.Centre(), pixelDivisions);
 

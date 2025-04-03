@@ -120,7 +120,7 @@ void ActionDuration::AddSample(size_t numberActions, double durationOfActions) n
 	// Most recent value contributes 25% to smoothed value.
 	constexpr double alpha = 0.25;
 
-	const double durationOne = durationOfActions / numberActions;
+	const double durationOne = durationOfActions / static_cast<double>(numberActions);
 	duration = std::clamp(alpha * durationOne + (1.0 - alpha) * duration,
 		minDuration, maxDuration);
 }

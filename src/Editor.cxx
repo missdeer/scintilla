@@ -267,7 +267,7 @@ PointDocument Editor::DocumentPointFromView(Point ptView) const {
 		ptDocument.y += ptOrigin.y;
 	} else {
 		ptDocument.x += xOffset;
-		ptDocument.y += topLine * vs.lineHeight;
+		ptDocument.y += static_cast<double>(topLine * vs.lineHeight);
 	}
 	return ptDocument;
 }
@@ -1113,9 +1113,9 @@ void Editor::MoveCaretInsideView(bool ensureVisible) {
 					false, false, UserVirtualSpace()),
 					Selection::SelTypes::none, ensureVisible);
 	} else if ((pt.y + vs.lineHeight - 1) > rcClient.bottom) {
-		const ptrdiff_t yOfLastLineFullyDisplayed = static_cast<ptrdiff_t>(rcClient.top) + (LinesOnScreen() - 1) * vs.lineHeight;
+		const ptrdiff_t yOfLastLineFullyDisplayed = static_cast<ptrdiff_t>(rcClient.top) + ((LinesOnScreen() - 1) * vs.lineHeight);
 		MovePositionTo(SPositionFromLocation(
-		            Point::FromInts(lastXChosen - xOffset, static_cast<int>(rcClient.top + yOfLastLineFullyDisplayed)),
+		            Point::FromInts(lastXChosen - xOffset, static_cast<int>(rcClient.top + static_cast<XYPOSITION>(yOfLastLineFullyDisplayed))),
 					false, false, UserVirtualSpace()),
 		        Selection::SelTypes::none, ensureVisible);
 	}
@@ -1607,7 +1607,7 @@ bool Editor::WrapBlock(Surface *surface, Sci::Line lineToWrap, Sci::Line lineToW
 
 	// Multiply duration by number of threads to produce (near) equivalence to duration if single threaded
 	const double durationShortLines = epWrapping.Duration(true);
-	const double durationShortLinesThreads = durationShortLines * threads;
+	const double durationShortLinesThreads = durationShortLines * static_cast<double>(threads);
 
 	// Wrap all the long lines in the main thread.
 	// LayoutLine may then multi-thread over segments in each line.
@@ -3366,7 +3366,7 @@ SelectionPosition Editor::PositionUpOrDown(SelectionPosition spStart, int direct
 		// There is an equivalent case when moving down which skips
 		// over a line.
 		Point ptNew = LocationFromPosition(posNew.Position());
-		while ((posNew.Position() > spStart.Position()) && (ptNew.y > newY)) {
+		while ((posNew.Position() > spStart.Position()) && (ptNew.y > static_cast<XYPOSITION>(newY))) {
 			posNew.Add(-1);
 			posNew.SetVirtualSpace(0);
 			ptNew = LocationFromPosition(posNew.Position());
@@ -4175,7 +4175,7 @@ void Editor::Indent(bool forwards, bool lineIndent) {
 						sel.Range(r) = SelectionRange(caretPosition + lengthInserted);
 					} else {
 						int numSpaces = (pdoc->tabInChars) -
-								(pdoc->GetColumn(caretPosition) % (pdoc->tabInChars));
+								static_cast<int>((pdoc->GetColumn(caretPosition) % (pdoc->tabInChars)));
 						if (numSpaces < 1)
 							numSpaces = pdoc->tabInChars;
 						const std::string spaceText(numSpaces, ' ');
@@ -7487,7 +7487,7 @@ sptr_t Editor::WndProc(Message iMessage, uptr_t wParam, sptr_t lParam) {
 		break;
 	case Message::MarkerSetStrokeWidth:
 		if (wParam <= MarkerMax)
-			vs.markers[wParam].strokeWidth = lParam / 100.0f;
+			vs.markers[wParam].strokeWidth = static_cast<XYPOSITION>(lParam) / 100.0f;
 		InvalidateStyleData();
 		RedrawSelMargin();
 		break;
@@ -8181,7 +8181,7 @@ sptr_t Editor::WndProc(Message iMessage, uptr_t wParam, sptr_t lParam) {
 
 	case Message::IndicSetStrokeWidth:
 		if (wParam <= IndicatorMax && lParam >= 0 && lParam <= 1000) {
-			vs.indicators[wParam].strokeWidth = lParam / 100.0f;
+			vs.indicators[wParam].strokeWidth = static_cast<XYPOSITION>(lParam) / 100.0;
 			InvalidateStyleRedraw();
 		}
 		break;

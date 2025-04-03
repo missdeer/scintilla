@@ -23,6 +23,7 @@ else
 # MinGW GCC
 LIBSMINGW = -lstdc++
 STRIPOPTION = -s
+WARNINGS += -Wconversion
 endif
 ARFLAGS = rc
 RANLIB ?= ranlib
