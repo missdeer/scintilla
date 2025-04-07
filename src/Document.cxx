@@ -3035,7 +3035,7 @@ Sci::Position Document::BraceMatch(Sci::Position position, Sci::Position /*maxRe
 	// Avoid using MovePositionOutsideChar to check DBCS trail byte
 	unsigned char maxSafeChar = 0xff;
 	if (dbcsCodePage != 0 && dbcsCodePage != CpUtf8) {
-		maxSafeChar = DBCSMinTrailByte() - 1;
+		maxSafeChar = std::max<unsigned char>(DBCSMinTrailByte(), 1) - 1;
 	}
 
 	while ((position >= 0) && (position < LengthNoExcept())) {
