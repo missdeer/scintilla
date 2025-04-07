@@ -632,14 +632,14 @@ constexpr bool IsSubordinate(FoldLevel levelStart, FoldLevel levelTry) noexcept 
 
 Sci::Line Document::GetLastChild(Sci::Line lineParent, std::optional<FoldLevel> level, Sci::Line lastLine) {
 	const FoldLevel levelStart = LevelNumberPart(level ? *level : GetFoldLevel(lineParent));
-	const Sci::Line maxLine = LinesTotal();
-	const Sci::Line lookLastLine = (lastLine != -1) ? std::min(LinesTotal() - 1, lastLine) : -1;
+	const Sci::Line maxLine = LinesTotal() - 1;
+	const Sci::Line lookLastLine = (lastLine != -1) ? std::min(maxLine, lastLine) : maxLine;
 	Sci::Line lineMaxSubord = lineParent;
-	while (lineMaxSubord < maxLine - 1) {
+	while (lineMaxSubord < maxLine) {
 		EnsureStyledTo(LineStart(lineMaxSubord + 2));
 		if (!IsSubordinate(levelStart, GetFoldLevel(lineMaxSubord + 1)))
 			break;
-		if ((lookLastLine != -1) && (lineMaxSubord >= lookLastLine) && !LevelIsWhitespace(GetFoldLevel(lineMaxSubord)))
+		if ((lineMaxSubord >= lookLastLine) && !LevelIsWhitespace(GetFoldLevel(lineMaxSubord)))
 			break;
 		lineMaxSubord++;
 	}
