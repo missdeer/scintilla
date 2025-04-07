@@ -2648,7 +2648,7 @@ void Document::SetLexInterface(std::unique_ptr<LexInterface> pLexInterface) noex
 
 void Document::SetViewState(void *view, ViewStateShared pVSS) {
 	if (pVSS) {
-		viewData[view] = pVSS;
+		viewData[view] = std::move(pVSS);
 	} else {
 		viewData.erase(view);
 	}
