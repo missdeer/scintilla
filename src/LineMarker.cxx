@@ -521,7 +521,7 @@ void LineMarker::Draw(Surface *surface, const PRectangle &rcWhole, const Font *f
 			// Hide cap by continuing a bit.
 			constexpr XYPOSITION continueLength = 5.0;
 			PRectangle rcBar = rcWhole;
-			const XYPOSITION widthBar = std::floor(rcWhole.Width() / 3.0);
+			const XYPOSITION widthBar = std::ceil(rcWhole.Width() / 3.0);
 			rcBar.left = centreX - std::floor(widthBar / 2.0);
 			rcBar.right = rcBar.left + widthBar;
 			surface->SetClip(rcWhole);	// Hide continued caps
