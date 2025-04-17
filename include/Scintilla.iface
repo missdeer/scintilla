@@ -1337,6 +1337,7 @@ get ChangeHistoryOption GetChangeHistory=2781(,)
 enu UndoSelectionHistoryOption=SC_UNDO_SELECTION_HISTORY_
 val SC_UNDO_SELECTION_HISTORY_DISABLED=0
 val SC_UNDO_SELECTION_HISTORY_ENABLED=1
+val SC_UNDO_SELECTION_HISTORY_SCROLL=2
 
 # Enable or disable undo selection history.
 set void SetUndoSelectionHistory=2782(UndoSelectionHistoryOption undoSelectionHistory,)

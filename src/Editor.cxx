@@ -2409,12 +2409,14 @@ void Editor::SelectAll() {
 
 void Editor::RestoreSelection(Sci::Position newPos, UndoRedo history) {
 	EnsureModelState();
-	if ((undoSelectionHistoryOption == UndoSelectionHistoryOption::Enabled) && modelState) {
+	if (FlagSet(undoSelectionHistoryOption, UndoSelectionHistoryOption::Enabled) && modelState) {
 		// Undo wants the element after the current as it just undid it
 		const int index = pdoc->UndoCurrent() + (history == UndoRedo::undo ? 1 : 0);
 		const SelectionWithScroll selAndLine = modelState->SelectionFromStack(index, history);
 		if (!selAndLine.selection.empty()) {
-			ScrollTo(selAndLine.topLine);
+			if (FlagSet(undoSelectionHistoryOption, UndoSelectionHistoryOption::Scroll)) {
+				ScrollTo(selAndLine.topLine);
+			}
 			sel = Selection(selAndLine.selection);
 			if (sel.IsRectangular()) {
 				const size_t mainForRectangular = sel.Main();
@@ -2799,7 +2801,7 @@ void Editor::NotifyModified(Document *, DocModification mh, void *) {
 			view.llc.Invalidate(LineLayout::ValidLevel::checkTextAndStyle);
 		}
 	} else {
-		if ((undoSelectionHistoryOption == UndoSelectionHistoryOption::Enabled) &&
+		if (FlagSet(undoSelectionHistoryOption, UndoSelectionHistoryOption::Enabled) &&
 			FlagSet(mh.modificationType, ModificationFlags::User)) {
 			if (FlagSet(mh.modificationType, ModificationFlags::BeforeInsert | ModificationFlags::BeforeDelete)) {
 				RememberSelectionForUndo(pdoc->UndoCurrent());
