@@ -2111,10 +2111,10 @@ sptr_t ScintillaWin::EditMessage(unsigned int iMessage, uptr_t wParam, sptr_t lP
 
 	case EM_GETSEL:
 		if (wParam) {
-			*reinterpret_cast<DWORD *>(wParam) = static_cast<DWORD>(SelectionStart().Position());
+			*static_cast<DWORD *>(PtrFromUPtr(wParam)) = static_cast<DWORD>(SelectionStart().Position());
 		}
 		if (lParam) {
-			*reinterpret_cast<DWORD *>(lParam) = static_cast<DWORD>(SelectionEnd().Position());
+			*static_cast<DWORD *>(PtrFromSPtr(lParam)) = static_cast<DWORD>(SelectionEnd().Position());
 		}
 		return MAKELRESULT(SelectionStart().Position(), SelectionEnd().Position());
 
@@ -2122,7 +2122,7 @@ sptr_t ScintillaWin::EditMessage(unsigned int iMessage, uptr_t wParam, sptr_t lP
 			if (lParam == 0) {
 				return 0;
 			}
-			CHARRANGE *pCR = reinterpret_cast<CHARRANGE *>(lParam);
+			CHARRANGE *pCR = static_cast<CHARRANGE *>(PtrFromSPtr(lParam));
 			pCR->cpMin = static_cast<LONG>(SelectionStart().Position());
 			pCR->cpMax = static_cast<LONG>(SelectionEnd().Position());
 		}
@@ -2146,7 +2146,7 @@ sptr_t ScintillaWin::EditMessage(unsigned int iMessage, uptr_t wParam, sptr_t lP
 			if (lParam == 0) {
 				return 0;
 			}
-			const CHARRANGE *pCR = reinterpret_cast<const CHARRANGE *>(lParam);
+			const CHARRANGE *pCR = static_cast<const CHARRANGE *>(PtrFromSPtr(lParam));
 			sel.selType = Selection::SelTypes::stream;
 			if (pCR->cpMin == 0 && pCR->cpMax == -1) {
 				SetSelection(pCR->cpMin, pdoc->Length());
@@ -4039,14 +4039,14 @@ LRESULT PASCAL ScintillaWin::CTWndProc(
 
 sptr_t ScintillaWin::DirectFunction(
     sptr_t ptr, UINT iMessage, uptr_t wParam, sptr_t lParam) {
-	ScintillaWin *sci = reinterpret_cast<ScintillaWin *>(ptr);
+	ScintillaWin *sci = static_cast<ScintillaWin *>(PtrFromSPtr(ptr));
 	PLATFORM_ASSERT(::GetCurrentThreadId() == ::GetWindowThreadProcessId(sci->MainHWND(), nullptr));
 	return sci->WndProc(static_cast<Message>(iMessage), wParam, lParam);
 }
 
 sptr_t ScintillaWin::DirectStatusFunction(
     sptr_t ptr, UINT iMessage, uptr_t wParam, sptr_t lParam, int *pStatus) {
-	ScintillaWin *sci = reinterpret_cast<ScintillaWin *>(ptr);
+	ScintillaWin *sci = static_cast<ScintillaWin *>(PtrFromSPtr(ptr));
 	PLATFORM_ASSERT(::GetCurrentThreadId() == ::GetWindowThreadProcessId(sci->MainHWND(), nullptr));
 	const sptr_t returnValue = sci->WndProc(static_cast<Message>(iMessage), wParam, lParam);
 	*pStatus = static_cast<int>(sci->errorStatus);
