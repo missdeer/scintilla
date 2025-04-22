@@ -125,11 +125,6 @@ constexpr UINT SC_WIN_IDLE = 5001;
 // and delivering SCN_UPDATEUI
 constexpr UINT SC_WORK_IDLE = 5002;
 
-constexpr int IndicatorInput = static_cast<int>(Scintilla::IndicatorNumbers::Ime);
-constexpr int IndicatorTarget = IndicatorInput + 1;
-constexpr int IndicatorConverted = IndicatorInput + 2;
-constexpr int IndicatorUnknown = IndicatorInput + 3;
-
 using SetCoalescableTimerSig = UINT_PTR (WINAPI *)(HWND hwnd, UINT_PTR nIDEvent,
 	UINT uElapse, TIMERPROC lpTimerFunc, ULONG uToleranceDelay);
 
@@ -548,8 +543,6 @@ class ScintillaWin :
 	sptr_t HandleCompositionWindowed(uptr_t wParam, sptr_t lParam);
 	sptr_t HandleCompositionInline(uptr_t wParam, sptr_t lParam);
 	static bool KoreanIME() noexcept;
-	void MoveImeCarets(Sci::Position offset) noexcept;
-	void DrawImeIndicator(int indicator, Sci::Position len);
 	void SetCandidateWindowPos();
 	void SelectionToHangul();
 	void EscapeHanja();
@@ -1332,29 +1325,6 @@ sptr_t ScintillaWin::HandleCompositionWindowed(uptr_t wParam, sptr_t lParam) {
 bool ScintillaWin::KoreanIME() noexcept {
 	const int codePage = InputCodePage();
 	return codePage == cp949 || codePage == cp1361;
-}
-
-void ScintillaWin::MoveImeCarets(Sci::Position offset) noexcept {
-	// Move carets relatively by bytes.
-	for (size_t r=0; r<sel.Count(); r++) {
-		const Sci::Position positionInsert = sel.Range(r).Start().Position();
-		sel.Range(r) = SelectionRange(positionInsert + offset);
-	}
-}
-
-void ScintillaWin::DrawImeIndicator(int indicator, Sci::Position len) {
-	// Emulate the visual style of IME characters with indicators.
-	// Draw an indicator on the character before caret by the character bytes of len
-	// so it should be called after InsertCharacter().
-	// It does not affect caret positions.
-	if (indicator < 8 || indicator > IndicatorMax) {
-		return;
-	}
-	pdoc->DecorationSetCurrentIndicator(indicator);
-	for (size_t r=0; r<sel.Count(); r++) {
-		const Sci::Position positionInsert = sel.Range(r).Start().Position();
-		pdoc->DecorationFillRange(positionInsert - len, 1, len);
-	}
 }
 
 void ScintillaWin::SetCandidateWindowPos() {

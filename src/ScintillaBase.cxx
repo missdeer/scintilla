@@ -213,6 +213,30 @@ void ScintillaBase::ListNotify(ListBoxEvent *plbe) {
 	}
 }
 
+void ScintillaBase::MoveImeCarets(Sci::Position offset) noexcept {
+	// Move carets relatively by bytes.
+	for (size_t r = 0; r < sel.Count(); r++) {
+		const Sci::Position positionInsert = sel.Range(r).Start().Position();
+		sel.Range(r) = SelectionRange(positionInsert + offset);
+	}
+}
+
+void ScintillaBase::DrawImeIndicator(int indicator, Sci::Position len) {
+	// Emulate the visual style of IME characters with indicators.
+	// Draw an indicator on the character before caret by the character bytes of len
+	// so it should be called after InsertCharacter().
+	// It does not affect caret positions.
+	const IndicatorNumbers ind = static_cast<IndicatorNumbers>(indicator);
+	if (ind < IndicatorNumbers::Container || ind > IndicatorNumbers::Max) {
+		return;
+	}
+	pdoc->DecorationSetCurrentIndicator(indicator);
+	for (size_t r = 0; r < sel.Count(); r++) {
+		const Sci::Position positionInsert = sel.Range(r).Start().Position();
+		pdoc->DecorationFillRange(positionInsert - len, 1, len);
+	}
+}
+
 void ScintillaBase::AutoCompleteInsert(Sci::Position startPos, Sci::Position removeLen, std::string_view text) {
 	UndoGroup ug(pdoc);
 	if (multiAutoCMode == MultiAutoComplete::Once) {

@@ -2375,29 +2375,6 @@ bool ScintillaGTK::KoreanIME() {
 	return lastNonCommonScript == G_UNICODE_SCRIPT_HANGUL;
 }
 
-void ScintillaGTK::MoveImeCarets(Sci::Position pos) {
-	// Move carets relatively by bytes
-	for (size_t r=0; r<sel.Count(); r++) {
-		const Sci::Position positionInsert = sel.Range(r).Start().Position();
-		sel.Range(r) = SelectionRange(positionInsert + pos);
-	}
-}
-
-void ScintillaGTK::DrawImeIndicator(int indicator, Sci::Position len) {
-	// Emulate the visual style of IME characters with indicators.
-	// Draw an indicator on the character before caret by the character bytes of len
-	// so it should be called after InsertCharacter().
-	// It does not affect caret positions.
-	if (indicator < 8 || indicator > INDICATOR_MAX) {
-		return;
-	}
-	pdoc->DecorationSetCurrentIndicator(indicator);
-	for (size_t r=0; r<sel.Count(); r++) {
-		const Sci::Position positionInsert = sel.Range(r).Start().Position();
-		pdoc->DecorationFillRange(positionInsert - len, 1, len);
-	}
-}
-
 namespace {
 
 std::vector<int> MapImeIndicators(PangoAttrList *attrs, const char *u8Str) {
