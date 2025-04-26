@@ -130,7 +130,7 @@
 
     <h1>Scintilla Documentation</h1>
 
-    <p>Last edited 23 April 2025 NH</p>
+    <p>Last edited 27 April 2025 NH</p>
 
     <p style="background:#90F0C0">Scintilla 5 has moved the lexers from Scintilla into a new
     <a href="Lexilla.html">Lexilla</a> project.<br />
@@ -1325,6 +1325,35 @@ struct Sci_TextRangeFull {
      from wrapping to the previous line.
      This is most commonly desired in conjunction with virtual space but is an independent
      setting so works without virtual space.</p>
+
+    <table class="standard" summary="Virtual space options">
+      <tbody valign="top">
+        <tr>
+          <th align="left"><code>SCVS_NONE</code></th>
+          <td>0</td>
+          <td>The default: no virtual space.</td>
+        </tr>
+
+        <tr>
+          <th align="left"><code>SCVS_RECTANGULARSELECTION</code></th>
+          <td>1</td>
+          <td>Virtual space is enabled for rectangular selections.</td>
+        </tr>
+
+        <tr>
+          <th align="left"><code>SCVS_USERACCESSIBLE</code></th>
+          <td>2</td>
+          <td>Virtual space is enabled for user actions such as right arrow key or clicking beyond line end.</td>
+        </tr>
+
+        <tr>
+          <th align="left"><code>SCVS_NOWRAPLINESTART</code></th>
+          <td>4</td>
+          <td>Left arrow does not wrap to the previous line.</td>
+        </tr>
+
+      </tbody>
+    </table>
 
     <p>
     <b id="SCI_SETRECTANGULARSELECTIONMODIFIER">SCI_SETRECTANGULARSELECTIONMODIFIER(int modifier)</b><br />
