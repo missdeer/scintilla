@@ -603,7 +603,7 @@ class ScintillaWin :
 	sptr_t HandleCompositionWindowed(uptr_t wParam, sptr_t lParam);
 	sptr_t HandleCompositionInline(uptr_t wParam, sptr_t lParam);
 	static bool KoreanIME() noexcept;
-	void SetCandidateWindowPos();
+	void SetCandidateWindowPos(const IMContext &imc);
 	void SelectionToHangul();
 	void EscapeHanja();
 	void ToggleHanja();
@@ -1382,10 +1382,8 @@ bool ScintillaWin::KoreanIME() noexcept {
 	return codePage == cp949 || codePage == cp1361;
 }
 
-void ScintillaWin::SetCandidateWindowPos() {
-	if (IMContext imc{ MainHWND() }) {
-		imc.SetCandidateWindowPos(PointMainCaret(), GetTextRectangle(), vs.lineHeight);
-	}
+void ScintillaWin::SetCandidateWindowPos(const IMContext &imc) {
+	imc.SetCandidateWindowPos(PointMainCaret(), GetTextRectangle(), vs.lineHeight);
 }
 
 void ScintillaWin::SelectionToHangul() {
@@ -1396,17 +1394,16 @@ void ScintillaWin::SelectionToHangul() {
 	const Sci::Position utf16Len = pdoc->CountUTF16(selStart, selEnd);
 
 	if (utf16Len > 0) {
-		std::string documentStr(documentStrLen, '\0');
-		pdoc->GetCharRange(documentStr.data(), selStart, documentStrLen);
+		const std::string documentStr = RangeText(selStart, selStart + documentStrLen);
 
 		std::wstring uniStr = StringDecode(documentStr, CodePageOfDocument());
 		const bool converted = HanjaDict::GetHangulOfHanja(uniStr);
 
 		if (converted) {
-			documentStr = StringEncode(uniStr, CodePageOfDocument());
+			const std::string hangul = StringEncode(uniStr, CodePageOfDocument());
 			UndoGroup ug(pdoc);
 			ClearSelection();
-			InsertPaste(documentStr.data(), documentStr.size());
+			InsertPaste(hangul.data(), hangul.size());
 		}
 	}
 }
@@ -1415,9 +1412,7 @@ void ScintillaWin::EscapeHanja() {
 	// The candidate box pops up to user to select a hanja.
 	// It comes into WM_IME_COMPOSITION with GCS_RESULTSTR.
 	// The existing hangul or hanja is replaced with it.
-	if (sel.Count() > 1) {
-		return; // Do not allow multi carets.
-	}
+
 	const Sci::Position currentPos = CurrentPosition();
 	const int oneCharLen = pdoc->LenChar(currentPos);
 
@@ -1425,17 +1420,16 @@ void ScintillaWin::EscapeHanja() {
 		return; // No need to handle SBCS.
 	}
 
-	// ImmEscapeW() may overwrite uniChar[] with a null terminated string.
-	// So enlarge it enough to Maximum 4 as in UTF-8.
-	constexpr size_t safeLength = UTF8MaxBytes + 1;
-	std::string oneChar(safeLength, '\0');
-	pdoc->GetCharRange(oneChar.data(), currentPos, oneCharLen);
+	const std::string oneChar = RangeText(currentPos, currentPos + oneCharLen);
 
 	std::wstring uniChar = StringDecode(oneChar, CodePageOfDocument());
+	// ImmEscapeW() may overwrite uniChar[] with a null terminated string.
+	// So enlarge it enough to Maximum 4 as in UTF-8.
+	uniChar.resize(UTF8MaxBytes);
 
 	if (IMContext imc{ MainHWND() }) {
 		// Set the candidate box position since IME may show it.
-		SetCandidateWindowPos();
+		SetCandidateWindowPos(imc);
 		// IME_ESC_HANJA_MODE appears to receive the first character only.
 		if (imc.Escape(GetKeyboardLayout(0), IME_ESC_HANJA_MODE, uniChar.data())) {
 			SetSelection(currentPos, currentPos + oneCharLen);
@@ -1537,7 +1531,7 @@ sptr_t ScintillaWin::HandleCompositionInline(uptr_t, sptr_t lParam) {
 		}
 
 		// Set candidate window left aligned to beginning of preedit string.
-		SetCandidateWindowPos();
+		SetCandidateWindowPos(imc);
 		pdoc->TentativeStart(); // TentativeActive from now on.
 
 		std::vector<int> imeIndicator = MapImeIndicators(imc.GetImeAttributes());
@@ -2049,6 +2043,7 @@ sptr_t ScintillaWin::IMEMessage(unsigned int iMessage, uptr_t wParam, sptr_t lPa
 
 	case WM_IME_KEYDOWN: {
 			if (wParam == VK_HANJA) {
+				// On US keyboards with Korean Microsoft IME, VK_HANJA is right Ctrl
 				ToggleHanja();
 			}
 			return ::DefWindowProc(MainHWND(), iMessage, wParam, lParam);
