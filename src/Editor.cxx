@@ -275,8 +275,7 @@ PointDocument Editor::DocumentPointFromView(Point ptView) const {
 Sci::Line Editor::TopLineOfMain() const noexcept {
 	if (HasMarginWindow())
 		return 0;
-	else
-		return topLine;
+	return topLine;
 }
 
 Point Editor::ClientSize() const {
@@ -310,8 +309,7 @@ Sci::Line Editor::LinesToScroll() const {
 	const Sci::Line retVal = LinesOnScreen() - 1;
 	if (retVal < 1)
 		return 1;
-	else
-		return retVal;
+	return retVal;
 }
 
 Sci::Line Editor::MaxScrollPos() const {
@@ -325,9 +323,8 @@ Sci::Line Editor::MaxScrollPos() const {
 	}
 	if (retVal < 0) {
 		return 0;
-	} else {
-		return retVal;
 	}
+	return retVal;
 }
 
 SelectionPosition Editor::ClampPositionIntoDocument(SelectionPosition sp) const {
@@ -903,18 +900,17 @@ SelectionPosition Editor::MovePositionSoVisible(SelectionPosition pos, int moveD
 	const Sci::Line lineDoc = pdoc->SciLineFromPosition(pos.Position());
 	if (pcs->GetVisible(lineDoc)) {
 		return pos;
+	}
+	Sci::Line lineDisplay = pcs->DisplayFromDoc(lineDoc);
+	if (moveDir > 0) {
+		// lineDisplay is already line before fold as lines in fold use display line of line after fold
+		lineDisplay = std::clamp<Sci::Line>(lineDisplay, 0, pcs->LinesDisplayed());
+		return SelectionPosition(
+			pdoc->LineStart(pcs->DocFromDisplay(lineDisplay)));
 	} else {
-		Sci::Line lineDisplay = pcs->DisplayFromDoc(lineDoc);
-		if (moveDir > 0) {
-			// lineDisplay is already line before fold as lines in fold use display line of line after fold
-			lineDisplay = std::clamp<Sci::Line>(lineDisplay, 0, pcs->LinesDisplayed());
-			return SelectionPosition(
-				pdoc->LineStart(pcs->DocFromDisplay(lineDisplay)));
-		} else {
-			lineDisplay = std::clamp<Sci::Line>(lineDisplay - 1, 0, pcs->LinesDisplayed());
-			return SelectionPosition(
-				pdoc->LineEnd(pcs->DocFromDisplay(lineDisplay)));
-		}
+		lineDisplay = std::clamp<Sci::Line>(lineDisplay - 1, 0, pcs->LinesDisplayed());
+		return SelectionPosition(
+			pdoc->LineEnd(pcs->DocFromDisplay(lineDisplay)));
 	}
 }
 
@@ -1990,9 +1986,8 @@ long Editor::TextWidth(uptr_t style, const char *text) {
 	AutoSurface surface(this);
 	if (surface) {
 		return std::lround(surface->WidthText(vs.styles[style].font.get(), text));
-	} else {
-		return 1;
 	}
+	return 1;
 }
 
 // Empty method is overridden on GTK+ to show / hide scrollbars
@@ -2047,11 +2042,10 @@ Sci::Position Editor::RealizeVirtualSpace(Sci::Position position, Sci::Position 
 		const Sci::Position indent = pdoc->GetLineIndentPosition(line);
 		if (indent == position) {
 			return pdoc->SetLineIndentation(line, pdoc->GetLineIndentation(line) + virtualSpace);
-		} else {
-			const std::string spaceText(virtualSpace, ' ');
-			const Sci::Position lengthInserted = pdoc->InsertString(position, spaceText);
-			position += lengthInserted;
 		}
+		const std::string spaceText(virtualSpace, ' ');
+		const Sci::Position lengthInserted = pdoc->InsertString(position, spaceText);
+		position += lengthInserted;
 	}
 	return position;
 }
@@ -2656,9 +2650,8 @@ bool Editor::NotifyMarginClick(Point pt, KeyMod modifiers) {
 		scn.margin = marginClicked;
 		NotifyParent(scn);
 		return true;
-	} else {
-		return false;
 	}
+	return false;
 }
 
 bool Editor::NotifyMarginRightClick(Point pt, KeyMod modifiers) {
@@ -2672,9 +2665,8 @@ bool Editor::NotifyMarginRightClick(Point pt, KeyMod modifiers) {
 		scn.margin = marginRightClicked;
 		NotifyParent(scn);
 		return true;
-	} else {
-		return false;
 	}
+	return false;
 }
 
 void Editor::NotifyNeedShown(Sci::Position pos, Sci::Position len) {
@@ -2748,12 +2740,10 @@ constexpr Sci::Position MovePositionForDeletion(Sci::Position position, Sci::Pos
 		const Sci::Position endDeletion = startDeletion + length;
 		if (position > endDeletion) {
 			return position - length;
-		} else {
-			return startDeletion;
 		}
-	} else {
-		return position;
+		return startDeletion;
 	}
+	return position;
 }
 
 }
@@ -3454,9 +3444,8 @@ Sci::Position Editor::StartEndDisplayLine(Sci::Position pos, bool start) {
 	const Sci::Position posRet = view.StartEndDisplayLine(surface, *this, pos, start, vs);
 	if (posRet == Sci::invalidPosition) {
 		return pos;
-	} else {
-		return posRet;
 	}
+	return posRet;
 }
 
 namespace {
@@ -3566,19 +3555,19 @@ Sci::Position Editor::HomeWrapPosition(Sci::Position position) {
 Sci::Position Editor::VCHomeDisplayPosition(Sci::Position position) {
 	const Sci::Position homePos = pdoc->VCHomePosition(position);
 	const Sci::Position viewLineStart = StartEndDisplayLine(position, true);
-	if (viewLineStart > homePos)
+	if (viewLineStart > homePos) {
 		return viewLineStart;
-	else
-		return homePos;
+	}
+	return homePos;
 }
 
 Sci::Position Editor::VCHomeWrapPosition(Sci::Position position) {
 	const Sci::Position homePos = pdoc->VCHomePosition(position);
 	const Sci::Position viewLineStart = StartEndDisplayLine(position, true);
-	if ((viewLineStart < position) && (viewLineStart > homePos))
+	if ((viewLineStart < position) && (viewLineStart > homePos)) {
 		return viewLineStart;
-	else
-		return homePos;
+	}
+	return homePos;
 }
 
 Sci::Position Editor::LineEndWrapPosition(Sci::Position position) {
@@ -3587,8 +3576,7 @@ Sci::Position Editor::LineEndWrapPosition(Sci::Position position) {
 	if (endPos > realEndPos      // if moved past visible EOLs
 		|| position >= endPos) // if at end of display line already
 		return realEndPos;
-	else
-		return endPos;
+	return endPos;
 }
 
 SelectionPosition Editor::PositionMove(Message iMessage, SelectionPosition spCaret) {
@@ -4146,11 +4134,10 @@ int Editor::KeyDownWithModifiers(Keys key, KeyMod modifiers, bool *consumed) {
 		if (consumed)
 			*consumed = true;
 		return static_cast<int>(WndProc(msg, 0, 0));
-	} else {
-		if (consumed)
-			*consumed = false;
-		return KeyDefault(key, modifiers);
 	}
+	if (consumed)
+		*consumed = false;
+	return KeyDefault(key, modifiers);
 }
 
 void Editor::Indent(bool forwards, bool lineIndent) {
@@ -4442,9 +4429,8 @@ bool Editor::CopyLineRange(SelectionText *ss, bool allowProtected) {
 		ss->Copy(text, pdoc->dbcsCodePage,
 			vs.styles[StyleDefault].characterSet, false, true);
 		return true;
-	} else {
-		return false;
 	}
+	return false;
 }
 
 void Editor::CopySelectionRange(SelectionText *ss, bool allowLineCopy) {
@@ -4661,9 +4647,8 @@ bool Editor::PointInSelMargin(Point pt) const {
 		const Point ptOrigin = GetVisibleOriginInMain();
 		rcSelMargin.Move(0, -ptOrigin.y);
 		return rcSelMargin.ContainsWholePixel(pt);
-	} else {
-		return false;
 	}
+	return false;
 }
 
 Window::Cursor Editor::GetMarginCursor(Point pt) const noexcept {
@@ -4913,10 +4898,9 @@ void Editor::ButtonDownWithModifiers(Point pt, unsigned int curTime, KeyMod modi
 							DropSelection(selectionPart);
 							// Completed: don't want any more processing of this click
 							return;
-						} else {
-							// Switch to just the click position
-							SetSelection(newPos, newPos);
 						}
+						// Switch to just the click position
+						SetSelection(newPos, newPos);
 					}
 					if (!sel.Range(selectionPart).Empty()) {
 						inDragDrop = DragDrop::initial;
@@ -5350,10 +5334,10 @@ Sci::Position Editor::PositionAfterArea(PRectangle rcArea) const {
 	// This often means that the line after a modification is restyled which helps
 	// detect multiline comment additions and heals single line comments
 	const Sci::Line lineAfter = TopLineOfMain() + static_cast<Sci::Line>(rcArea.bottom - 1) / vs.lineHeight + 1;
-	if (lineAfter < pcs->LinesDisplayed())
+	if (lineAfter < pcs->LinesDisplayed()) {
 		return pdoc->LineStart(pcs->DocFromDisplay(lineAfter) + 1);
-	else
-		return pdoc->Length();
+	}
+	return pdoc->Length();
 }
 
 // Style to a position within the view. If this causes a change at end of last line then
@@ -5456,9 +5440,8 @@ int Editor::SupportsFeature(Supports feature) {
 bool Editor::PaintContains(PRectangle rc) {
 	if (rc.Empty()) {
 		return true;
-	} else {
-		return rcPaint.Contains(rc);
 	}
+	return rcPaint.Contains(rc);
 }
 
 bool Editor::PaintContainsMargin() {
@@ -5952,8 +5935,7 @@ bool Editor::IsUnicodeMode() const noexcept {
 int Editor::CodePage() const noexcept {
 	if (pdoc)
 		return pdoc->dbcsCodePage;
-	else
-		return 0;
+	return 0;
 }
 
 std::unique_ptr<Surface> Editor::CreateMeasurementSurface() const {
@@ -5983,9 +5965,8 @@ Sci::Line Editor::WrapCount(Sci::Line line) {
 	if (surface && ll) {
 		view.LayoutLine(*this, surface, vs, ll.get(), wrapWidth);
 		return ll->lines;
-	} else {
-		return 1;
 	}
+	return 1;
 }
 
 void Editor::AddStyledText(const char *buffer, Sci::Position appendLength) {
