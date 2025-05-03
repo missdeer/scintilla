@@ -623,7 +623,7 @@ void Editor::InvalidateWholeSelection() {
 
 /* For Line selection - the anchor and caret are always
    at the beginning and end of the region lines. */
-SelectionRange Editor::LineSelectionRange(SelectionPosition currentPos_, SelectionPosition anchor_) const {
+SelectionRange Editor::LineSelectionRange(SelectionPosition currentPos_, SelectionPosition anchor_) const noexcept {
 	if (currentPos_ > anchor_) {
 		anchor_ = SelectionPosition(pdoc->LineStartPosition(anchor_.Position()));
 		currentPos_ = SelectionPosition(pdoc->LineEndPosition(currentPos_.Position()));
@@ -740,9 +740,9 @@ void Editor::MultipleSelectAdd(AddNumber addNumber) {
 			// Common case is that the selection is completely within the target but
 			// may also have overlap at start or end.
 			if (rangeMainSelection.end < rangeTarget.end)
-				searchRanges.push_back(Range(rangeMainSelection.end, rangeTarget.end));
+				searchRanges.emplace_back(rangeMainSelection.end, rangeTarget.end);
 			if (rangeTarget.start < rangeMainSelection.start)
-				searchRanges.push_back(Range(rangeTarget.start, rangeMainSelection.start));
+				searchRanges.emplace_back(rangeTarget.start, rangeMainSelection.start);
 		} else {
 			// No overlap
 			searchRanges.push_back(rangeTarget);
@@ -1539,7 +1539,7 @@ bool Editor::WrapBlock(Surface *surface, Sci::Line lineToWrap, Sci::Line lineToW
 
 	std::vector<int> linesAfterWrap(linesBeingWrapped);
 
-	size_t threads = std::min<size_t>({ linesBeingWrapped, view.maxLayoutThreads });
+	size_t threads = std::min<size_t>(linesBeingWrapped, view.maxLayoutThreads);
 	if (!surface->SupportsFeature(Supports::ThreadSafeMeasureWidths)) {
 		threads = 1;
 	}
@@ -4415,7 +4415,7 @@ std::string Editor::RangeText(Sci::Position start, Sci::Position end) const {
 		pdoc->GetCharRange(ret.data(), start, len);
 		return ret;
 	}
-	return std::string();
+	return {};
 }
 
 bool Editor::CopyLineRange(SelectionText *ss, bool allowProtected) {
@@ -5684,7 +5684,7 @@ void Editor::FoldExpand(Sci::Line line, FoldAction action, FoldLevel level) {
 	Redraw();
 }
 
-Sci::Line Editor::ContractedFoldNext(Sci::Line lineStart) const {
+Sci::Line Editor::ContractedFoldNext(Sci::Line lineStart) const noexcept {
 	for (Sci::Line line = lineStart; line<pdoc->LinesTotal();) {
 		if (!pcs->GetExpanded(line) && LevelIsHeader(pdoc->GetFoldLevel(line)))
 			return line;
@@ -8435,7 +8435,8 @@ sptr_t Editor::WndProc(Message iMessage, uptr_t wParam, sptr_t lParam) {
 			doc->Allocate(PositionFromUPtr(wParam));
 			doc->SetUndoCollection(false);
 			pcs = ContractionStateCreate(pdoc->IsLarge());
-			return reinterpret_cast<sptr_t>(static_cast<ILoader *>(doc));
+			ILoader *loader = doc;
+			return reinterpret_cast<sptr_t>(loader);
 		}
 
 	case Message::SetModEventMask:
