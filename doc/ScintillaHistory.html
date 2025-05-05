@@ -607,6 +607,11 @@
 	<li>
 	Tweak SC_MARK_BAR to be slightly wider by using next higher whole pixel instead of next lower for margin width / 3.
 	</li>
+	<li>
+	On GTK, reset vertical scroll bar synchronously in SCI_SETDOCPOINTER to fix bug where
+	scroll position not restored in non-wrap mode.
+	<a href="https://sourceforge.net/p/scintilla/bugs/2416/">Bug #2416</a>.
+	</li>
     </ul>
     <h3>
        <a href="https://www.scintilla.org/scintilla556.zip">Release 5.5.6</a>

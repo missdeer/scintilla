@@ -3097,6 +3097,8 @@ void ScintillaGTK::SetDocPointer(Document *document) {
 
 	Editor::SetDocPointer(document);
 
+	ChangeScrollBars();
+
 	if (sciAccessible) {
 		// the accessible needs have the old Document, but also the new one active
 		sciAccessible->ChangeDocument(oldDoc, pdoc);
