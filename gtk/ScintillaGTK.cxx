@@ -2619,6 +2619,10 @@ gboolean ScintillaGTK::RetrieveSurrounding(GtkIMContext *context, ScintillaGTK *
 
 bool ScintillaGTK::DeleteSurroundingThis(GtkIMContext *, gint characterOffset, gint characterCount) {
 	try {
+		if (pdoc->TentativeActive()) {
+			// First remove composition text so that correct surrounding text is deleted.
+			pdoc->TentativeUndo();
+		}
 		const Sci::Position startByte = pdoc->GetRelativePosition(CurrentPosition(), characterOffset);
 		if (startByte == INVALID_POSITION)
 			return false;
