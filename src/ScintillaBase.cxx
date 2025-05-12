@@ -296,6 +296,7 @@ void ScintillaBase::AutoCompleteStart(Sci::Position lenEntered, const char *list
 		vs.ElementColour(Element::ListSelected),
 		vs.ElementColour(Element::ListSelectedBack),
 		ac.options,
+		ac.imageScale,
 	};
 
 	int lineHeight;
@@ -971,6 +972,13 @@ sptr_t ScintillaBase::WndProc(Message iMessage, uptr_t wParam, sptr_t lParam) {
 
 	case Message::AutoCGetStyle:
 		return vs.autocStyle;
+
+	case Message::AutoCSetImageScale:
+		ac.imageScale = static_cast<float>(wParam) / 100.0f;
+		break;
+
+	case Message::AutoCGetImageScale:
+		return static_cast<int>(ac.imageScale * 100);
 
 	case Message::RegisterImage:
 		ac.lb->RegisterImage(static_cast<int>(wParam), ConstCharPtrFromSPtr(lParam));

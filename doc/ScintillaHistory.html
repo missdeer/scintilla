@@ -608,6 +608,10 @@
 	Tweak SC_MARK_BAR to be slightly wider by using next higher whole pixel instead of next lower for margin width / 3.
 	</li>
 	<li>
+	Scale images in autocompletion lists with SCI_AUTOCSETIMAGESCALE to match high DPI screens.
+	Initially only on GTK and Qt.
+	</li>
+	<li>
 	On GTK, reset vertical scroll bar synchronously in SCI_SETDOCPOINTER to fix bug where
 	scroll position not restored in non-wrap mode.
 	<a href="https://sourceforge.net/p/scintilla/bugs/2416/">Bug #2416</a>.

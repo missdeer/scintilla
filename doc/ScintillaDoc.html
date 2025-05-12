@@ -6514,6 +6514,8 @@ struct Sci_TextToFindFull {
      <a class="message" href="#SCI_AUTOCGETMAXWIDTH">SCI_AUTOCGETMAXWIDTH &rarr; int</a><br />
      <a class="message" href="#SCI_AUTOCSETSTYLE">SCI_AUTOCSETSTYLE(int style)</a><br />
      <a class="message" href="#SCI_AUTOCGETSTYLE">SCI_AUTOCGETSTYLE &rarr; int</a><br />
+     <a class="message" href="#SCI_AUTOCSETIMAGESCALE">SCI_AUTOCSETIMAGESCALE(int scale)</a><br />
+     <a class="message" href="#SCI_AUTOCGETIMAGESCALE">SCI_AUTOCGETIMAGESCALE &rarr; int</a><br />
      <a class="element" href="#SC_ELEMENT_LIST">SC_ELEMENT_LIST : colouralpha</a><br />
      <a class="element" href="#SC_ELEMENT_LIST_BACK">SC_ELEMENT_LIST_BACK : colouralpha</a><br />
      <a class="element" href="#SC_ELEMENT_LIST_SELECTED">SC_ELEMENT_LIST_SELECTED : colouralpha</a><br />
@@ -6744,6 +6746,16 @@ struct Sci_TextToFindFull {
       <a class="seealso" href="#SCI_ALLOCATEEXTENDEDSTYLES">SCI_ALLOCATEEXTENDEDSTYLES(1)</a> before <code>SCI_AUTOCSETSTYLE</code> and use the
       result as the argument to <code>SCI_AUTOCSETSTYLE</code> and <code>SCI_STYLESETFONT</code> and others.
     </p>
+
+    <p>
+      <b id="SCI_AUTOCSETIMAGESCALE">SCI_AUTOCSETIMAGESCALE(int scalePercent)</b><br />
+      <b id="SCI_AUTOCGETIMAGESCALE">SCI_AUTOCGETIMAGESCALE &rarr; int</b><br />
+
+      Get or set the scale factor in percent for <em>all</em> autocompletion list images. This is useful on macOS with
+      a retina display where each display unit is 2 pixels: use a factor of 200 so that each image pixel is displayed using a screen pixel.
+      The default scale, 100, will stretch each image pixel to cover 4 screen pixels on a retina display.
+    </p>
+    <p>This is currently only implemented for the Qt and GTK platforms.</p>
 
     <p>
      <b id="SC_ELEMENT_LIST">SC_ELEMENT_LIST : colouralpha</b><br />

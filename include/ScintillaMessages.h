@@ -249,6 +249,8 @@ enum class Message {
 	AutoCGetMaxHeight = 2211,
 	AutoCSetStyle = 2109,
 	AutoCGetStyle = 2120,
+	AutoCSetImageScale = 2815,
+	AutoCGetImageScale = 2816,
 	SetIndent = 2122,
 	GetIndent = 2123,
 	SetUseTabs = 2124,

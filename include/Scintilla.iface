@@ -1174,6 +1174,12 @@ set void AutoCSetStyle=2109(int style,)
 # Get the style number used for auto-completion and user lists fonts.
 get int AutoCGetStyle=2120(,)
 
+# Set the scale factor in percent for auto-completion list images.
+set void AutoCSetImageScale=2815(int scalePercent,)
+
+# Get the scale factor in percent for auto-completion list images.
+get int AutoCGetImageScale=2816(,)
+
 # Set the number of spaces used for one level of indentation.
 set void SetIndent=2122(int indentSize,)
 

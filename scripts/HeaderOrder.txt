@@ -71,6 +71,7 @@
 #include <gdk/gdkkeysyms.h>
 #include <gdk/gdkwayland.h>
 #include <gtk/gtk-a11y.h>
+#include <cairo/cairo-gobject.h>
 
 // Windows headers
 #include <windows.h>

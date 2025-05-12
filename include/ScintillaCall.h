@@ -324,6 +324,8 @@ public:
 	int AutoCGetMaxHeight();
 	void AutoCSetStyle(int style);
 	int AutoCGetStyle();
+	void AutoCSetImageScale(int scalePercent);
+	int AutoCGetImageScale();
 	void SetIndent(int indentSize);
 	int Indent();
 	void SetUseTabs(bool useTabs);
