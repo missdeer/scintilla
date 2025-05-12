@@ -598,7 +598,7 @@ void ScintillaEditBase::inputMethodEvent(QInputMethodEvent *event)
 #ifndef Q_OS_WIN
 			if (imeCaretPos > 0) {
 				int oneCharBefore = sqt->pdoc->GetRelativePosition(sqt->CurrentPosition(), -1);
-				MoveImeCarets(- sqt->CurrentPosition() + oneCharBefore);
+				sqt->MoveImeCarets(- sqt->CurrentPosition() + oneCharBefore);
 			}
 #endif
 			sqt->view.imeCaretBlockOverride = true;
