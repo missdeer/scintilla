@@ -1314,10 +1314,16 @@ bool Scintilla::Internal::DiscardLastCombinedCharacter(std::string_view &text) n
 	// Modified to move Sk (Symbol Modifier) from ccs-base to ccs-extend to preserve modified emoji
 	// May break before and after Control which is defined as most of ccC? but not some of ccCf and ccCn
 	// so treat ccCc, ccCs, ccCo as base for now.
+	// Treat \r\n as a single item to avoid separating the characters.
 
 	std::string_view truncated = text;
 	while (truncated.length() > UTF8MaxBytes) {
 		// Give up when short
+		if (truncated.substr(truncated.length()-2) == "\r\n") {
+			truncated.remove_suffix(2);
+			text = truncated;
+			return true;
+		}
 		const CharacterExtracted ce = LastCharacter(truncated);
 		const CharacterCategory cc = CategoriseCharacter(static_cast<int>(ce.character));
 		truncated.remove_suffix(ce.widthBytes);

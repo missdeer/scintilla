@@ -612,6 +612,10 @@
 	Initially only on GTK and Qt.
 	</li>
 	<li>
+	Fix wrapping bug for UTF-8 where \r\n could wrap between the characters.
+	<a href="https://github.com/notepad-plus-plus/notepad-plus-plus/pull/16373">Notepad++ Pull Request #16373</a>.
+	</li>
+	<li>
 	On GTK, reset vertical scroll bar synchronously in SCI_SETDOCPOINTER to fix bug where
 	scroll position not restored in non-wrap mode.
 	<a href="https://sourceforge.net/p/scintilla/bugs/2416/">Bug #2416</a>.
