@@ -2604,6 +2604,13 @@ bool ScintillaGTK::RetrieveSurroundingThis(GtkIMContext *context) {
 		std::string utf8Text = UTF8FromEncoded(RangeText(startByte, endByte));
 		gint cursorIndex = UTF8FromEncoded(RangeText(startByte, pos)).length();
 
+		if (pdoc->TentativeActive()) {
+			// Prepare one line feed with no preedit under PreeditChangedInlineThis();
+		} else {
+			// reconvert key triggers CandidateBox to show up
+			// when quick phrase input on fcitx (or maybe accented input on mac)
+			SetCandidateWindowPos();
+		}
 		gtk_im_context_set_surrounding(context, &utf8Text[0], utf8Text.length(), cursorIndex);
 
 		return true;
