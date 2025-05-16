@@ -1216,7 +1216,8 @@ void DiscardEndFragment(std::string_view &text) noexcept {
 			text.remove_suffix(1);
 		} else if (UTF8IsTrailByte(text.back())) {
 			// go back to the start of last character.
-			const size_t maxTrail = std::max<size_t>(UTF8MaxBytes - 1, text.length());
+			constexpr int UTF8MaxTrail = UTF8MaxBytes - 1;
+			const size_t maxTrail = std::max<size_t>(UTF8MaxTrail, text.length());
 			size_t trail = 1;
 			while (trail < maxTrail && UTF8IsTrailByte(text[text.length() - trail])) {
 				trail++;
