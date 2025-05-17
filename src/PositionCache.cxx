@@ -377,7 +377,10 @@ void LineLayout::WrapLine(const Document *pdoc, Sci::Position posLineStart, Wrap
 			if (!foundBreak) {
 				if (CpUtf8 == pdoc->dbcsCodePage) {
 					// Go back before a base character, commonly a letter as modifiers are after the letter they modify
-					std::string_view svWithoutLast(&chars[lastLineStart], CharacterBoundary(p + 1, 1) - lastLineStart);
+					const Sci::Position afterLastCharacter = CharacterBoundary(p + 1, 1);
+					const Sci::Position afterWrap = std::min<Sci::Position>(
+						afterLastCharacter, numCharsBeforeEOL + 1);	// Limit to one byte of line end
+					std::string_view svWithoutLast(&chars[lastLineStart], afterWrap - lastLineStart);
 					if (DiscardLastCombinedCharacter(svWithoutLast) && !svWithoutLast.empty()) {
 						lastGoodBreak = lastLineStart + static_cast<Sci::Position>(svWithoutLast.length());
 						foundBreak = true;
