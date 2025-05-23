@@ -203,7 +203,7 @@ int LineLayout::SubLineFromPosition(int posInLine, PointEnd pe) const noexcept {
 void LineLayout::AddLineStart(Sci::Position start) {
 	lines++;
 	if (lines >= lenLineStarts) {
-		const int newMaxLines = lines + 20;
+		const int newMaxLines = lines * 2 + 4;
 		std::unique_ptr<int[]> newLineStarts = std::make_unique<int[]>(newMaxLines);
 		if (lenLineStarts) {
 			std::copy(lineStarts.get(), lineStarts.get() + lenLineStarts, newLineStarts.get());
@@ -389,8 +389,8 @@ void LineLayout::WrapLine(const Document *pdoc, Sci::Position posLineStart, Wrap
 					lastGoodBreak = CharacterBoundary(lastGoodBreak, 1);
 				}
 			}
+			AddLineStart(lastGoodBreak);
 			lastLineStart = lastGoodBreak;
-			AddLineStart(lastLineStart);
 			startOffset = positions[lastLineStart];
 			// take into account the space for start wrap mark and indent
 			startOffset += wrapWidth - wrapIndent;
