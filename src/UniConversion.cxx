@@ -303,7 +303,7 @@ int UnicodeFromUTF8(std::string_view sv) noexcept {
 			return UnicodeFromUTF8(reinterpret_cast<const unsigned char *>(sv.data()));
 		}
 	}
-	// Failure so let the caller know  
+	// Failure so let the caller know
 	return unicodeReplacementChar;
 }
 

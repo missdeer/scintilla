@@ -1306,7 +1306,7 @@ std::string CreateIndentation(Sci::Position indent, int tabSize, bool insertSpac
 bool Scintilla::Internal::DiscardLastCombinedCharacter(std::string_view &text) noexcept {
 	// Handle the simple common case where a base character may be followed by
 	// accents and similar marks by discarding until start of base character.
-	// 
+	//
 	// From Grapheme_Cluster_Boundaries
 	// combining character sequence = ccs-base? ccs-extend+
 	// ccs-base := [\p{L}\p{N}\p{P}\p{S}\p{Zs}]

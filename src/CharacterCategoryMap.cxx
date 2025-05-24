@@ -4073,7 +4073,7 @@ namespace {
 enum class OtherID { oidNone, oidStart, oidContinue };
 
 // Silence 'magic' number warning as these character values are not used in multiple places.
- 
+
 // NOLINTBEGIN(*-magic-numbers)
 
 // Some characters are treated as valid for identifiers even

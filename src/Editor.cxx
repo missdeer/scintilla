@@ -4617,7 +4617,7 @@ bool Editor::PointInSelection(Point pt) {
 }
 
 ptrdiff_t Editor::SelectionFromPoint(Point pt) {
-	// Prioritize checking inside non-empty selections since each character will be inside only 1 
+	// Prioritize checking inside non-empty selections since each character will be inside only 1
 	const SelectionPosition posChar = SPositionFromLocation(pt, true, true);
 	for (size_t r = 0; r < sel.Count(); r++) {
 		if (sel.Range(r).ContainsCharacter(posChar)) {
