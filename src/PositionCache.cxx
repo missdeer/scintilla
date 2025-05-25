@@ -81,23 +81,17 @@ LineLayout::LineLayout(Sci::Line lineNumber_, int maxLineLength_) :
 	Resize(maxLineLength_);
 }
 
-LineLayout::~LineLayout() {
-	Free();
-}
-
 void LineLayout::Resize(int maxLineLength_) {
 	if (maxLineLength_ > maxLineLength) {
-		Free();
 		const size_t lineAllocation = maxLineLength_ + 1;
 		chars = std::make_unique<char[]>(lineAllocation);
 		styles = std::make_unique<unsigned char []>(lineAllocation);
 		// Extra position allocated as sometimes the Windows
 		// GetTextExtentExPoint API writes an extra element.
 		positions = std::make_unique<XYPOSITION []>(lineAllocation + 1);
-		if (bidiData) {
-			bidiData->Resize(maxLineLength_);
-		}
-
+		lineStarts.reset();
+		bidiData.reset();
+		lenLineStarts = 0;
 		maxLineLength = maxLineLength_;
 	}
 }
@@ -114,15 +108,6 @@ void LineLayout::EnsureBidiData() {
 		bidiData = std::make_unique<BidiData>();
 		bidiData->Resize(maxLineLength);
 	}
-}
-
-void LineLayout::Free() noexcept {
-	chars.reset();
-	styles.reset();
-	positions.reset();
-	lineStarts.reset();
-	lenLineStarts = 0;
-	bidiData.reset();
 }
 
 void LineLayout::ClearPositions() {
