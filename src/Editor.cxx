@@ -1868,7 +1868,6 @@ void Editor::Paint(Surface *surfaceWindow, PRectangle rcArea) {
 	RefreshStyleData();
 	if (paintState == PaintState::abandoned)
 		return;	// Scroll bars may have changed so need redraw
-	RefreshPixMaps(surfaceWindow);
 
 	paintAbandonedByStyling = false;
 
@@ -1880,7 +1879,6 @@ void Editor::Paint(Surface *surfaceWindow, PRectangle rcArea) {
 
 	if (NotifyUpdateUI()) {
 		RefreshStyleData();
-		RefreshPixMaps(surfaceWindow);
 	}
 
 	// Wrap the visible lines if needed.
@@ -1890,8 +1888,9 @@ void Editor::Paint(Surface *surfaceWindow, PRectangle rcArea) {
 		if (AbandonPaint()) {
 			return;
 		}
-		RefreshPixMaps(surfaceWindow);	// In case pixmaps invalidated by scrollbar change
 	}
+
+	RefreshPixMaps(surfaceWindow);
 
 	if (!marginView.pixmapSelPattern->Initialised()) {
 		// When Direct2D is used, pixmap creation may fail with D2DERR_RECREATE_TARGET so
