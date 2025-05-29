@@ -277,7 +277,7 @@ void EditView::DropGraphics() noexcept {
 }
 
 void EditView::RefreshPixMaps(Surface *surfaceWindow, const ViewStyle &vsDraw) {
-	if (!pixmapIndentGuide) {
+	if (!(pixmapIndentGuide && pixmapIndentGuideHighlight)) {
 		// 1 extra pixel in height so can handle odd/even positions and so produce a continuous line
 		pixmapIndentGuide = surfaceWindow->AllocatePixMap(1, vsDraw.lineHeight + 1);
 		pixmapIndentGuideHighlight = surfaceWindow->AllocatePixMap(1, vsDraw.lineHeight + 1);

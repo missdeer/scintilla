@@ -124,7 +124,7 @@ void MarginView::DropGraphics() noexcept {
 }
 
 void MarginView::RefreshPixMaps(Surface *surfaceWindow, const ViewStyle &vsDraw) {
-	if (!pixmapSelPattern) {
+	if (!(pixmapSelPattern && pixmapSelPatternOffset1)) {
 		constexpr int patternSize = 8;
 		pixmapSelPattern = surfaceWindow->AllocatePixMap(patternSize, patternSize);
 		pixmapSelPatternOffset1 = surfaceWindow->AllocatePixMap(patternSize, patternSize);

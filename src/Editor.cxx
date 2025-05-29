@@ -1846,15 +1846,11 @@ void Editor::PaintSelMargin(Surface *surfaceWindow, const PRectangle &rc) {
 void Editor::RefreshPixMaps(Surface *surfaceWindow) {
 	view.RefreshPixMaps(surfaceWindow, vs);
 	marginView.RefreshPixMaps(surfaceWindow, vs);
-	if (view.bufferedDraw) {
+	if (view.bufferedDraw && !(view.pixmapLine && marginView.pixmapSelMargin)) {
 		const PRectangle rcClient = GetClientRectangle();
-		if (!view.pixmapLine) {
-			view.pixmapLine = surfaceWindow->AllocatePixMap(static_cast<int>(rcClient.Width()), vs.lineHeight);
-		}
-		if (!marginView.pixmapSelMargin) {
-			marginView.pixmapSelMargin = surfaceWindow->AllocatePixMap(vs.fixedColumnWidth,
-				static_cast<int>(rcClient.Height()));
-		}
+		view.pixmapLine = surfaceWindow->AllocatePixMap(static_cast<int>(rcClient.Width()), vs.lineHeight);
+		marginView.pixmapSelMargin = surfaceWindow->AllocatePixMap(vs.fixedColumnWidth,
+			static_cast<int>(rcClient.Height()));
 	}
 }
 
