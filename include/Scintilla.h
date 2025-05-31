@@ -561,6 +561,7 @@ typedef sptr_t (*SciFnDirectStatus)(sptr_t ptr, unsigned int iMessage, uptr_t wP
 #define SCI_LINEFROMPOSITION 2166
 #define SCI_POSITIONFROMLINE 2167
 #define SCI_LINESCROLL 2168
+#define SCI_SCROLLVERTICAL 2817
 #define SCI_SCROLLCARET 2169
 #define SCI_SCROLLRANGE 2569
 #define SCI_REPLACESEL 2170

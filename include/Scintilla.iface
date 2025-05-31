@@ -1422,6 +1422,9 @@ fun position PositionFromLine=2167(line line,)
 # Scroll horizontally and vertically.
 fun void LineScroll=2168(position columns, line lines)
 
+# Scroll vertically with allowance for wrapping.
+fun void ScrollVertical=2817(line docLine, line subLine)
+
 # Ensure the caret is visible.
 fun void ScrollCaret=2169(,)
 

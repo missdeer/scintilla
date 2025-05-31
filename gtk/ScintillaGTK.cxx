@@ -1102,6 +1102,7 @@ void ScintillaGTK::ScrollText(Sci::Line linesToMove) {
 }
 
 void ScintillaGTK::SetVerticalScrollPos() {
+	Editor::SetVerticalScrollPos();
 	DwellEnd(true);
 	gtk_adjustment_set_value(GTK_ADJUSTMENT(adjustmentv), static_cast<gdouble>(topLine));
 }

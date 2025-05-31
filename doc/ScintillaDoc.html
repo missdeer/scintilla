@@ -2397,6 +2397,7 @@ struct Sci_TextToFindFull {
      <a class="message" href="#SCI_GETFIRSTVISIBLELINE">SCI_GETFIRSTVISIBLELINE &rarr; line</a><br />
      <a class="message" href="#SCI_SETXOFFSET">SCI_SETXOFFSET(int xOffset)</a><br />
      <a class="message" href="#SCI_GETXOFFSET">SCI_GETXOFFSET &rarr; int</a><br />
+     <a class="message" href="#SCI_SCROLLVERTICAL">SCI_SCROLLVERTICAL(line docLine, line subLine)</a><br />
      <a class="message" href="#SCI_LINESCROLL">SCI_LINESCROLL(position columns, line lines)</a><br />
      <a class="message" href="#SCI_SCROLLCARET">SCI_SCROLLCARET</a><br />
      <a class="message" href="#SCI_SCROLLRANGE">SCI_SCROLLRANGE(position secondary, position primary)</a><br />
@@ -2429,6 +2430,26 @@ struct Sci_TextToFindFull {
      The <code class="parameter">xOffset</code> is the horizontal scroll position in pixels of the start of the text
     view. A value of 0 is the normal position with the first text column visible at the left of the
     view.</p>
+
+    <p><b id="SCI_SCROLLVERTICAL">SCI_SCROLLVERTICAL(line docLine, line subLine)</b><br />
+     Sets the vertical scroll position to be the display line for the
+     <code class="parameter">subLine</code> of the <code class="parameter">docLine</code>, similar to<br>
+     <code>SCI_SETFIRSTVISIBLELINE(SCI_VISIBLEFROMDOCLINE(docLine) + subLine)</code>.</p>
+
+     <p>The <code class="parameter">subLine</code> is capped to the maximum number of sublines
+     for that document line which may change because of styling and wrapping. It is ignored when line
+     wrapping is off.</p>
+
+     <p>If line wrapping is on, then that
+     <code class="parameter">docLine</code>/<code class="parameter">subLine</code>
+     is remembered and reapplied as lines are wrapped.
+     This ensures that when wrapping is completed, which may take some time, the line at the top of the view is that
+     requested by the application and the view range is stable during the wrapping process.
+     It is forgotten once the document is fully wrapped or the user
+     performs scrolling manually such as by dragging the scroll bar.</p>
+
+     <p>This method is a good way for applications to restore the user's positional context when re-selecting a
+     document as it is robust to changes in window width and styles.</p>
 
     <p><b id="SCI_LINESCROLL">SCI_LINESCROLL(position columns, line lines)</b><br />
      This will attempt to scroll the display by the number of columns and lines that you specify.

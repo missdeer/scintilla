@@ -311,6 +311,7 @@ enum class Message {
 	LineFromPosition = 2166,
 	PositionFromLine = 2167,
 	LineScroll = 2168,
+	ScrollVertical = 2817,
 	ScrollCaret = 2169,
 	ScrollRange = 2569,
 	ReplaceSel = 2170,

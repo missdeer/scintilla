@@ -1375,6 +1375,10 @@ void ScintillaCall::LineScroll(Position columns, Line lines) {
 	Call(Message::LineScroll, columns, lines);
 }
 
+void ScintillaCall::ScrollVertical(Line docLine, Line subLine) {
+	Call(Message::ScrollVertical, docLine, subLine);
+}
+
 void ScintillaCall::ScrollCaret() {
 	Call(Message::ScrollCaret);
 }

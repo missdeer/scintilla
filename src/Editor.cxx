@@ -202,6 +202,8 @@ Editor::Editor() : durationWrapOneByte(0.000001, 0.00000001, 0.00001) {
 	recordingMacro = false;
 	foldAutomatic = AutomaticFold::None;
 
+	insideWrapScroll = false;
+
 	convertPastes = true;
 
 	SetRepresentations();
@@ -1679,8 +1681,15 @@ bool Editor::WrapLines(WrapScope ws) {
 		// Decide where to start wrapping
 		Sci::Line lineToWrap = wrapPending.start;
 		Sci::Line lineToWrapEnd = std::min(wrapPending.end, pdoc->LinesTotal());
+
 		const Sci::Line lineDocTop = pcs->DocFromDisplay(topLine);
-		const Sci::Line subLineTop = topLine - pcs->DisplayFromDoc(lineDocTop);
+		LineDocSub lineScrollTo;
+		if (scrollToAfterWrap) {
+			lineScrollTo = scrollToAfterWrap.value();
+		} else {
+			const Sci::Line subLineTop = topLine - pcs->DisplayFromDoc(lineDocTop);
+			lineScrollTo = { lineDocTop, subLineTop };
+		}
 		if (ws == WrapScope::wsVisible) {
 			lineToWrap = std::clamp(lineDocTop-5, wrapPending.start, pdoc->LinesTotal());
 			// Priority wrap to just after visible area.
@@ -1731,21 +1740,23 @@ bool Editor::WrapLines(WrapScope ws) {
 
 				wrapOccurred = WrapBlock(surface, lineToWrap, lineToWrapEnd);
 
-				goodTopLine = pcs->DisplayFromDoc(lineDocTop) + std::min(
-					subLineTop, static_cast<Sci::Line>(pcs->GetHeight(lineDocTop)-1));
+				goodTopLine = pcs->DisplayFromDocSub(lineScrollTo.lineDoc, lineScrollTo.subLine);
 			}
 		}
 
 		// If wrapping is done, bring it to resting position
 		if (wrapPending.start >= lineEndNeedWrap) {
 			wrapPending.Reset();
+			scrollToAfterWrap.reset();
 		}
 	}
 
 	if (wrapOccurred) {
+		insideWrapScroll = true;
 		SetScrollBars();
 		SetTopLine(std::clamp<Sci::Line>(goodTopLine, 0, MaxScrollPos()));
 		SetVerticalScrollPos();
+		insideWrapScroll = false;
 	}
 
 	return wrapOccurred;
@@ -1983,6 +1994,12 @@ long Editor::TextWidth(uptr_t style, const char *text) {
 		return std::lround(surface->WidthText(vs.styles[style].font.get(), text));
 	}
 	return 1;
+}
+
+void Editor::SetVerticalScrollPos() {
+	if (!insideWrapScroll) {
+		scrollToAfterWrap.reset();
+	}
 }
 
 // Empty method is overridden on GTK+ to show / hide scrollbars
@@ -5540,6 +5557,8 @@ void Editor::SetDocPointer(Document *document) {
 
 	SetRepresentations();
 
+	scrollToAfterWrap.reset();
+
 	// Reset the contraction state to fully shown.
 	pcs->Clear();
 	pcs->InsertLines(0, pdoc->LinesTotal() - 1);
@@ -6548,6 +6567,15 @@ sptr_t Editor::WndProc(Message iMessage, uptr_t wParam, sptr_t lParam) {
 		ScrollTo(topLine + lParam);
 		HorizontalScrollTo(xOffset + static_cast<int>(static_cast<int>(wParam) * vs.spaceWidth));
 		return 1;
+
+	case Message::ScrollVertical:
+		if (Wrapping()) {
+			scrollToAfterWrap = { LineFromUPtr(wParam), lParam };
+		} else {
+			scrollToAfterWrap.reset();
+		}
+		ScrollTo(pcs->DisplayFromDocSub(LineFromUPtr(wParam), lParam));
+		break;
 
 	case Message::SetXOffset:
 		xOffset = static_cast<int>(wParam);
