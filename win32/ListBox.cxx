@@ -119,7 +119,7 @@ const TCHAR ListBoxX_ClassName[] = TEXT("ListBoxX");
 
 ColourRGBA ColourElement(std::optional<ColourRGBA> colour, int nIndex) {
 	if (colour.has_value()) {
-		return colour.value();
+		return colour.value().Opaque();
 	}
 	return ColourFromSys(nIndex);
 }
@@ -743,7 +743,7 @@ void ListBoxX::CentreItem(int n) {
 }
 
 void ListBoxX::AllocateBitMap() {
-	const SIZE extent { GetClientExtent().x, lineHeight };
+	const SIZE extent { GetClientExtent().x, ItemHeight() };
 
 	graphics.bm.Create({}, extent.cx, -extent.cy, nullptr);
 	if (!graphics.bm) {
