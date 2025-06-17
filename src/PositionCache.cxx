@@ -317,7 +317,7 @@ Interval LineLayout::SpanByte(int index) const noexcept {
 }
 
 int LineLayout::EndLineStyle() const noexcept {
-	return styles[numCharsBeforeEOL > 0 ? numCharsBeforeEOL-1 : 0];
+	return styles[std::max(numCharsBeforeEOL - 1, 0)];
 }
 
 void LineLayout::WrapLine(const Document *pdoc, Sci::Position posLineStart, Wrap wrapState, XYPOSITION wrapWidth) {
