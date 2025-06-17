@@ -167,22 +167,20 @@ bool LineLayout::InLine(int offset, int line) const noexcept {
 }
 
 int LineLayout::SubLineFromPosition(int posInLine, PointEnd pe) const noexcept {
-	if (!lineStarts || (posInLine > maxLineLength)) {
+	if (lines <= 1 || (posInLine >= numCharsBeforeEOL)) {
 		return lines - 1;
 	}
 
-	for (int line = 0; line < lines; line++) {
-		if (FlagSet(pe, PointEnd::subLineEnd)) {
-			// Return subline not start of next
-			if (lineStarts[line + 1] <= posInLine + 1)
-				return line;
-		} else {
-			if (lineStarts[line + 1] <= posInLine)
-				return line;
+	// Return subline not start of next for PointEnd::subLineEnd
+	posInLine -= FlagSet(pe, PointEnd::subLineEnd) ? 1 : 0;
+	int line = 1;
+	for (; line < lines; line++) {
+		if (lineStarts[line] > posInLine) {
+			break;
 		}
 	}
 
-	return lines - 1;
+	return line - 1;
 }
 
 void LineLayout::AddLineStart(Sci::Position start) {
