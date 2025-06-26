@@ -9135,7 +9135,7 @@ sptr_t Editor::WndProc(Message iMessage, uptr_t wParam, sptr_t lParam) {
 		return DefWndProc(iMessage, wParam, lParam);
 	}
 
-	// If there was a change that needs its selection saved and it wasn't explicity saved
+	// If there was a change that needs its selection saved and it wasn't explicitly saved
 	// then do that here.
 	RememberCurrentSelectionForRedoOntoStack();
 
