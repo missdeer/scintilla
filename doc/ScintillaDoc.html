@@ -1444,6 +1444,9 @@ struct Sci_TextRangeFull {
      <b id="SCI_GETSELECTIONSERIALIZED">SCI_GETSELECTIONSERIALIZED(&lt;unused&gt;, char *selectionString) &rarr; position</b><br />
      Set or query the selection type and positions as a serialized string.
      The format of this string may change in future versions so should not be persisted beyond the current session.</p>
+     <p>The format is currently<br/><code>[selType:R|L|T] [# mainRange ,] [anchor [v virtualSpace] [- caret [v virtualSpace]]] [, ...]</code>
+     <br/>Example of a multiple selection with virtual space: <code>#1,5v3-2,1</code>
+     </p>
 
     <p>
      <b id="SC_ELEMENT_SELECTION_ADDITIONAL_TEXT">SC_ELEMENT_SELECTION_ADDITIONAL_TEXT : colouralpha</b><br />
