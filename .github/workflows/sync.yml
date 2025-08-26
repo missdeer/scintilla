@@ -2,7 +2,7 @@ name: sync with official
 
 on:
   schedule:
-    - cron:  '15 4 * * *'
+    - cron:  '16 4 * * *'
   push:
     branches:
       - 'mirror'
