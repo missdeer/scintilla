@@ -58,7 +58,7 @@ constVariableReference:scintilla/gtk/ScintillaGTKAccessible.cxx
 constVariablePointer:scintilla/gtk/ScintillaGTKAccessible.cxx
 
 // moc_ files show #error as they are not built with standard context
-preprocessorErrorDirective:scintilla/qt/*.cpp
+preprocessorErrorDirective:scintilla/qt/**.cpp
 
 // Doesn't understand Qt slots macro
 unknownMacro:scintilla/qt/ScintillaEditBase/*.h
