@@ -715,7 +715,7 @@ void Editor::SetSelectionFromSerialized(const char *serialized) {
 		sel = Selection(serialized);
 		sel.Truncate(pdoc->Length());
 		SetRectangularRange();
-		InvalidateStyleRedraw();
+		Redraw();
 	}
 }
 
