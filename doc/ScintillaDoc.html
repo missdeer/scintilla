@@ -10529,6 +10529,13 @@ EM_SETTARGETDEVICE
           <td align="left"><code>DISABLE_D2D</code></td>
           <td>(Win32) Build Scintilla without Direct2D/DirectWrite.</td>
         </tr>
+
+        <tr>
+          <td align="left"><code>PTRDIFF_DOESNT_ALIAS_INT</code></td>
+          <td>Define if <code>ptrdiff_t*</code> does not alias <code>int*</code>.
+          This is detected automatically, but the check may be unreliable.
+          Try to define this symbol in case of errors about undefined symbols.</td>
+        </tr>
       </tbody>
     </table>
 
