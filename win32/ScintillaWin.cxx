@@ -2813,10 +2813,10 @@ void CreateFoldMap(int codePage, FoldMap *foldingMap) {
 		if (DBCSIsLeadByte(codePage, ch1)) {
 			for (unsigned char byte2 = highByteLast; byte2 >= minTrailByte; byte2--) {
 				const char ch2 = byte2;
+				const DBCSPair pair{ ch1, ch2 };
+				const uint16_t index = DBCSIndex(ch1, ch2);
+				(*foldingMap)[index] = pair;
 				if (DBCSIsTrailByte(codePage, ch2)) {
-					const DBCSPair pair{ ch1, ch2 };
-					const uint16_t index = DBCSIndex(ch1, ch2);
-					(*foldingMap)[index] = pair;
 					const std::string_view svBytes(pair.chars, 2);
 					const int lenUni = WideCharLenFromMultiByte(codePage, svBytes);
 					if (lenUni == 1) {
