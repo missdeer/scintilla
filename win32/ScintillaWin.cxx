@@ -2860,24 +2860,27 @@ public:
 	size_t Fold(char *folded, size_t sizeFolded, const char *mixed, size_t lenMixed) override;
 };
 
-size_t CaseFolderDBCS::Fold(char *folded, size_t sizeFolded, const char *mixed, size_t lenMixed) {
+size_t CaseFolderDBCS::Fold(char *folded, [[maybe_unused]] size_t sizeFolded, const char *mixed, size_t lenMixed) {
 	// This loop outputs the same length as input as for each char 1-byte -> 1-byte; 2-byte -> 2-byte
+	assert(lenMixed <= sizeFolded);
 	size_t lenOut = 0;
 	for (size_t i = 0; i < lenMixed; i++) {
-		const ptrdiff_t lenLeft = lenMixed - i;
 		const char ch = mixed[i];
-		if ((lenLeft >= 2) && DBCSIsLeadByte(cp, ch) && ((lenOut + 2) <= sizeFolded)) {
+		if (((i+1) < lenMixed) && DBCSIsLeadByte(cp, ch)) {
 			i++;
 			const char ch2 = mixed[i];
 			const uint16_t ind = DBCSIndex(ch, ch2);
 			const char *pair = foldingMap->at(ind).chars;
+			assert(pair[0]);
+			assert(pair[1]);
 			folded[lenOut++] = pair[0];
 			folded[lenOut++] = pair[1];
-		} else if ((lenOut + 1) <= sizeFolded) {
+		} else {
 			const unsigned char uch = ch;
 			folded[lenOut++] = mapping[uch];
 		}
 	}
+	assert(lenOut == lenMixed);
 	return lenOut;
 }
 
