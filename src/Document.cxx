@@ -2819,7 +2819,7 @@ void SCI_METHOD Document::DecorationFillRange(Sci_Position position, int value, 
 
 bool Document::AddWatcher(DocWatcher *watcher, void *userData) {
 	const WatcherWithUserData wwud(watcher, userData);
-	std::vector<WatcherWithUserData>::iterator it =
+	const std::vector<WatcherWithUserData>::iterator it =
 		std::find(watchers.begin(), watchers.end(), wwud);
 	if (it != watchers.end())
 		return false;
@@ -2831,7 +2831,7 @@ bool Document::RemoveWatcher(DocWatcher *watcher, void *userData) noexcept {
 	try {
 		// This can never fail as WatcherWithUserData constructor and == are noexcept
 		// but std::find is not noexcept.
-		std::vector<WatcherWithUserData>::iterator it =
+		const std::vector<WatcherWithUserData>::iterator it =
 			std::find(watchers.begin(), watchers.end(), WatcherWithUserData(watcher, userData));
 		if (it != watchers.end()) {
 			watchers.erase(it);
