@@ -107,10 +107,6 @@ bool DBCSHasFoldMap(int codePage) {
 	return it != cpToFoldMap.end();
 }
 
-void DBCSSetFoldMap(int codePage, const FoldMap &foldMap) {
-	cpToFoldMap[codePage] = foldMap;
-}
-
 FoldMap *DBCSGetMutableFoldMap(int codePage) {
 	// Constructs if needed
 	return &cpToFoldMap[codePage];
