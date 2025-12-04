@@ -2848,14 +2848,16 @@ void CreateFoldMap(int codePage, FoldMap *foldingMap) {
 class CaseFolderDBCS : public CaseFolderTable {
 	// Allocate the expandable storage here so that it does not need to be reallocated
 	// for each call to Fold.
-	const FoldMap *foldingMap;
-	UINT cp;
+	const FoldMap *foldingMap = nullptr;
+	UINT cp = 0;
 public:
 	explicit CaseFolderDBCS(UINT cp_) : cp(cp_) {
-		if (!DBCSHasFoldMap(cp)) {
-			CreateFoldMap(cp, DBCSGetMutableFoldMap(cp));
-		}
 		foldingMap = DBCSGetFoldMap(cp);
+		if (!foldingMap) {
+			FoldMap *pfm = DBCSCreateFoldMap(cp);
+			CreateFoldMap(cp, pfm);
+			foldingMap = pfm;
+		}
 	}
 	size_t Fold(char *folded, size_t sizeFolded, const char *mixed, size_t lenMixed) override;
 };

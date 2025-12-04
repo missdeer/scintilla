@@ -41,8 +41,7 @@ struct DBCSPair {
 };
 using FoldMap = std::array<DBCSPair, 0x8000>;
 
-bool DBCSHasFoldMap(int codePage);
-FoldMap *DBCSGetMutableFoldMap(int codePage);
+FoldMap *DBCSCreateFoldMap(int codePage);
 const FoldMap *DBCSGetFoldMap(int codePage);
 
 }
