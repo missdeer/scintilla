@@ -152,7 +152,7 @@ constexpr Point PointFromLParam(sptr_t lpoint) noexcept {
 }
 
 bool KeyboardIsKeyDown(int key) noexcept {
-	return (::GetKeyState(key) & 0x80000000) != 0;
+	return ::GetKeyState(key) < 0;
 }
 
 // Bit 24 is the extended keyboard flag and the numeric keypad is non-extended
@@ -406,7 +406,8 @@ CLIPFORMAT RegisterClipboardType(LPCWSTR lpszFormat) noexcept {
 	// Registered clipboard format values are 0xC000 through 0xFFFF.
 	// RegisterClipboardFormatW returns 32-bit unsigned and CLIPFORMAT is 16-bit
 	// unsigned so choose the low 16-bits with &.
-	return ::RegisterClipboardFormatW(lpszFormat) & 0xFFFF;
+	constexpr CLIPFORMAT LowBits = 0xFFFF;
+	return ::RegisterClipboardFormatW(lpszFormat) & LowBits;
 }
 
 RECT GetClientRect(HWND hwnd) noexcept {
@@ -856,7 +857,9 @@ bool ScintillaWin::UpdateRenderingParams(bool force) noexcept {
 	UINT clearTypeContrast = 0;
 	if (SUCCEEDED(hr) && monitorRenderingParams &&
 		::SystemParametersInfo(SPI_GETFONTSMOOTHINGCONTRAST, 0, &clearTypeContrast, 0) != 0) {
-		if (clearTypeContrast >= 1000 && clearTypeContrast <= 2200) {
+		constexpr UINT minContrast = 1000;
+		constexpr UINT maxContrast = 2200;
+		if (clearTypeContrast >= minContrast && clearTypeContrast <= maxContrast) {
 			const FLOAT gamma = static_cast<FLOAT>(clearTypeContrast) / 1000.0f;
 			pIDWriteFactory->CreateCustomRenderingParams(gamma,
 				monitorRenderingParams->GetEnhancedContrast(),
@@ -1112,7 +1115,8 @@ namespace {
 int InputCodePage() noexcept {
 	HKL inputLocale = ::GetKeyboardLayout(0);
 	const LANGID inputLang = LOWORD(inputLocale);
-	char sCodePage[10];
+	constexpr size_t lengthCodePage = 10;
+	char sCodePage[lengthCodePage];
 	const int res = ::GetLocaleInfoA(MAKELCID(inputLang, SORT_DEFAULT),
 	  LOCALE_IDEFAULTANSICODEPAGE, sCodePage, sizeof(sCodePage));
 	if (!res)
