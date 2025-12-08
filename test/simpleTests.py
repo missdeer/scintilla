@@ -1967,6 +1967,28 @@ class TestMultiSelection(unittest.TestCase):
 		self.assertEqual(self.ed.GetSelectionNStart(0), 2)
 		self.assertEqual(self.ed.GetSelectionNEnd(0), 3)
 
+		self.ed.SetSelectionNStart(0, 1)
+		self.assertEqual(self.ed.GetSelectionNAnchor(0), 1)
+		self.assertEqual(self.ed.GetSelectionNCaret(0), 3)
+		self.assertEqual(self.ed.GetSelectionNStart(0), 1)
+		self.assertEqual(self.ed.GetSelectionNEnd(0), 3)
+
+		self.ed.SetSelectionNAnchor(0, 2)
+		self.ed.SetSelectionNCaret(0, 2)
+		self.ed.SetSelectionNStart(0, 9)
+		self.assertEqual(self.ed.GetSelectionNAnchor(0), 9)
+		self.assertEqual(self.ed.GetSelectionNCaret(0), 9)
+		self.assertEqual(self.ed.GetSelectionNStart(0), 9)
+		self.assertEqual(self.ed.GetSelectionNEnd(0), 9)
+
+		self.ed.SetSelectionNAnchor(0, 2)
+		self.ed.SetSelectionNCaret(0, 3)
+		self.ed.SetSelectionNStart(0, 9)
+		self.assertEqual(self.ed.GetSelectionNAnchor(0), 9)
+		self.assertEqual(self.ed.GetSelectionNCaret(0), 9)
+		self.assertEqual(self.ed.GetSelectionNStart(0), 9)
+		self.assertEqual(self.ed.GetSelectionNEnd(0), 9)
+
 	def test2Selections(self):
 		self.ed.SetSelection(1, 2)
 		self.ed.AddSelection(4, 5)
