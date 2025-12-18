@@ -573,12 +573,12 @@ class ScintillaWin :
 		    sptr_t ptr, UINT iMessage, uptr_t wParam, sptr_t lParam);
 	static sptr_t DirectStatusFunction(
 		    sptr_t ptr, UINT iMessage, uptr_t wParam, sptr_t lParam, int *pStatus);
-	static LRESULT PASCAL SWndProc(
+	static LRESULT CALLBACK SWndProc(
 		    HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam);
 
 	void CTPaint(HWND hWnd);
 	LRESULT CTProcessMessage(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam);
-	static LRESULT PASCAL CTWndProc(
+	static LRESULT CALLBACK CTWndProc(
 		    HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam);
 
 	enum : UINT_PTR { invalidTimerID, standardTimerID, idleTimerID, fineTimerStart };
@@ -4010,7 +4010,7 @@ LRESULT ScintillaWin::CTProcessMessage(HWND hWnd, UINT iMessage, WPARAM wParam, 
 	return ::DefWindowProc(hWnd, iMessage, wParam, lParam);
 }
 
-LRESULT PASCAL ScintillaWin::CTWndProc(
+LRESULT CALLBACK ScintillaWin::CTWndProc(
 	HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam) {
 	// Find C++ object associated with window.
 	ScintillaWin *sciThis = static_cast<ScintillaWin *>(PointerFromWindow(hWnd));
@@ -4052,7 +4052,7 @@ sptr_t DirectFunction(
 
 }
 
-LRESULT PASCAL ScintillaWin::SWndProc(
+LRESULT CALLBACK ScintillaWin::SWndProc(
 	HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam) {
 	//Platform::DebugPrintf("S W:%x M:%x WP:%x L:%x\n", hWnd, iMessage, wParam, lParam);
 
