@@ -74,10 +74,11 @@ void FontRealised::Realise(Surface &surface, int zoomLevel, Technology technolog
 	// floor here is historical as platform layers have tweaked their values to match.
 	// ceil would likely be better to ensure (nearly) all of the ink of a character is seen
 	// but that would require platform layer changes.
-	measurements.ascent = std::floor(surface.Ascent(font.get()));
+	const XYPOSITION ascent = surface.Ascent(font.get());
+	measurements.ascent = std::floor(ascent);
 	measurements.descent = std::floor(surface.Descent(font.get()));
 
-	measurements.capitalHeight = surface.Ascent(font.get()) - surface.InternalLeading(font.get());
+	measurements.capitalHeight = ascent - surface.InternalLeading(font.get());
 	measurements.aveCharWidth = surface.AverageCharWidth(font.get());
 	measurements.monospaceCharacterWidth = measurements.aveCharWidth;
 	measurements.spaceWidth = surface.WidthText(font.get(), " ");
