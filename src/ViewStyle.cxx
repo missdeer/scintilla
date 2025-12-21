@@ -93,9 +93,9 @@ void FontRealised::Realise(Surface &surface, int zoomLevel, Technology technolog
 		const XYPOSITION maxWidth = *std::max_element(positions.begin(), positions.end());
 		const XYPOSITION minWidth = *std::min_element(positions.begin(), positions.end());
 		const XYPOSITION variance = maxWidth - minWidth;
-		const XYPOSITION scaledVariance = variance / measurements.aveCharWidth;
 		constexpr XYPOSITION monospaceWidthEpsilon = 0.000001;	// May need tweaking if monospace fonts vary more
-		measurements.monospaceASCII = scaledVariance < monospaceWidthEpsilon;
+		const XYPOSITION scaledVariance = monospaceWidthEpsilon * minWidth;
+		measurements.monospaceASCII = variance < scaledVariance;
 		measurements.monospaceCharacterWidth = minWidth;
 	} else {
 		measurements.monospaceASCII = false;
