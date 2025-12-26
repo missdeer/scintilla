@@ -2,6 +2,8 @@
 // Wrapper for Scintilla document object so it can be manipulated independently.
 // Copyright (c) 2011 Archaeopteryx Software, Inc. d/b/a Wingware
 
+#include <cstdint>
+
 #include <stdexcept>
 #include <string_view>
 #include <vector>
