@@ -260,6 +260,13 @@ class TestSimple(unittest.TestCase):
 		self.assertEqual(self.ed.CanUndo(), 0)
 		self.ed.UndoCollection = 1
 
+	def testDragDrop(self):
+		self.assertEqual(self.ed.DragDropEnabled, 1)
+		self.ed.DragDropEnabled = 0
+		self.assertEqual(self.ed.DragDropEnabled, 0)
+		self.ed.DragDropEnabled = 1
+		self.assertEqual(self.ed.DragDropEnabled, 1)
+
 	def testGetColumn(self):
 		self.ed.AddText(1, b"x")
 		self.assertEqual(self.ed.GetColumn(0), 0)

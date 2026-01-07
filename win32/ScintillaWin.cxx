@@ -1754,7 +1754,7 @@ Window::Cursor ScintillaWin::ContextCursor(Point pt) {
 	// Display regular (drag) cursor over selection
 	if (PointInSelMargin(pt)) {
 		return GetMarginCursor(pt);
-	} else if (!SelectionEmpty() && PointInSelection(pt)) {
+	} else if (!SelectionEmpty() && PointInSelection(pt) && dragDropEnabled) {
 		return Window::Cursor::arrow;
 	} else if (PointIsHotspot(pt)) {
 		return Window::Cursor::hand;
@@ -3721,6 +3721,10 @@ STDMETHODIMP_(ULONG) ScintillaWin::Release() {
 /// Implement IDropTarget
 STDMETHODIMP ScintillaWin::DragEnter(LPDATAOBJECT pIDataSource, DWORD grfKeyState,
                                      POINTL, PDWORD pdwEffect) {
+	if (!dragDropEnabled) {
+		*pdwEffect = DROPEFFECT_NONE;
+		return S_OK;
+	}
 	if (!pIDataSource )
 		return E_POINTER;
 	FORMATETC fmtu = {CF_UNICODETEXT, nullptr, DVASPECT_CONTENT, -1, TYMED_HGLOBAL };
@@ -3737,7 +3741,7 @@ STDMETHODIMP ScintillaWin::DragEnter(LPDATAOBJECT pIDataSource, DWORD grfKeyStat
 
 STDMETHODIMP ScintillaWin::DragOver(DWORD grfKeyState, POINTL pt, PDWORD pdwEffect) {
 	try {
-		if (!hasOKText || pdoc->IsReadOnly()) {
+		if (!dragDropEnabled || !hasOKText || pdoc->IsReadOnly()) {
 			*pdwEffect = DROPEFFECT_NONE;
 			return S_OK;
 		}
@@ -3770,6 +3774,11 @@ STDMETHODIMP ScintillaWin::Drop(LPDATAOBJECT pIDataSource, DWORD grfKeyState,
                                 POINTL pt, PDWORD pdwEffect) {
 	try {
 		*pdwEffect = EffectFromState(grfKeyState);
+
+		if (!dragDropEnabled) {
+			*pdwEffect = DROPEFFECT_NONE;
+			return S_OK;
+		}
 
 		if (!pIDataSource)
 			return E_POINTER;

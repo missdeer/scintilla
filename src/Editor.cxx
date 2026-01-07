@@ -143,6 +143,7 @@ Editor::Editor() : durationWrapOneByte(0.000001, 0.00000001, 0.00001) {
 	dwelling = false;
 	ptMouseLast.x = 0;
 	ptMouseLast.y = 0;
+	dragDropEnabled = true;
 	inDragDrop = DragDrop::none;
 	dropWentOutside = false;
 	posDrop = SelectionPosition(Sci::invalidPosition);
@@ -5041,7 +5042,7 @@ void Editor::ButtonMoveWithModifiers(Point pt, unsigned int, KeyMod modifiers) {
 		AllowVirtualSpace(virtualSpaceOptions, sel.IsRectangular()));
 	movePos = MovePositionOutsideChar(movePos, sel.MainCaret() - movePos.Position());
 
-	if (inDragDrop == DragDrop::initial) {
+	if (dragDropEnabled && inDragDrop == DragDrop::initial) {
 		if (DragThreshold(ptMouseLast, pt)) {
 			ChangeMouseCapture(false);
 			SetDragPosition(movePos);
@@ -5139,7 +5140,7 @@ void Editor::ButtonMoveWithModifiers(Point pt, unsigned int, KeyMod modifiers) {
 			}
 		}
 		// Display regular (drag) cursor over selection
-		if (PointInSelection(pt) && !SelectionEmpty()) {
+		if (PointInSelection(pt) && !SelectionEmpty() && dragDropEnabled) {
 			DisplayCursor(Window::Cursor::arrow);
 			SetHoverIndicatorPosition(Sci::invalidPosition);
 		} else {
@@ -7083,6 +7084,13 @@ sptr_t Editor::WndProc(Message iMessage, uptr_t wParam, sptr_t lParam) {
 
 	case Message::GetBufferedDraw:
 		return view.bufferedDraw;
+
+	case Message::GetDragDropEnabled:
+		return dragDropEnabled;
+
+	case Message::SetDragDropEnabled:
+		dragDropEnabled = wParam != 0;
+		break;
 
 #ifdef INCLUDE_DEPRECATED_FEATURES
 	case SCI_GETTWOPHASEDRAW:
