@@ -1754,7 +1754,7 @@ Window::Cursor ScintillaWin::ContextCursor(Point pt) {
 	// Display regular (drag) cursor over selection
 	if (PointInSelMargin(pt)) {
 		return GetMarginCursor(pt);
-	} else if (!SelectionEmpty() && PointInSelection(pt) && dragDropEnabled) {
+	} else if (dragDropEnabled && !SelectionEmpty() && PointInSelection(pt)) {
 		return Window::Cursor::arrow;
 	} else if (PointIsHotspot(pt)) {
 		return Window::Cursor::hand;
