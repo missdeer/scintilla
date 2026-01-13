@@ -948,6 +948,10 @@ void FillLineRemainder(Surface *surface, const EditModel &model, const ViewStyle
 
 }
 
+void EditView::UpdateMaxWidth(XYPOSITION width) noexcept {
+	lineWidthMaxSeen = std::max(lineWidthMaxSeen, static_cast<int>(width));
+}
+
 void EditView::DrawEOL(Surface *surface, const EditModel &model, const ViewStyle &vsDraw, const LineLayout *ll,
 	Sci::Line line, int xStart, PRectangle rcLine, int subLine, Sci::Position lineEnd, XYPOSITION subLineStart, ColourOptional background) {
 
@@ -1161,10 +1165,8 @@ void EditView::DrawFoldDisplayText(Surface *surface, const EditModel &model, con
 											false, StyleFoldDisplayText, -1);
 
 	if (model.trackLineWidth) {
-		if (rcSegment.right + 1> lineWidthMaxSeen) {
-			// Fold display text border drawn on rcSegment.right with width 1 is the last visible object of the line
-			lineWidthMaxSeen = static_cast<int>(rcSegment.right + 1);
-		}
+		// Fold display text border drawn on rcSegment.right with width 1 is the last visible object of the line
+		UpdateMaxWidth(rcSegment.right + 1);
 	}
 
 	if (FlagSet(phase, DrawPhase::back)) {
@@ -1288,10 +1290,8 @@ void EditView::DrawEOLAnnotationText(Surface *surface, const EditModel &model, c
 											false, static_cast<int>(style), -1);
 
 	if (model.trackLineWidth) {
-		if (rcSegment.right + 1> lineWidthMaxSeen) {
-			// EOL Annotation text border drawn on rcSegment.right with width 1 is the last visible object of the line
-			lineWidthMaxSeen = static_cast<int>(rcSegment.right + 1);
-		}
+		// EOL Annotation text border drawn on rcSegment.right with width 1 is the last visible object of the line
+		UpdateMaxWidth(rcSegment.right + 1);
 	}
 
 	if (FlagSet(phase, DrawPhase::back)) {
@@ -1387,8 +1387,7 @@ void EditView::DrawAnnotation(Surface *surface, const EditModel &model, const Vi
 				rcSegment.left = static_cast<XYPOSITION>(xStart + indent);
 				rcSegment.right = rcSegment.left + widthAnnotation;
 			}
-			if (widthAnnotation > lineWidthMaxSeen)
-				lineWidthMaxSeen = widthAnnotation;
+			UpdateMaxWidth(widthAnnotation);
 		}
 		const int annotationLines = model.pdoc->AnnotationLines(line);
 		size_t start = 0;
@@ -2612,8 +2611,7 @@ void EditView::PaintText(Surface *surfaceWindow, const EditModel &model, const V
 						surfaceWindow->Copy(rcCopyArea, from, *pixmapLine);
 					}
 
-					lineWidthMaxSeen = std::max(
-						lineWidthMaxSeen, static_cast<int>(ll->positions[ll->numCharsInLine]));
+					UpdateMaxWidth(ll->positions[ll->numCharsInLine]);
 #if defined(TIME_PAINTING)
 					durCopy += ep.Duration(true);
 #endif
