@@ -946,6 +946,46 @@ void FillLineRemainder(Surface *surface, const EditModel &model, const ViewStyle
 	}
 }
 
+// Stadium ends require different amounts of padding to look reasonable around text.
+constexpr XYPOSITION divisorAngle = 2.0;	// <text>
+constexpr XYPOSITION divisorCircle = 3.0;	// (text)
+constexpr XYPOSITION EndPadding(Surface::Ends side, XYPOSITION height) noexcept {
+	switch (side) {
+	case Surface::Ends::leftFlat:
+	case Surface::Ends::rightFlat:
+		return 1;
+	case Surface::Ends::leftAngle:
+	case Surface::Ends::rightAngle:
+		return height / divisorAngle;
+	default:
+		// semiCircles
+		return height / divisorCircle;
+	}
+}
+
+struct HorizontalPadding {
+	XYPOSITION left = 0;
+	XYPOSITION right = 0;
+};
+
+[[nodiscard]] constexpr PRectangle TextPart(const PRectangle &rc, const HorizontalPadding &padding) noexcept {
+	return PRectangle(rc.left + padding.left, rc.top, rc.right - padding.right, rc.bottom);
+}
+
+HorizontalPadding StadiumPadding(Scintilla::EOLAnnotationVisible eolAnnotationVisible, XYPOSITION height) noexcept {
+	if (eolAnnotationVisible >= EOLAnnotationVisible::Boxed) {
+		if (eolAnnotationVisible == EOLAnnotationVisible::Boxed) {
+			return { 1, 1 };
+		}
+		const Surface::Ends leftSide = static_cast<Surface::Ends>(static_cast<int>(eolAnnotationVisible) & 0xf);
+		const Surface::Ends rightSide = static_cast<Surface::Ends>(static_cast<int>(eolAnnotationVisible) & 0xf0);
+		const XYPOSITION leftSpace = EndPadding(leftSide, height);
+		const XYPOSITION rightSpace = EndPadding(rightSide, height);
+		return { leftSpace , rightSpace };
+	}
+	return {};
+}
+
 }
 
 void EditView::UpdateMaxWidth(XYPOSITION width) noexcept {
@@ -1230,43 +1270,11 @@ void EditView::DrawEOLAnnotationText(Surface *surface, const EditModel &model, c
 	const Font *fontText = vsDraw.styles[style].font.get();
 
 	const Surface::Ends ends = static_cast<Surface::Ends>(static_cast<int>(vsDraw.eolAnnotationVisible) & 0xff);
-	const Surface::Ends leftSide = static_cast<Surface::Ends>(static_cast<int>(ends) & 0xf);
-	const Surface::Ends rightSide = static_cast<Surface::Ends>(static_cast<int>(ends) & 0xf0);
 
-	XYPOSITION leftBoxSpace = 0;
-	XYPOSITION rightBoxSpace = 0;
-	if (vsDraw.eolAnnotationVisible >= EOLAnnotationVisible::Boxed) {
-		leftBoxSpace = 1;
-		rightBoxSpace = 1;
-		if (vsDraw.eolAnnotationVisible != EOLAnnotationVisible::Boxed) {
-			switch (leftSide) {
-			case Surface::Ends::leftFlat:
-				leftBoxSpace = 1;
-				break;
-			case Surface::Ends::leftAngle:
-				leftBoxSpace = rcLine.Height() / 2.0;
-				break;
-			case Surface::Ends::semiCircles:
-			default:
-				leftBoxSpace = rcLine.Height() / 3.0;
-			   break;
-			}
-			switch (rightSide) {
-			case Surface::Ends::rightFlat:
-				rightBoxSpace = 1;
-				break;
-			case Surface::Ends::rightAngle:
-				rightBoxSpace = rcLine.Height() / 2.0;
-				break;
-			case Surface::Ends::semiCircles:
-			default:
-				rightBoxSpace = rcLine.Height() / 3.0;
-			   break;
-			}
-		}
-	}
+	const HorizontalPadding padding = StadiumPadding(vsDraw.eolAnnotationVisible, rcLine.Height());
+
 	const int widthEOLAnnotationText = static_cast<int>(surface->WidthTextUTF8(fontText, eolAnnotationText) +
-		leftBoxSpace + rightBoxSpace);
+		padding.left + padding.right);
 
 	const XYPOSITION spaceWidth = vsDraw.styles[ll->EndLineStyle()].spaceWidth;
 	const XYPOSITION virtualSpace = static_cast<XYPOSITION>(model.sel.VirtualSpaceFor(
@@ -1304,9 +1312,7 @@ void EditView::DrawEOLAnnotationText(Surface *surface, const EditModel &model, c
 		FillLineRemainder(surface, model, vsDraw, ll, line, rcRemainder, subLine);
 	}
 
-	PRectangle rcText = rcSegment;
-	rcText.left += leftBoxSpace;
-	rcText.right -= rightBoxSpace;
+	const PRectangle rcText = TextPart(rcSegment, padding);
 
 	// For single phase drawing, draw the text then any box over it
 	if (FlagSet(phase, DrawPhase::text)) {
