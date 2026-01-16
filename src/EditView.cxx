@@ -935,8 +935,8 @@ void FillLineRemainder(Surface *surface, const EditModel &model, const ViewStyle
 		const ColourOptional background = vsDraw.Background(model.GetMark(line), model.caret.active, ll->containsCaret);
 		if (background) {
 			surface->FillRectangleAligned(rcArea, Fill(*background));
-		} else if (vsDraw.styles[ll->styles[ll->numCharsInLine]].eolFilled) {
-			surface->FillRectangleAligned(rcArea, Fill(vsDraw.styles[ll->styles[ll->numCharsInLine]].back));
+		} else if (vsDraw.styles[ll->LastStyle()].eolFilled) {
+			surface->FillRectangleAligned(rcArea, Fill(vsDraw.styles[ll->LastStyle()].back));
 		} else {
 			surface->FillRectangleAligned(rcArea, Fill(vsDraw.styles[StyleDefault].back));
 		}
@@ -1010,7 +1010,7 @@ void EditView::DrawEOL(Surface *surface, const EditModel &model, const ViewStyle
 	if (virtualSpace > 0.0f) {
 		rcSegment.left = xEol + xStart;
 		rcSegment.right = xEol + xStart + virtualSpace;
-		const ColourRGBA backgroundFill = background.value_or(vsDraw.styles[ll->styles[ll->numCharsInLine]].back);
+		const ColourRGBA backgroundFill = background.value_or(vsDraw.styles[ll->LastStyle()].back);
 		surface->FillRectangleAligned(rcSegment, backgroundFill);
 		if (vsDraw.selection.visible && (vsDraw.selection.layer == Layer::Base)) {
 			const SelectionSegment virtualSpaceRange(SelectionPosition(model.pdoc->LineEnd(line)),
@@ -1115,12 +1115,13 @@ void EditView::DrawEOL(Surface *surface, const EditModel &model, const ViewStyle
 	} else {
 		if (background) {
 			surface->FillRectangleAligned(rcSegment, Fill(*background));
-		} else if (line < model.pdoc->LinesTotal() - 1) {
-			surface->FillRectangleAligned(rcSegment, Fill(vsDraw.styles[ll->styles[ll->numCharsInLine]].back));
-		} else if (vsDraw.styles[ll->styles[ll->numCharsInLine]].eolFilled) {
-			surface->FillRectangleAligned(rcSegment, Fill(vsDraw.styles[ll->styles[ll->numCharsInLine]].back));
 		} else {
-			surface->FillRectangleAligned(rcSegment, Fill(vsDraw.styles[StyleDefault].back));
+			const Style &styleLast = vsDraw.styles[ll->LastStyle()];
+			if ((line < model.pdoc->LinesTotal() - 1) || styleLast.eolFilled) {
+				surface->FillRectangleAligned(rcSegment, Fill(styleLast.back));
+			} else {
+				surface->FillRectangleAligned(rcSegment, Fill(vsDraw.styles[StyleDefault].back));
+			}
 		}
 		if (eolInSelection && (line < model.pdoc->LinesTotal() - 1) && (vsDraw.selection.layer != Layer::Base)) {
 			surface->FillRectangleAligned(rcSegment, selectionBack);

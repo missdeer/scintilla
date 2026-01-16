@@ -101,6 +101,7 @@ public:
 	Interval Span(int start, int end) const noexcept;
 	Interval SpanByte(int index) const noexcept;
 	int EndLineStyle() const noexcept;
+	[[nodiscard]] int LastStyle() const noexcept;
 	void WrapLine(const Document *pdoc, Sci::Position posLineStart, Wrap wrapState, XYPOSITION wrapWidth);
 };
 

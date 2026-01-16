@@ -318,6 +318,10 @@ int LineLayout::EndLineStyle() const noexcept {
 	return styles[std::max(numCharsBeforeEOL - 1, 0)];
 }
 
+int LineLayout::LastStyle() const noexcept {
+	return styles[numCharsInLine];
+}
+
 void LineLayout::WrapLine(const Document *pdoc, Sci::Position posLineStart, Wrap wrapState, XYPOSITION wrapWidth) {
 	// Document wants document positions but simpler to work in line positions
 	// so take care of adding and subtracting line start in a lambda.
