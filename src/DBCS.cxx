@@ -90,10 +90,13 @@ bool DBCSIsTrailByte(int codePage, char ch) noexcept {
 bool IsDBCSValidSingleByte(int codePage, int ch) noexcept {
 	switch (codePage) {
 	case cp932:
+		// Shift_jis
 		return ch == 0x80
 			|| (ch >= 0xA0 && ch <= 0xDF)
 			|| (ch >= 0xFD);
-
+	case cp936:
+		// GBK
+		return ch == 0x80;
 	default:
 		return false;
 	}
