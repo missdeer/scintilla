@@ -124,8 +124,7 @@ int WidestLineWidth(Surface *surface, const ViewStyle &vs, int styleOffset, cons
 			const std::string_view text(st.text + start, lenLine);
 			widthSubLine = static_cast<int>(surface->WidthText(fontText, text));
 		}
-		if (widthSubLine > widthMax)
-			widthMax = widthSubLine;
+		widthMax = std::max(widthMax, widthSubLine);
 		start += lenLine + 1;
 	}
 	return widthMax;
@@ -401,11 +400,7 @@ void EditView::LayoutLine(const EditModel &model, Surface *surface, const ViewSt
 	PLATFORM_ASSERT(line < model.pdoc->LinesTotal());
 	PLATFORM_ASSERT(ll->chars);
 	const Sci::Position posLineStart = model.pdoc->LineStart(line);
-	Sci::Position posLineEnd = model.pdoc->LineStart(line + 1);
-	// If the line is very long, limit the treatment to a length that should fit in the viewport
-	if (posLineEnd >(posLineStart + ll->maxLineLength)) {
-		posLineEnd = posLineStart + ll->maxLineLength;
-	}
+	const Sci::Position posLineEnd = std::min(model.pdoc->LineStart(line + 1), posLineStart + ll->maxLineLength);
 	// Hard to cope when too narrow, so just assume there is space
 	constexpr int minimumWidth = 20;
 	width = std::max(width, minimumWidth);
@@ -1127,9 +1122,7 @@ void EditView::DrawEOL(Surface *surface, const EditModel &model, const ViewStyle
 		}
 	}
 
-	rcSegment.left = rcSegment.right;
-	if (rcSegment.left < rcLine.left)
-		rcSegment.left = rcLine.left;
+	rcSegment.left = std::max(rcSegment.right, rcLine.left);
 	rcSegment.right = rcLine.right;
 
 	const bool drawEOLAnnotationStyledText = (vsDraw.eolAnnotationVisible != EOLAnnotationVisible::Hidden) && model.pdoc->EOLAnnotationStyledText(line).text;
@@ -1214,9 +1207,7 @@ void EditView::DrawFoldDisplayText(Surface *surface, const EditModel &model, con
 
 		// Fill Remainder of the line
 		PRectangle rcRemainder = rcSegment;
-		rcRemainder.left = rcRemainder.right;
-		if (rcRemainder.left < rcLine.left)
-			rcRemainder.left = rcLine.left;
+		rcRemainder.left = std::max(rcRemainder.right, rcLine.left);
 		rcRemainder.right = rcLine.right;
 		FillLineRemainder(surface, model, vsDraw, ll, line, rcRemainder, subLine);
 	}
@@ -1461,8 +1452,7 @@ void DrawBlockCaret(Surface *surface, const EditModel &model, const ViewStyle &v
 
 	// See if the next character shares horizontal space, if so we'll
 	// need to draw that too.
-	if (offsetFirstChar < 0)
-		offsetFirstChar = 0;
+	offsetFirstChar = std::max<Sci::Position>(offsetFirstChar, 0);
 	numCharsToDraw = offsetLastChar - offsetFirstChar;
 	while ((offsetLastChar < ll->LineStart(subLine + 1)) && (offsetLastChar <= ll->numCharsInLine)) {
 		// Update posAfter to point to the 2nd next char, this is where
@@ -1563,8 +1553,9 @@ void EditView::DrawCarets(Surface *surface, const EditModel &model, const ViewSt
 					const int widthChar = model.pdoc->LenChar(posCaret.Position());
 					widthOverstrikeCaret = ll->positions[offset + widthChar] - ll->positions[offset];
 				}
-				if (widthOverstrikeCaret < 3)	// Make sure its visible
-					widthOverstrikeCaret = 3;
+				// Make sure block caret visible
+				constexpr XYPOSITION minimumBlockCaretWidth = 3.0f;
+				widthOverstrikeCaret = std::max(widthOverstrikeCaret, minimumBlockCaretWidth);
 
 				if (xposCaret > 0)
 					caretWidthOffset = 0.51f;	// Move back so overlaps both character cells.
@@ -2754,13 +2745,11 @@ Sci::Position EditView::FormatRange(bool draw, CharacterRangeFull chrg, Rectangl
 		1u << static_cast<unsigned int>(MarkerOutline::HistoryRevertedToModified);
 	vsPrint.maskInLine &= ~changeMarkers;
 
+	const int linesInArea = (rc.bottom - rc.top) / vsPrint.lineHeight;
 	const Sci::Line linePrintStart = model.pdoc->SciLineFromPosition(chrg.cpMin);
-	Sci::Line linePrintLast = linePrintStart + (rc.bottom - rc.top) / vsPrint.lineHeight - 1;
-	if (linePrintLast < linePrintStart)
-		linePrintLast = linePrintStart;
 	const Sci::Line linePrintMax = model.pdoc->SciLineFromPosition(chrg.cpMax);
-	if (linePrintLast > linePrintMax)
-		linePrintLast = linePrintMax;
+	const Sci::Line linePrintLast = std::min(std::max(linePrintStart + linesInArea - 1, linePrintStart), linePrintMax);
+
 	//Platform::DebugPrintf("Formatting lines=[%0d,%0d,%0d] top=%0d bottom=%0d line=%0d %0d\n",
 	//      linePrintStart, linePrintLast, linePrintMax, rc.top, rc.bottom, vsPrint.lineHeight,
 	//      surfaceMeasure->Height(vsPrint.styles[StyleLineNumber].font));
