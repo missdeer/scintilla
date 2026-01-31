@@ -251,9 +251,8 @@ bool EditView::AddTabstop(Sci::Line line, int x) {
 int EditView::GetNextTabstop(Sci::Line line, int x) const noexcept {
 	if (ldTabstops) {
 		return ldTabstops->GetNextTabstop(line, x);
-	} else {
-		return 0;
 	}
+	return 0;
 }
 
 void EditView::LinesAddedOrRemoved(Sci::Line lineOfPos, Sci::Line linesAdded) {
@@ -408,7 +407,8 @@ void EditView::LayoutLine(const EditModel &model, Surface *surface, const ViewSt
 		posLineEnd = posLineStart + ll->maxLineLength;
 	}
 	// Hard to cope when too narrow, so just assume there is space
-	width = std::max(width, 20);
+	constexpr int minimumWidth = 20;
+	width = std::max(width, minimumWidth);
 
 	if (ll->validity == LineLayout::ValidLevel::checkTextAndStyle) {
 		Sci::Position lineLength = posLineEnd - posLineStart;
@@ -892,9 +892,8 @@ ColourRGBA TextBackground(const EditModel &model, const ViewStyle &vsDraw, const
 	}
 	if (background && (styleMain != StyleBraceLight) && (styleMain != StyleBraceBad)) {
 		return *background;
-	} else {
-		return vsDraw.styles[styleMain].back;
 	}
+	return vsDraw.styles[styleMain].back;
 }
 
 void DrawTextBlob(Surface *surface, const ViewStyle &vsDraw, PRectangle rcSegment,
@@ -2108,7 +2107,7 @@ ColourRGBA InvertedLight(ColourRGBA orig) noexcept {
 	r = r * il / l;
 	g = g * il / l;
 	b = b * il / l;
-	return ColourRGBA(std::min(r, 0xffu), std::min(g, 0xffu), std::min(b, 0xffu));
+	return ColourRGBA(std::min(r, maximumByte), std::min(g, maximumByte), std::min(b, maximumByte));
 }
 
 }
@@ -2235,7 +2234,7 @@ void EditView::DrawForeground(Surface *surface, const EditModel &model, const Vi
 					}
 				} else {
 					inIndentation = false;
-					if (vsDraw.controlCharSymbol >= 32) {
+					if (vsDraw.controlCharSymbol >= ' ') {
 						// Using one font for all control characters so it can be controlled independently to ensure
 						// the box goes around the characters tightly. Seems to be no way to work out what height
 						// is taken by an individual character - internal leading gives varying results.
