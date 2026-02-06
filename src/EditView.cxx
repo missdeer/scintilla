@@ -1366,7 +1366,7 @@ constexpr bool AnnotationBoxedOrIndented(AnnotationVisible annotationVisible) no
 }
 
 void EditView::DrawAnnotation(Surface *surface, const EditModel &model, const ViewStyle &vsDraw, const LineLayout *ll,
-	Sci::Line line, int xStart, PRectangle rcLine, int subLine, DrawPhase phase) {
+	Sci::Line line, int xOrigin, PRectangle rcLine, int subLine, DrawPhase phase) {
 	const int indent = static_cast<int>(model.pdoc->GetLineIndentation(line) * vsDraw.spaceWidth);
 	PRectangle rcSegment = rcLine;
 	const int annotationLine = subLine - ll->lines;
@@ -1375,13 +1375,13 @@ void EditView::DrawAnnotation(Surface *surface, const EditModel &model, const Vi
 		if (FlagSet(phase, DrawPhase::back)) {
 			surface->FillRectangleAligned(rcSegment, Fill(vsDraw.styles[0].back));
 		}
-		rcSegment.left = static_cast<XYPOSITION>(xStart);
+		rcSegment.left = static_cast<XYPOSITION>(xOrigin);
 		if (model.trackLineWidth || AnnotationBoxedOrIndented(vsDraw.annotationVisible)) {
 			// Only care about calculating width if tracking or need to draw indented box
 			int widthAnnotation = WidestLineWidth(surface, vsDraw, vsDraw.annotationStyleOffset, stAnnotation);
 			if (AnnotationBoxedOrIndented(vsDraw.annotationVisible)) {
 				widthAnnotation += static_cast<int>(vsDraw.spaceWidth * 2); // Margins
-				rcSegment.left = static_cast<XYPOSITION>(xStart + indent);
+				rcSegment.left = static_cast<XYPOSITION>(xOrigin + indent);
 				rcSegment.right = rcSegment.left + widthAnnotation;
 			}
 			UpdateMaxWidth(widthAnnotation);
@@ -1426,7 +1426,7 @@ void EditView::DrawAnnotation(Surface *surface, const EditModel &model, const Vi
 namespace {
 
 void DrawBlockCaret(Surface *surface, const EditModel &model, const ViewStyle &vsDraw, const LineLayout *ll,
-	int subLine, int xStart, Sci::Position offset, Sci::Position posCaret, PRectangle rcCaret, ColourRGBA caretColour) {
+	int subLine, int xOrigin, Sci::Position offset, Sci::Position posCaret, PRectangle rcCaret, ColourRGBA caretColour) {
 
 	const Sci::Position lineStart = ll->LineStart(subLine);
 	Sci::Position posBefore = posCaret;
@@ -1470,8 +1470,8 @@ void DrawBlockCaret(Surface *surface, const EditModel &model, const ViewStyle &v
 	}
 
 	// We now know what to draw, update the caret drawing rectangle
-	rcCaret.left = ll->positions[offsetFirstChar] - ll->positions[lineStart] + xStart;
-	rcCaret.right = ll->positions[offsetFirstChar + numCharsToDraw] - ll->positions[lineStart] + xStart;
+	rcCaret.left = ll->positions[offsetFirstChar] - ll->positions[lineStart] + xOrigin;
+	rcCaret.right = ll->positions[offsetFirstChar + numCharsToDraw] - ll->positions[lineStart] + xOrigin;
 
 	// Adjust caret position to take into account any word wrapping symbols.
 	if ((ll->wrapIndent != 0) && (lineStart != 0)) {
@@ -1493,7 +1493,7 @@ void DrawBlockCaret(Surface *surface, const EditModel &model, const ViewStyle &v
 }
 
 void EditView::DrawCarets(Surface *surface, const EditModel &model, const ViewStyle &vsDraw, const LineLayout *ll,
-	Sci::Line lineDoc, int xStart, PRectangle rcLine, int subLine) const {
+	Sci::Line lineDoc, int xOrigin, PRectangle rcLine, int subLine) const {
 	// When drag is active it is the only caret drawn
 	const bool drawDrag = model.posDrag.IsValid();
 	if (!vsDraw.selection.visible && !drawDrag)
@@ -1559,7 +1559,7 @@ void EditView::DrawCarets(Surface *surface, const EditModel &model, const ViewSt
 
 				if (xposCaret > 0)
 					caretWidthOffset = 0.51f;	// Move back so overlaps both character cells.
-				xposCaret += xStart;
+				xposCaret += xOrigin;
 				const ViewStyle::CaretShape caretShape = drawDrag ? ViewStyle::CaretShape::line :
 					vsDraw.CaretShapeForMode(model.inOverstrike, mainCaret);
 				if (drawDrag) {
@@ -1589,7 +1589,7 @@ void EditView::DrawCarets(Surface *surface, const EditModel &model, const ViewSt
 				const ColourRGBA caretColour = vsDraw.ElementColourForced(elementCaret);
 				//assert(caretColour.IsOpaque());
 				if (drawBlockCaret) {
-					DrawBlockCaret(surface, model, vsDraw, ll, subLine, xStart, offset, posCaret.Position(), rcCaret, caretColour);
+					DrawBlockCaret(surface, model, vsDraw, ll, subLine, xOrigin, offset, posCaret.Position(), rcCaret, caretColour);
 				} else {
 					surface->FillRectangleAligned(rcCaret, Fill(caretColour));
 				}
@@ -2377,10 +2377,10 @@ void EditView::DrawIndentGuidesOverEmpty(Surface *surface, const EditModel &mode
 }
 
 void EditView::DrawLine(Surface *surface, const EditModel &model, const ViewStyle &vsDraw, const LineLayout *ll,
-	Sci::Line line, Sci::Line lineVisible, int xStart, PRectangle rcLine, int subLine, DrawPhase phase) {
+	Sci::Line line, Sci::Line lineVisible, int xOrigin, PRectangle rcLine, int subLine, DrawPhase phase) {
 
 	if (subLine >= ll->lines) {
-		DrawAnnotation(surface, model, vsDraw, ll, line, xStart, rcLine, subLine, phase);
+		DrawAnnotation(surface, model, vsDraw, ll, line, xOrigin, rcLine, subLine, phase);
 		return; // No further drawing
 	}
 
@@ -2400,10 +2400,10 @@ void EditView::DrawLine(Surface *surface, const EditModel &model, const ViewStyl
 
 	if ((ll->wrapIndent != 0) && (subLine > 0)) {
 		if (FlagSet(phase, DrawPhase::back)) {
-			DrawWrapIndentAndMarker(surface, vsDraw, ll, xStart, rcLine, background, customDrawWrapMarker, model.caret.active);
+			DrawWrapIndentAndMarker(surface, vsDraw, ll, xOrigin, rcLine, background, customDrawWrapMarker, model.caret.active);
 		}
-		xStart += static_cast<int>(ll->wrapIndent);
 	}
+	const int xStart = xOrigin + ((subLine > 0) ? static_cast<int>(ll->wrapIndent) : 0);
 
 	if (phasesDraw != PhasesDraw::One) {
 		if (FlagSet(phase, DrawPhase::back)) {
@@ -2493,7 +2493,7 @@ void EditView::PaintText(Surface *surfaceWindow, const EditModel &model, const V
 		const Point ptOrigin = model.GetVisibleOriginInMain();
 
 		const int screenLinePaintFirst = static_cast<int>(rcArea.top) / vsDraw.lineHeight;
-		const int xStart = vsDraw.textStart - model.xOffset + static_cast<int>(ptOrigin.x);
+		const int xOrigin = vsDraw.textStart - model.xOffset + static_cast<int>(ptOrigin.x);
 
 		const SelectionPosition posCaret = model.posDrag.IsValid() ? model.posDrag : model.sel.RangeMain().caret;
 		const Sci::Line lineCaret = model.pdoc->SciLineFromPosition(posCaret.Position());
@@ -2584,7 +2584,7 @@ void EditView::PaintText(Surface *surfaceWindow, const EditModel &model, const V
 						surface->FillRectangleAligned(rcSpacer, Fill(vsDraw.styles[StyleDefault].back));
 					}
 
-					DrawLine(surface, model, vsDraw, ll.get(), lineDoc, visibleLine, xStart, rcLine, subLine, phase);
+					DrawLine(surface, model, vsDraw, ll.get(), lineDoc, visibleLine, xOrigin, rcLine, subLine, phase);
 #if defined(TIME_PAINTING)
 					durPaint += ep.Duration(true);
 #endif
@@ -2596,7 +2596,7 @@ void EditView::PaintText(Surface *surfaceWindow, const EditModel &model, const V
 					}
 
 					if (FlagSet(phase, DrawPhase::carets)) {
-						DrawCarets(surface, model, vsDraw, ll.get(), lineDoc, xStart, rcLine, subLine);
+						DrawCarets(surface, model, vsDraw, ll.get(), lineDoc, xOrigin, rcLine, subLine);
 					}
 
 					if (bufferedDraw) {
@@ -2641,14 +2641,14 @@ void EditView::PaintText(Surface *surfaceWindow, const EditModel &model, const V
 			surfaceWindow->FillRectangleAligned(rcBeyondEOF, Fill(vsDraw.styles[StyleDefault].back));
 			if (vsDraw.edgeState == EdgeVisualStyle::Line) {
 				const int edgeX = static_cast<int>(vsDraw.theEdge.column * vsDraw.spaceWidth);
-				rcBeyondEOF.left = static_cast<XYPOSITION>(edgeX + xStart);
+				rcBeyondEOF.left = static_cast<XYPOSITION>(edgeX + xOrigin);
 				rcBeyondEOF.right = rcBeyondEOF.left + 1;
 				surfaceWindow->FillRectangleAligned(rcBeyondEOF, Fill(vsDraw.theEdge.colour));
 			} else if (vsDraw.edgeState == EdgeVisualStyle::MultiLine) {
 				for (size_t edge = 0; edge < vsDraw.theMultiEdge.size(); edge++) {
 					if (vsDraw.theMultiEdge[edge].column >= 0) {
 						const int edgeX = static_cast<int>(vsDraw.theMultiEdge[edge].column * vsDraw.spaceWidth);
-						rcBeyondEOF.left = static_cast<XYPOSITION>(edgeX + xStart);
+						rcBeyondEOF.left = static_cast<XYPOSITION>(edgeX + xOrigin);
 						rcBeyondEOF.right = rcBeyondEOF.left + 1;
 						surfaceWindow->FillRectangleAligned(rcBeyondEOF, Fill(vsDraw.theMultiEdge[edge].colour));
 					}
@@ -2760,7 +2760,7 @@ Sci::Position EditView::FormatRange(bool draw, CharacterRangeFull chrg, Rectangl
 	// Ensure we are styled to where we are formatting.
 	model.pdoc->EnsureStyledTo(endPosPrint);
 
-	const int xStart = vsPrint.fixedColumnWidth + rc.left;
+	const int xOrigin = vsPrint.fixedColumnWidth + rc.left;
 	int ypos = rc.top;
 
 	Sci::Line lineDoc = linePrintStart;
@@ -2834,7 +2834,7 @@ Sci::Position EditView::FormatRange(bool draw, CharacterRangeFull chrg, Rectangl
 					if (draw) {
 						rcLine.top = static_cast<XYPOSITION>(ypos);
 						rcLine.bottom = static_cast<XYPOSITION>(ypos + vsPrint.lineHeight);
-						DrawLine(surface, model, vsPrint, &ll, lineDoc, visibleLine, xStart, rcLine, iwl, DrawPhase::all);
+						DrawLine(surface, model, vsPrint, &ll, lineDoc, visibleLine, xOrigin, rcLine, iwl, DrawPhase::all);
 					}
 					ypos += vsPrint.lineHeight;
 				}
