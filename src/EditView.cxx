@@ -892,6 +892,7 @@ ColourRGBA TextBackground(const EditModel &model, const ViewStyle &vsDraw, const
 	return vsDraw.styles[styleMain].back;
 }
 
+// Draw inverted text in a filled rectangle but omit the 4 corner pixels so appears rounded.
 void DrawTextBlob(Surface *surface, const ViewStyle &vsDraw, PRectangle rcSegment,
 	std::string_view text, ColourRGBA textBack, ColourRGBA textFore, bool fillBackground) {
 	if (rcSegment.Empty())
@@ -905,13 +906,14 @@ void DrawTextBlob(Surface *surface, const ViewStyle &vsDraw, PRectangle rcSegmen
 	rcCChar.left = rcCChar.left + 1;
 	rcCChar.top = rcSegment.top + vsDraw.maxAscent - normalCharHeight;
 	rcCChar.bottom = rcSegment.top + vsDraw.maxAscent + 1;
-	PRectangle rcCentral = rcCChar;
-	rcCentral.top++;
-	rcCentral.bottom--;
+
+	// Ensure pixels to left and right coloured for central part avoiding top and bottom
+	// pixels which will be drawn by DrawTextClippedUTF8.
+	const PRectangle rcCentral = rcCChar.Inset(Point(0, 1));
 	surface->FillRectangleAligned(rcCentral, Fill(textFore));
-	PRectangle rcChar = rcCChar;
-	rcChar.left++;
-	rcChar.right--;
+
+	const PRectangle rcChar = rcCChar.Inset(Point(1, 0));
+	// NOLINTNEXTLINE(readability-suspicious-call-argument) Inverted text
 	surface->DrawTextClippedUTF8(rcChar, ctrlCharsFont,
 		rcSegment.top + vsDraw.maxAscent, text,
 		textBack, textFore);
@@ -1541,7 +1543,6 @@ void EditView::DrawCarets(Surface *surface, const EditModel &model, const ViewSt
 				bool canDrawBlockCaret = true;
 				bool drawBlockCaret = false;
 				XYPOSITION widthOverstrikeCaret;
-				XYPOSITION caretWidthOffset = 0;
 				PRectangle rcCaret = rcLine;
 
 				if (posCaret.Position() == model.pdoc->Length()) {   // At end of document
@@ -1558,8 +1559,10 @@ void EditView::DrawCarets(Surface *surface, const EditModel &model, const ViewSt
 				constexpr XYPOSITION minimumBlockCaretWidth = 3.0f;
 				widthOverstrikeCaret = std::max(widthOverstrikeCaret, minimumBlockCaretWidth);
 
-				if (xposCaret > 0)
-					caretWidthOffset = 0.51f;	// Move back so overlaps both character cells.
+				// Move back slightly so line caret overlaps both character cells unless at start of text area.
+				constexpr XYPOSITION justOverHalf = 0.51f;
+				const XYPOSITION caretWidthOffset = (xposCaret > 0) ? justOverHalf : 0;
+
 				xposCaret += xOrigin;
 				const ViewStyle::CaretShape caretShape = drawDrag ? ViewStyle::CaretShape::line :
 					vsDraw.CaretShapeForMode(model.inOverstrike, mainCaret);
@@ -2232,6 +2235,7 @@ void EditView::DrawForeground(Surface *surface, const EditModel &model, const Vi
 						// is taken by an individual character - internal leading gives varying results.
 						const Font *ctrlCharsFont = vsDraw.styles[StyleControlChar].font.get();
 						const char cc[2] = { static_cast<char>(vsDraw.controlCharSymbol), '\0' };
+						// NOLINTNEXTLINE(readability-suspicious-call-argument) Inverted text
 						surface->DrawTextNoClip(rcSegment, ctrlCharsFont,
 							ybase, cc, textBack, textFore);
 					} else {
@@ -2333,12 +2337,16 @@ void EditView::DrawIndentGuidesOverEmpty(Surface *surface, const EditModel &mode
 
 		// Find the most recent line with some text
 
+		constexpr int largeIndent = 100000;
+
+		constexpr Sci::Line maxCheck = 20;
+
 		Sci::Line lineLastWithText = line;
-		while (lineLastWithText > std::max(line - 20, static_cast<Sci::Line>(0)) && model.pdoc->IsWhiteLine(lineLastWithText)) {
+		while (lineLastWithText > std::max(line - maxCheck, static_cast<Sci::Line>(0)) && model.pdoc->IsWhiteLine(lineLastWithText)) {
 			lineLastWithText--;
 		}
 		if (lineLastWithText < line) {
-			xStartText = 100000;	// Don't limit to visible indentation on empty line
+			xStartText = largeIndent;	// Don't limit to visible indentation on empty line
 			// This line is empty, so use indentation of last line with text
 			int indentLastWithText = model.pdoc->GetLineIndentation(lineLastWithText);
 			const int isFoldHeader = LevelIsHeader(model.pdoc->GetFoldLevel(lineLastWithText));
@@ -2347,21 +2355,21 @@ void EditView::DrawIndentGuidesOverEmpty(Surface *surface, const EditModel &mode
 				indentLastWithText += model.pdoc->IndentSize();
 			}
 			if (vsDraw.viewIndentationGuides == IndentView::LookForward) {
-				// In viLookForward mode, previous line only used if it is a fold header
+				// In LookForward mode, previous line only used if it is a fold header
 				if (isFoldHeader) {
 					indentSpace = std::max(indentSpace, indentLastWithText);
 				}
-			} else {	// viLookBoth
+			} else {	// LookBoth
 				indentSpace = std::max(indentSpace, indentLastWithText);
 			}
 		}
 
 		Sci::Line lineNextWithText = line;
-		while (lineNextWithText < std::min(line + 20, model.pdoc->LinesTotal()) && model.pdoc->IsWhiteLine(lineNextWithText)) {
+		while (lineNextWithText < std::min(line + maxCheck, model.pdoc->LinesTotal()) && model.pdoc->IsWhiteLine(lineNextWithText)) {
 			lineNextWithText++;
 		}
 		if (lineNextWithText > line) {
-			xStartText = 100000;	// Don't limit to visible indentation on empty line
+			xStartText = largeIndent;	// Don't limit to visible indentation on empty line
 			// This line is empty, so use indentation of first next line with text
 			indentSpace = std::max(indentSpace,
 				model.pdoc->GetLineIndentation(lineNextWithText));
