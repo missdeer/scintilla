@@ -17,6 +17,7 @@
 #include <string>
 #include <string_view>
 #include <vector>
+#include <array>
 #include <map>
 #include <set>
 #include <forward_list>
@@ -355,10 +356,10 @@ void LayoutSegments(IPositionCache *pCache,
 					representationWidth = vstyle.controlCharWidth;
 					if (representationWidth <= 0.0) {
 						assert(ts.representation->stringRep.length() <= Representation::maxLength);
-						XYPOSITION positionsRepr[Representation::maxLength + 1];
+						std::array<XYPOSITION, Representation::maxLength + 1> positionsRepr;
 						// ts.representation->stringRep is UTF-8.
 						pCache->MeasureWidths(surface, vstyle, StyleControlChar, true, ts.representation->stringRep,
-							positionsRepr, multiThreaded);
+							positionsRepr.data(), multiThreaded);
 						representationWidth = positionsRepr[ts.representation->stringRep.length() - 1];
 						if (FlagSet(ts.representation->appearance, RepresentationAppearance::Blob)) {
 							representationWidth += vstyle.ctrlCharPadding;
@@ -377,9 +378,9 @@ void LayoutSegments(IPositionCache *pCache,
 			}
 		} else if (vstyle.styles[styleSegment].invisibleRepresentation[0]) {
 			const std::string_view text = vstyle.styles[styleSegment].invisibleRepresentation;
-			XYPOSITION positionsRepr[Representation::maxLength + 1];
+			std::array<XYPOSITION, Representation::maxLength + 1> positionsRepr;
 			// invisibleRepresentation is UTF-8.
-			pCache->MeasureWidths(surface, vstyle, styleSegment, true, text, positionsRepr, multiThreaded);
+			pCache->MeasureWidths(surface, vstyle, styleSegment, true, text, positionsRepr.data(), multiThreaded);
 			const XYPOSITION representationWidth = positionsRepr[text.length() - 1];
 			std::fill(positions, positions + ts.length, representationWidth);
 		}
