@@ -257,6 +257,8 @@ public:
 	bool More() const noexcept;
 };
 
+constexpr size_t positionCacheDefaultSize = 0x400;
+
 class IPositionCache {
 public:
 	virtual ~IPositionCache() = default;

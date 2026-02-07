@@ -190,7 +190,7 @@ EditView::EditView() {
 	imeCaretBlockOverride = false;
 	llc.SetLevel(LineCache::Caret);
 	posCache = CreatePositionCache();
-	posCache->SetSize(0x400);
+	posCache->SetSize(positionCacheDefaultSize);
 	maxLayoutThreads = 1;
 	tabArrowHeight = 4;
 	customDrawTabArrow = nullptr;
@@ -740,7 +740,8 @@ SelectionPosition EditView::SPositionFromLocation(Surface *surface, const EditMo
 				const int spaceOffset = static_cast<int>(
 					(pt.x + subLineStart - ll->positions[rangeSubLine.end] + spaceWidth / 2) / spaceWidth);
 				return SelectionPosition(rangeSubLine.end + posLineStart, spaceOffset);
-			} else if (canReturnInvalid) {
+			}
+			if (canReturnInvalid) {
 				if (pt.x < (ll->positions[rangeSubLine.end] - subLineStart)) {
 					return SelectionPosition(model.pdoc->MovePositionOutsideChar(rangeSubLine.end + posLineStart, 1));
 				}
@@ -1908,7 +1909,7 @@ void DrawTabArrow(Surface *surface, PRectangle rcTab, int ymid,
 
 	// Draw the arrow head if needed
 	if (vsDraw.tabDrawMode == TabDrawMode::LongArrow) {
-		XYPOSITION ydiff = std::floor(rcTab.Height() / 2.0f);
+		XYPOSITION ydiff = std::floor(rcTab.Height() / 2);
 		XYPOSITION xhead = rightStroke - ydiff;
 		if (xhead <= rcTab.left) {
 			ydiff -= rcTab.left - xhead;
@@ -2027,7 +2028,7 @@ void DrawIndicators(Surface *surface, const EditModel &model, const ViewStyle &v
 				const Sci::Position endPos = std::min(rangeRun.end, posLineEnd);
 				const int edition = model.pdoc->EditionAt(startPos);
 				if (edition != 0) {
-					const int indicator = (edition - 1) * 2 + indexHistory;
+					const int indicator = ((edition - 1) * 2) + indexHistory;
 					const Sci::Position posSecond = model.pdoc->MovePositionOutsideChar(rangeRun.First() + 1, 1);
 					DrawIndicator(indicator, startPos - posLineStart, endPos - posLineStart,
 						surface, vsDraw, ll, xStart, rcLine, posSecond - posLineStart, subLine, Indicator::State::normal,
@@ -2044,7 +2045,7 @@ void DrawIndicators(Surface *surface, const EditModel &model, const ViewStyle &v
 				const Sci::Position posSecond = model.pdoc->MovePositionOutsideChar(startPos + 1, 1);
 				for (unsigned int edition = 0; edition < 4; edition++) {
 					if (editions & (1 << edition)) {
-						const int indicator = edition * 2 + indexHistory + 1;
+						const int indicator = (edition * 2) + indexHistory + 1;
 						DrawIndicator(indicator, startPos - posLineStart, posSecond - posLineStart,
 							surface, vsDraw, ll, xStart, rcLine, posSecond - posLineStart, subLine, Indicator::State::normal,
 							1, model.BidirectionalEnabled(), tabWidthMinimumPixels);
@@ -2103,7 +2104,7 @@ ColourRGBA InvertedLight(ColourRGBA orig) noexcept {
 
 }
 
-void EditView::DrawIndentGuide(Surface *surface, XYPOSITION start, PRectangle rcSegment, bool highlight, bool offset) {
+void EditView::DrawIndentGuide(Surface *surface, XYPOSITION start, PRectangle rcSegment, bool highlight, bool offset) const {
 	const Point from = Point::FromInts(0, offset ? 1 : 0);
 	const PRectangle rcCopyArea(start + 1, rcSegment.top,
 		start + 2, rcSegment.bottom);
@@ -2215,7 +2216,7 @@ void EditView::DrawForeground(Surface *surface, const EditModel &model, const Vi
 						if (vsDraw.WhiteSpaceVisible(inIndentation)) {
 							const PRectangle rcTab(rcSegment.left + 1, rcSegment.top + tabArrowHeight,
 								rcSegment.right - 1, rcSegment.bottom - vsDraw.maxDescent);
-							const int segmentTop = static_cast<int>(rcSegment.top) + vsDraw.lineHeight / 2;
+							const int segmentTop = static_cast<int>(rcSegment.top) + (vsDraw.lineHeight / 2);
 							const ColourRGBA whiteSpaceFore = vsDraw.ElementColour(Element::WhiteSpace).value_or(textFore);
 							if (!customDrawTabArrow)
 								DrawTabArrow(surface, rcTab, segmentTop, vsDraw, Stroke(whiteSpaceFore, 1.0f));
@@ -2282,7 +2283,7 @@ void EditView::DrawForeground(Surface *surface, const EditModel &model, const Vi
 									}
 									const int halfDotWidth = vsDraw.whitespaceSize / 2;
 									PRectangle rcDot(xmid - halfDotWidth,
-										rcSegment.top + vsDraw.lineHeight / 2, 0.0f, 0.0f);
+										rcSegment.top + (vsDraw.lineHeight / 2), 0.0f, 0.0f);
 									rcDot.right = rcDot.left + vsDraw.whitespaceSize;
 									rcDot.bottom = rcDot.top + vsDraw.whitespaceSize;
 									const ColourRGBA whiteSpaceFore = vsDraw.ElementColour(Element::WhiteSpace).value_or(textFore);

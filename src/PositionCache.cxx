@@ -1000,14 +1000,13 @@ public:
 };
 
 class PositionCache : public IPositionCache {
-	static constexpr size_t defaultCacheSize = 0x400;
-	std::vector<PositionCacheEntry> pces{ defaultCacheSize };
+	std::vector<PositionCacheEntry> pces{ positionCacheDefaultSize };
 	std::mutex mutex;
 	uint16_t clock = 1;
 	bool allClear = true;
 public:
 	PositionCache();
-	// Deleted so LineAnnotation objects can not be copied.
+	// Deleted so PositionCache objects can not be copied.
 	PositionCache(const PositionCache &) = delete;
 	PositionCache(PositionCache &&) = delete;
 	void operator=(const PositionCache &) = delete;
