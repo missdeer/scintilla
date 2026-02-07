@@ -921,26 +921,31 @@ void DrawTextBlob(Surface *surface, const ViewStyle &vsDraw, PRectangle rcSegmen
 }
 
 void FillLineRemainder(Surface *surface, const EditModel &model, const ViewStyle &vsDraw, const LineLayout *ll,
-	Sci::Line line, PRectangle rcArea, int subLine) {
+	Sci::Line line, PRectangle rcLine, XYPOSITION left, int subLine) {
 	InSelection eolInSelection = InSelection::inNone;
 	if (vsDraw.selection.visible && (subLine == (ll->lines - 1))) {
 		eolInSelection = model.LineEndInSelection(line);
 	}
+	const bool drawEOLSelection = eolInSelection && vsDraw.selection.eolFilled && (line < model.pdoc->LinesTotal() - 1);
 
-	if (eolInSelection && vsDraw.selection.eolFilled && (line < model.pdoc->LinesTotal() - 1) && (vsDraw.selection.layer == Layer::Base)) {
-		surface->FillRectangleAligned(rcArea, Fill(SelectionBackground(model, vsDraw, eolInSelection).Opaque()));
+	const PRectangle rcArea = Clamp(rcLine, Edge::left, left);	// Limit to right side of line from 'left'
+
+	const ColourRGBA selectionBack = drawEOLSelection ? SelectionBackground(model, vsDraw, eolInSelection) : ColourRGBA{};
+	ColourRGBA base = vsDraw.styles[StyleDefault].back;
+	if (drawEOLSelection && (vsDraw.selection.layer == Layer::Base)) {
+		base = selectionBack;
 	} else {
 		const ColourOptional background = vsDraw.Background(model.GetMark(line), model.caret.active, ll->containsCaret);
 		if (background) {
-			surface->FillRectangleAligned(rcArea, Fill(*background));
+			base = *background;
 		} else if (vsDraw.styles[ll->LastStyle()].eolFilled) {
-			surface->FillRectangleAligned(rcArea, Fill(vsDraw.styles[ll->LastStyle()].back));
-		} else {
-			surface->FillRectangleAligned(rcArea, Fill(vsDraw.styles[StyleDefault].back));
+			base = vsDraw.styles[ll->LastStyle()].back;
 		}
-		if (eolInSelection && vsDraw.selection.eolFilled && (line < model.pdoc->LinesTotal() - 1) && (vsDraw.selection.layer != Layer::Base)) {
-			surface->FillRectangleAligned(rcArea, SelectionBackground(model, vsDraw, eolInSelection));
-		}
+	}
+	surface->FillRectangleAligned(rcArea, Fill(base.Opaque()));
+	if (drawEOLSelection && (vsDraw.selection.layer != Layer::Base)) {
+		// This may be translucent
+		surface->FillRectangleAligned(rcArea, selectionBack);
 	}
 }
 
@@ -1126,14 +1131,11 @@ void EditView::DrawEOL(Surface *surface, const EditModel &model, const ViewStyle
 		}
 	}
 
-	rcSegment.left = std::max(rcSegment.right, rcLine.left);
-	rcSegment.right = rcLine.right;
-
 	const bool drawEOLAnnotationStyledText = (vsDraw.eolAnnotationVisible != EOLAnnotationVisible::Hidden) && model.pdoc->EOLAnnotationStyledText(line).text;
 	const bool fillRemainder = (!lastSubLine || (!model.GetFoldDisplayText(line) && !drawEOLAnnotationStyledText));
 	if (fillRemainder) {
 		// Fill the remainder of the line
-		FillLineRemainder(surface, model, vsDraw, ll, line, rcSegment, subLine);
+		FillLineRemainder(surface, model, vsDraw, ll, line, rcLine, rcSegment.right, subLine);
 	}
 
 	bool drawWrapMarkEnd = false;
@@ -1150,8 +1152,8 @@ void EditView::DrawEOL(Surface *surface, const EditModel &model, const ViewStyle
 	}
 
 	if (drawWrapMarkEnd) {
-		PRectangle rcPlace = rcSegment;
-		const XYPOSITION maxLeft = rcPlace.right - vsDraw.aveCharWidth;
+		PRectangle rcPlace = rcLine;
+		const XYPOSITION maxLeft = rcLine.right - vsDraw.aveCharWidth;
 
 		if (FlagSet(vsDraw.wrap.visualFlagsLocation, WrapVisualLocation::EndByText)) {
 			rcPlace.left = std::min(xEol + xStart + virtualSpace, maxLeft);
@@ -1210,10 +1212,7 @@ void EditView::DrawFoldDisplayText(Surface *surface, const EditModel &model, con
 		surface->FillRectangleAligned(rcSegment, Fill(textBack));
 
 		// Fill Remainder of the line
-		PRectangle rcRemainder = rcSegment;
-		rcRemainder.left = std::max(rcRemainder.right, rcLine.left);
-		rcRemainder.right = rcLine.right;
-		FillLineRemainder(surface, model, vsDraw, ll, line, rcRemainder, subLine);
+		FillLineRemainder(surface, model, vsDraw, ll, line, rcLine, rcSegment.right, subLine);
 	}
 
 	if (FlagSet(phase, DrawPhase::text)) {
@@ -1302,9 +1301,7 @@ void EditView::DrawEOLAnnotationText(Surface *surface, const EditModel &model, c
 		// it may be double drawing. This is to allow stadiums with
 		// curved or angled ends to have the area outside in the correct
 		// background colour.
-		PRectangle rcRemainder = rcSegment;
-		rcRemainder.right = rcLine.right;
-		FillLineRemainder(surface, model, vsDraw, ll, line, rcRemainder, subLine);
+		FillLineRemainder(surface, model, vsDraw, ll, line, rcLine, rcSegment.right, subLine);
 	}
 
 	const PRectangle rcText = TextPart(rcSegment, padding);
