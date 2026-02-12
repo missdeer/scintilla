@@ -1105,32 +1105,31 @@ void EditView::DrawEOL(Surface *surface, const EditModel &model, const ViewStyle
 	}
 
 	// Draw the eol-is-selected rectangle
-	rcSegment.left = xEol + xStart + virtualSpace + blobsWidth;
-	rcSegment.right = rcSegment.left + vsDraw.aveCharWidth;
-
+	const PRectangle rcEOLIsSelected = rcLine.WithHorizontalBounds(
+		Interval::FromLeftAndWidth(xEol + xStart + virtualSpace + blobsWidth, vsDraw.aveCharWidth));
+	ColourRGBA base = vsDraw.styles[StyleDefault].back;
 	if (drawEOLSelection && (vsDraw.selection.layer == Layer::Base)) {
-		surface->FillRectangleAligned(rcSegment, Fill(selectionBack.Opaque()));
+		base = selectionBack;
+	} else if (background) {
+		base = *background;
 	} else {
-		if (background) {
-			surface->FillRectangleAligned(rcSegment, Fill(*background));
-		} else {
-			const Style &styleLast = vsDraw.styles[ll->LastStyle()];
-			if (!lastLine || styleLast.eolFilled) {
-				surface->FillRectangleAligned(rcSegment, Fill(styleLast.back));
-			} else {
-				surface->FillRectangleAligned(rcSegment, Fill(vsDraw.styles[StyleDefault].back));
-			}
+		const Style &styleLast = vsDraw.styles[ll->LastStyle()];
+		if (!lastLine || styleLast.eolFilled) {
+			// TODO: the !lastLine|| seems wrong but it has been included
+			// since at least 2009. https://sourceforge.net/p/scintilla/code/ci/1b042b53bbde/
+			base = styleLast.back;
 		}
-		if (drawEOLSelection && (vsDraw.selection.layer != Layer::Base)) {
-			surface->FillRectangleAligned(rcSegment, selectionBack);
-		}
+	}
+	surface->FillRectangleAligned(rcEOLIsSelected, Fill(base.Opaque()));
+	if (drawEOLSelection && (vsDraw.selection.layer != Layer::Base)) {
+		surface->FillRectangleAligned(rcEOLIsSelected, selectionBack);
 	}
 
 	const bool drawEOLAnnotationStyledText = (vsDraw.eolAnnotationVisible != EOLAnnotationVisible::Hidden) && model.pdoc->EOLAnnotationStyledText(line).text;
 	const bool fillRemainder = (!lastSubLine || (!model.GetFoldDisplayText(line) && !drawEOLAnnotationStyledText));
 	if (fillRemainder) {
 		// Fill the remainder of the line
-		FillLineRemainder(surface, model, vsDraw, ll, line, rcLine, rcSegment.right, subLine);
+		FillLineRemainder(surface, model, vsDraw, ll, line, rcLine, rcEOLIsSelected.right, subLine);
 	}
 
 	bool drawWrapMarkEnd = false;
