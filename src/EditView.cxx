@@ -1036,10 +1036,10 @@ void EditView::DrawEOL(Surface *surface, const EditModel &model, const ViewStyle
 		}
 	}
 
-	InSelection eolInSelection = InSelection::inNone;
-	if (vsDraw.selection.visible && lastSubLine) {
-		eolInSelection = model.LineEndInSelection(line);
-	}
+	const InSelection eolInSelection = (vsDraw.selection.visible && lastSubLine) ?
+		model.LineEndInSelection(line) : InSelection::inNone;
+	const bool lastLine = line >= (model.pdoc->LinesTotal() - 1);
+	const bool drawEOLSelection = eolInSelection && !lastLine;
 
 	const ColourRGBA selectionBack = SelectionBackground(model, vsDraw, eolInSelection);
 
@@ -1081,16 +1081,11 @@ void EditView::DrawEOL(Surface *surface, const EditModel &model, const ViewStyle
 			rcSegment.right = xStart + ll->positions[eolPos + widthBytes] - subLineStart + virtualSpace;
 			blobsWidth += rcSegment.Width();
 			const ColourRGBA textBack = TextBackground(model, vsDraw, ll, background, eolInSelection, false, styleMain, eolPos);
-			if (eolInSelection && (line < model.pdoc->LinesTotal() - 1)) {
-				if (vsDraw.selection.layer == Layer::Base) {
-					surface->FillRectangleAligned(rcSegment, Fill(selectionBack.Opaque()));
-				} else {
-					surface->FillRectangleAligned(rcSegment, Fill(textBack));
-				}
+			if (drawEOLSelection && (vsDraw.selection.layer == Layer::Base)) {
+				surface->FillRectangleAligned(rcSegment, Fill(selectionBack.Opaque()));
 			} else {
 				surface->FillRectangleAligned(rcSegment, Fill(textBack));
 			}
-			const bool drawEOLSelection = eolInSelection && (line < model.pdoc->LinesTotal() - 1);
 			ColourRGBA blobText = textBack;
 			if (drawEOLSelection && (vsDraw.selection.layer == Layer::UnderText)) {
 				surface->FillRectangleAligned(rcSegment, selectionBack);
@@ -1113,20 +1108,20 @@ void EditView::DrawEOL(Surface *surface, const EditModel &model, const ViewStyle
 	rcSegment.left = xEol + xStart + virtualSpace + blobsWidth;
 	rcSegment.right = rcSegment.left + vsDraw.aveCharWidth;
 
-	if (eolInSelection && (line < model.pdoc->LinesTotal() - 1) && (vsDraw.selection.layer == Layer::Base)) {
+	if (drawEOLSelection && (vsDraw.selection.layer == Layer::Base)) {
 		surface->FillRectangleAligned(rcSegment, Fill(selectionBack.Opaque()));
 	} else {
 		if (background) {
 			surface->FillRectangleAligned(rcSegment, Fill(*background));
 		} else {
 			const Style &styleLast = vsDraw.styles[ll->LastStyle()];
-			if ((line < model.pdoc->LinesTotal() - 1) || styleLast.eolFilled) {
+			if (!lastLine || styleLast.eolFilled) {
 				surface->FillRectangleAligned(rcSegment, Fill(styleLast.back));
 			} else {
 				surface->FillRectangleAligned(rcSegment, Fill(vsDraw.styles[StyleDefault].back));
 			}
 		}
-		if (eolInSelection && (line < model.pdoc->LinesTotal() - 1) && (vsDraw.selection.layer != Layer::Base)) {
+		if (drawEOLSelection && (vsDraw.selection.layer != Layer::Base)) {
 			surface->FillRectangleAligned(rcSegment, selectionBack);
 		}
 	}
