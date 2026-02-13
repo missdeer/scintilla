@@ -1052,14 +1052,13 @@ void EditView::DrawEOL(Surface *surface, const EditModel &model, const ViewStyle
 			ColourRGBA textFore = selectionFore.value_or(vsDraw.styles[styleMain].fore);
 			char hexits[4] = "";
 			std::string_view ctrlChar;
-			Sci::Position widthBytes = 1;
 			RepresentationAppearance appearance = RepresentationAppearance::Blob;
-			const Representation *repr = model.reprs->RepresentationFromCharacter(std::string_view(&ll->chars[eolPos], ll->numCharsInLine - eolPos));
-			if (repr) {
-				// Representation of whole text
-				widthBytes = ll->numCharsInLine - eolPos;
-			} else {
-				repr = model.reprs->RepresentationFromCharacter(std::string_view(&ll->chars[eolPos], 1));
+			const std::string_view rest(&ll->chars[eolPos], ll->numCharsInLine - eolPos);
+			const Representation *repr = model.reprs->RepresentationFromCharacter(rest);
+			const Sci::Position widthBytes = repr ? rest.length() : 1;
+			if (!repr) {
+				// No representation of whole line end so try first byte.
+				repr = model.reprs->RepresentationFromCharacter(rest.substr(0, 1));
 			}
 			if (repr) {
 				ctrlChar = repr->stringRep;
@@ -1068,7 +1067,7 @@ void EditView::DrawEOL(Surface *surface, const EditModel &model, const ViewStyle
 					textFore = repr->colour;
 				}
 			} else {
-				const unsigned char chEOL = ll->chars[eolPos];
+				const unsigned char chEOL = rest.front();
 				if (UTF8IsAscii(chEOL)) {
 					ctrlChar = ControlCharacterString(chEOL);
 				} else {
