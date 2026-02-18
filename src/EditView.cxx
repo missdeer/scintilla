@@ -1107,13 +1107,8 @@ void EditView::DrawEOL(Surface *surface, const EditModel &model, const ViewStyle
 		base = selectionBack;
 	} else if (background) {
 		base = *background;
-	} else {
-		const Style &styleLast = vsDraw.styles[ll->LastStyle()];
-		if (!lastLine || styleLast.eolFilled) {
-			// TODO: the !lastLine|| seems wrong but it has been included
-			// since at least 2009. https://sourceforge.net/p/scintilla/code/ci/1b042b53bbde/
-			base = styleLast.back;
-		}
+	} else if (const Style &styleLast = vsDraw.styles[ll->LastStyle()]; styleLast.eolFilled) {
+		base = styleLast.back;
 	}
 	surface->FillRectangleAligned(rcEOLIsSelected, Fill(base.Opaque()));
 	if (drawEOLSelection && (vsDraw.selection.layer != Layer::Base)) {
