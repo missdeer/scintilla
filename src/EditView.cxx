@@ -1046,7 +1046,7 @@ void EditView::DrawEOL(Surface *surface, const EditModel &model, const ViewStyle
 	// Draw the [CR], [LF], or [CR][LF] blobs if visible line ends are on
 	XYPOSITION blobsWidth = 0;
 	if (lastSubLine) {
-		for (Sci::Position eolPos = ll->numCharsBeforeEOL; eolPos<ll->numCharsInLine;) {
+		for (int eolPos = ll->numCharsBeforeEOL; eolPos<ll->numCharsInLine;) {
 			const int styleMain = ll->styles[eolPos];
 			const ColourOptional selectionFore = SelectionForeground(model, vsDraw, eolInSelection);
 			ColourRGBA textFore = selectionFore.value_or(vsDraw.styles[styleMain].fore);
@@ -1055,7 +1055,7 @@ void EditView::DrawEOL(Surface *surface, const EditModel &model, const ViewStyle
 			RepresentationAppearance appearance = RepresentationAppearance::Blob;
 			const std::string_view rest(&ll->chars[eolPos], ll->numCharsInLine - eolPos);
 			const Representation *repr = model.reprs->RepresentationFromCharacter(rest);
-			const Sci::Position widthBytes = repr ? rest.length() : 1;
+			const int widthBytes = repr ? static_cast<int>(rest.length()) : 1;
 			if (!repr) {
 				// No representation of whole line end so try first byte.
 				repr = model.reprs->RepresentationFromCharacter(rest.substr(0, 1));
@@ -1076,28 +1076,28 @@ void EditView::DrawEOL(Surface *surface, const EditModel &model, const ViewStyle
 				}
 			}
 
-			rcSegment.left = xStart + ll->positions[eolPos] - subLineStart + virtualSpace;
-			rcSegment.right = xStart + ll->positions[eolPos + widthBytes] - subLineStart + virtualSpace;
-			blobsWidth += rcSegment.Width();
+			const PRectangle rcBlob = rcLine.WithHorizontalBounds(
+				ll->Span(eolPos, eolPos + widthBytes).Offset(xStart - subLineStart + virtualSpace));
+			blobsWidth += rcBlob.Width();
 			const ColourRGBA textBack = TextBackground(model, vsDraw, ll, background, eolInSelection, false, styleMain, eolPos);
 			if (drawEOLSelection && (vsDraw.selection.layer == Layer::Base)) {
-				surface->FillRectangleAligned(rcSegment, Fill(selectionBack.Opaque()));
+				surface->FillRectangleAligned(rcBlob, Fill(selectionBack.Opaque()));
 			} else {
-				surface->FillRectangleAligned(rcSegment, Fill(textBack));
+				surface->FillRectangleAligned(rcBlob, Fill(textBack));
 			}
 			ColourRGBA blobText = textBack;
 			if (drawEOLSelection && (vsDraw.selection.layer == Layer::UnderText)) {
-				surface->FillRectangleAligned(rcSegment, selectionBack);
+				surface->FillRectangleAligned(rcBlob, selectionBack);
 				blobText = textBack.MixedWith(selectionBack, selectionBack.GetAlphaComponent());
 			}
 			if (FlagSet(appearance, RepresentationAppearance::Blob)) {
-				DrawTextBlob(surface, vsDraw, rcSegment, ctrlChar, blobText, textFore, phasesDraw == PhasesDraw::One);
+				DrawTextBlob(surface, vsDraw, rcBlob, ctrlChar, blobText, textFore, phasesDraw == PhasesDraw::One);
 			} else {
-				surface->DrawTextTransparentUTF8(rcSegment, vsDraw.styles[StyleControlChar].font.get(),
-					rcSegment.top + vsDraw.maxAscent, ctrlChar, textFore);
+				surface->DrawTextTransparentUTF8(rcBlob, vsDraw.styles[StyleControlChar].font.get(),
+					rcBlob.top + vsDraw.maxAscent, ctrlChar, textFore);
 			}
 			if (drawEOLSelection && (vsDraw.selection.layer == Layer::OverText)) {
-				surface->FillRectangleAligned(rcSegment, selectionBack);
+				surface->FillRectangleAligned(rcBlob, selectionBack);
 			}
 			eolPos += widthBytes;
 		}
