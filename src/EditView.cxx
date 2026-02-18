@@ -1002,11 +1002,9 @@ void EditView::DrawEOL(Surface *surface, const EditModel &model, const ViewStyle
 	PRectangle rcSegment = rcLine;
 
 	const bool lastSubLine = subLine == (ll->lines - 1);
-	XYPOSITION virtualSpace = 0;
-	if (lastSubLine) {
-		const XYPOSITION spaceWidth = vsDraw.styles[ll->EndLineStyle()].spaceWidth;
-		virtualSpace = static_cast<XYPOSITION>(model.sel.VirtualSpaceFor(model.pdoc->LineEnd(line))) * spaceWidth;
-	}
+	const Sci::Position virtualSpaces = lastSubLine ? model.VirtualSpaceForLine(line) : 0;
+	const XYPOSITION spaceWidth = lastSubLine ? vsDraw.styles[ll->EndLineStyle()].spaceWidth : 0;
+	const XYPOSITION virtualSpace = static_cast<XYPOSITION>(virtualSpaces) * spaceWidth;
 	const XYPOSITION xEol = ll->positions[lineEnd] - subLineStart;
 
 	// Fill the virtual space and show selections within it
@@ -1017,12 +1015,10 @@ void EditView::DrawEOL(Surface *surface, const EditModel &model, const ViewStyle
 		surface->FillRectangleAligned(rcSegment, backgroundFill);
 		if (vsDraw.selection.visible && (vsDraw.selection.layer == Layer::Base)) {
 			const SelectionSegment virtualSpaceRange(SelectionPosition(model.pdoc->LineEnd(line)),
-				SelectionPosition(model.pdoc->LineEnd(line),
-					model.sel.VirtualSpaceFor(model.pdoc->LineEnd(line))));
+				SelectionPosition(model.pdoc->LineEnd(line), virtualSpaces));
 			for (size_t r = 0; r<model.sel.Count(); r++) {
 				const SelectionSegment portion = model.sel.Range(r).Intersect(virtualSpaceRange);
 				if (!portion.Empty()) {
-					const XYPOSITION spaceWidth = vsDraw.styles[ll->EndLineStyle()].spaceWidth;
 					rcSegment.left = xStart + ll->positions[portion.start.Position() - posLineStart] -
 						subLineStart + portion.start.VirtualSpaceWidth(spaceWidth);
 					rcSegment.right = xStart + ll->positions[portion.end.Position() - posLineStart] -
@@ -1185,8 +1181,7 @@ void EditView::DrawFoldDisplayText(Surface *surface, const EditModel &model, con
 	}
 
 	const XYPOSITION spaceWidth = vsDraw.styles[ll->EndLineStyle()].spaceWidth;
-	const XYPOSITION virtualSpace = static_cast<XYPOSITION>(model.sel.VirtualSpaceFor(
-		model.pdoc->LineEnd(line))) * spaceWidth;
+	const XYPOSITION virtualSpace = static_cast<XYPOSITION>(model.VirtualSpaceForLine(line)) * spaceWidth;
 	rcSegment.left = xStart + ll->positions[ll->numCharsInLine] - subLineStart + virtualSpace + vsDraw.aveCharWidth;
 	rcSegment.right = rcSegment.left + static_cast<XYPOSITION>(widthFoldDisplayText);
 
@@ -1264,8 +1259,7 @@ void EditView::DrawEOLAnnotationText(Surface *surface, const EditModel &model, c
 		padding.left + padding.right);
 
 	const XYPOSITION spaceWidth = vsDraw.styles[ll->EndLineStyle()].spaceWidth;
-	const XYPOSITION virtualSpace = static_cast<XYPOSITION>(model.sel.VirtualSpaceFor(
-		model.pdoc->LineEnd(line))) * spaceWidth;
+	const XYPOSITION virtualSpace = static_cast<XYPOSITION>(model.VirtualSpaceForLine(line)) * spaceWidth;
 	rcSegment.left = xStart +
 		ll->positions[ll->numCharsInLine] - subLineStart
 		+ virtualSpace + vsDraw.aveCharWidth;
@@ -1762,10 +1756,8 @@ void DrawTranslucentSelection(Surface *surface, const EditModel &model, const Vi
 		const XYPOSITION subLineStart = ll->positions[lineRange.start];
 		const XYPOSITION horizontalOffset = xStart - subLineStart;
 		// For each selection draw
-		Sci::Position virtualSpaces = 0;
-		if (subLine == (ll->lines - 1)) {
-			virtualSpaces = model.sel.VirtualSpaceFor(model.pdoc->LineEnd(line));
-		}
+		const Sci::Position virtualSpaces = (subLine == (ll->lines - 1)) ?
+			model.VirtualSpaceForLine(line) : 0;
 		const SelectionPosition posStart(posLineStart + lineRange.start);
 		const SelectionPosition posEnd(posLineStart + lineRange.end, virtualSpaces);
 		const SelectionSegment virtualSpaceRange(posStart, posEnd);
