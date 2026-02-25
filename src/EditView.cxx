@@ -352,7 +352,7 @@ void LayoutSegments(IPositionCache *pCache,
 				XYPOSITION representationWidth = 0.0;
 				// Tab is a special case of representation, taking a variable amount of space
 				// which will be filled in later.
-				if (ll->chars[ts.start] != '\t') {
+				if (ll->chars[ts.start] != '\t' || vstyle.tabDrawMode == TabDrawMode::ControlChar) {
 					representationWidth = vstyle.controlCharWidth;
 					if (representationWidth <= 0.0) {
 						assert(ts.representation->stringRep.length() <= Representation::maxLength);
@@ -522,7 +522,7 @@ void EditView::LayoutLine(const EditModel &model, Surface *surface, const ViewSt
 		for (const TextSegment &ts : segments) {
 			if (vstyle.styles[ll->styles[ts.start]].visible &&
 				ts.representation &&
-				(ll->chars[ts.start] == '\t')) {
+				ll->chars[ts.start] == '\t' && vstyle.tabDrawMode != TabDrawMode::ControlChar) {
 				// Simple visible tab, go to next tab stop
 				const XYPOSITION startTab = ll->positions[ts.start];
 				const XYPOSITION nextTab = NextTabstopPos(line, startTab, vstyle.tabWidth);
@@ -610,7 +610,7 @@ void EditView::UpdateBidiData(const EditModel &model, const ViewStyle &vstyle, L
 			const Representation *repr = model.reprs->RepresentationFromCharacter(std::string_view(&ll->chars[charsInLine], charWidth));
 
 			ll->bidiData->widthReprs[charsInLine] = 0.0f;
-			if (repr && ll->chars[charsInLine] != '\t') {
+			if (repr && (ll->chars[charsInLine] != '\t' || vstyle.tabDrawMode == TabDrawMode::ControlChar)) {
 				ll->bidiData->widthReprs[charsInLine] = ll->positions[charsInLine + charWidth] - ll->positions[charsInLine];
 			}
 			if (charWidth > 1) {
@@ -1673,7 +1673,7 @@ void DrawBackground(Surface *surface, const EditModel &model, const ViewStyle &v
 			ColourRGBA textBack = TextBackground(model, vsDraw, ll, background, inSelection,
 				inHotspot, ll->styles[i], i);
 			if (ts.representation) {
-				if (ll->chars[i] == '\t') {
+				if (ll->chars[i] == '\t' && vsDraw.tabDrawMode != TabDrawMode::ControlChar) {
 					// Tab display
 					if (drawWhitespaceBackground && vsDraw.WhiteSpaceVisible(inIndentation)) {
 						textBack = vsDraw.ElementColourForced(Element::WhiteSpaceBack).Opaque();
@@ -2178,7 +2178,7 @@ void EditView::DrawForeground(Surface *surface, const EditModel &model, const Vi
 			}
 			ColourRGBA textBack = TextBackground(model, vsDraw, ll, background, inSelection, inHotspot, styleMain, i);
 			if (ts.representation) {
-				if (ll->chars[i] == '\t') {
+				if (ll->chars[i] == '\t' && vsDraw.tabDrawMode != TabDrawMode::ControlChar) {
 					// Tab display
 					if (phasesDraw == PhasesDraw::One) {
 						if (drawWhitespaceBackground && vsDraw.WhiteSpaceVisible(inIndentation))
