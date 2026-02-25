@@ -922,6 +922,9 @@ void DrawTextBlob(Surface *surface, const ViewStyle &vsDraw, PRectangle rcSegmen
 
 void FillLineRemainder(Surface *surface, const EditModel &model, const ViewStyle &vsDraw, const LineLayout *ll,
 	Sci::Line line, PRectangle rcLine, XYPOSITION left, int subLine) {
+	if (rcLine.Empty()) {
+		return;
+	}
 	InSelection eolInSelection = InSelection::inNone;
 	if (vsDraw.selection.visible && (subLine == (ll->lines - 1))) {
 		eolInSelection = model.LineEndInSelection(line);
