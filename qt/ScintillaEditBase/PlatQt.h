@@ -71,10 +71,6 @@ inline QPointF QPointFFromPoint(Point qp)
 	return QPointF(qp.x, qp.y);
 }
 
-constexpr PRectangle RectangleInset(PRectangle rc, XYPOSITION delta) noexcept {
-	return PRectangle(rc.left + delta, rc.top + delta, rc.right - delta, rc.bottom - delta);
-}
-
 class SurfaceImpl : public Surface {
 private:
 	QPaintDevice *device = nullptr;
