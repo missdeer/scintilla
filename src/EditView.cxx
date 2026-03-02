@@ -1286,6 +1286,7 @@ void EditView::DrawEOLAnnotationText(Surface *surface, const EditModel &model, c
 		// it may be double drawing. This is to allow stadiums with
 		// curved or angled ends to have the area outside in the correct
 		// background colour.
+		surface->FillRectangleAligned(rcSegment, Fill(textBack));
 		FillLineRemainder(surface, model, vsDraw, ll, line, rcLine, rcSegment.right, subLine);
 	}
 
