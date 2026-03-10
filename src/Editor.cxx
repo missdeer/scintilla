@@ -4919,10 +4919,8 @@ void Editor::ButtonDownWithModifiers(Point pt, unsigned int curTime, KeyMod modi
 						// Switch to just the click position
 						SetSelection(newPos, newPos);
 					}
-					if (!sel.Range(selectionPart).Empty()) {
-						if (dragDropEnabled) {
-							inDragDrop = DragDrop::initial;
-						}
+					if (dragDropEnabled && !sel.Range(selectionPart).Empty()) {
+						inDragDrop = DragDrop::initial;
 					}
 				}
 			}
