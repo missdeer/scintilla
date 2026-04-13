@@ -1347,7 +1347,7 @@ void EditView::DrawEOLAnnotationText(Surface *surface, const EditModel &model, c
 namespace {
 
 constexpr bool AnnotationBoxedOrIndented(AnnotationVisible annotationVisible) noexcept {
-	return annotationVisible == AnnotationVisible::Boxed || annotationVisible == AnnotationVisible::Indented;
+	return AnyOf(annotationVisible, AnnotationVisible::Boxed, AnnotationVisible::Indented);
 }
 
 }
@@ -2317,7 +2317,7 @@ void EditView::DrawForeground(Surface *surface, const EditModel &model, const Vi
 
 void EditView::DrawIndentGuidesOverEmpty(Surface *surface, const EditModel &model, const ViewStyle &vsDraw, const LineLayout *ll,
 	Sci::Line line, int xStart, PRectangle rcLine, int subLine, Sci::Line lineVisible) {
-	if ((vsDraw.viewIndentationGuides == IndentView::LookForward || vsDraw.viewIndentationGuides == IndentView::LookBoth)
+	if (AnyOf(vsDraw.viewIndentationGuides, IndentView::LookForward, IndentView::LookBoth)
 		&& (subLine == 0)) {
 		const Sci::Position posLineStart = model.pdoc->LineStart(line);
 		int indentSpace = model.pdoc->GetLineIndentation(line);
@@ -2711,7 +2711,7 @@ Sci::Position EditView::FormatRange(bool draw, CharacterRangeFull chrg, Rectangl
 		} else if (colourMode == PrintOption::BlackOnWhite) {
 			it->fore = black;
 			it->back = white;
-		} else if (colourMode == PrintOption::ColourOnWhite || colourMode == PrintOption::ColourOnWhiteDefaultBG) {
+		} else if (AnyOf(colourMode, PrintOption::ColourOnWhite, PrintOption::ColourOnWhiteDefaultBG)) {
 			it->back = white;
 		}
 	}
