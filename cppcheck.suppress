@@ -58,6 +58,15 @@ syntaxError:scintilla/qt/ScintillaEditBase/PlatQt.cpp
 syntaxError:scintilla/qt/ScintillaEditBase/ScintillaEditBase.cpp
 syntaxError:scintilla/qt/ScintillaEditBase/ScintillaQt.cpp
 
+noValidConfiguration:scintilla/gtk/PlatGTK.cxx
+noValidConfiguration:scintilla/gtk/ScintillaGTKAccessible.cxx
+
+unmatchedSuppression:scintilla/gtk/PlatGTK.cxx
+unmatchedSuppression:scintilla/gtk/ScintillaGTKAccessible.cxx
+unmatchedSuppression:scintilla/qt/ScintillaEditBase/PlatQt.cpp
+unmatchedSuppression:scintilla/qt/ScintillaEditBase/ScintillaEditBase.cpp
+unmatchedSuppression:scintilla/qt/ScintillaEditBase/ScintillaQt.cpp
+
 // G_DEFINE_TYPE is too complex to pass to cppcheck
 unknownMacro:scintilla/gtk/PlatGTK.cxx
 // G_END_DECLS
