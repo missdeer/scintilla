@@ -1485,6 +1485,7 @@ Sci::Position Document::InsertString(Sci::Position position, const char *s, Sci:
 	if (insertLength <= 0) {
 		return 0;
 	}
+	PLATFORM_ASSERT((position >= 0) && (position <= Length()));
 	CheckReadOnly();	// Application may change read only state here
 	if (cb.IsReadOnly()) {
 		return 0;
