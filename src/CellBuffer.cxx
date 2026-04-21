@@ -510,15 +510,15 @@ ChangedRange CellBuffer::SetStyles(Sci::Position position, const char *styles, S
 	return cr;
 }
 
-ChangedRange CellBuffer::SetStyleFor(Sci::Position position, Sci::Position lengthStyle, char styleValue) noexcept {
-	if (!hasStyles || (position < 0) || (lengthStyle <= 0)) {
+ChangedRange CellBuffer::SetStyleFor(Sci::Position position, Sci::Position length, char value) noexcept {
+	if (!hasStyles || (position < 0) || (length <= 0)) {
 		return {};
 	}
 
-	const Lengths lengths = SplitUpdate(style, position, lengthStyle);
-	ChangedRange cr = SetBytes(&style[position], styleValue, lengths.length1, position);
+	const Lengths lengths = SplitUpdate(style, position, length);
+	ChangedRange cr = SetBytes(&style[position], value, lengths.length1, position);
 	if (lengths.length2) {
-		const ChangedRange cr2 = SetBytes(&style[position + lengths.length1], styleValue,
+		const ChangedRange cr2 = SetBytes(&style[position + lengths.length1], value,
 			lengths.length2, position + lengths.length1);
 		cr.Merge(cr2);
 	}
