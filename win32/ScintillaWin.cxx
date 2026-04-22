@@ -2449,6 +2449,7 @@ sptr_t ScintillaWin::WndProc(Message iMessage, uptr_t wParam, sptr_t lParam) {
 #if defined(USE_D2D)
 			if (technology != Technology::Default) {
 				if (UpdateRenderingParams(false)) {
+					reverseArrowCursor.Invalidate();
 					DropGraphics();
 					Redraw();
 				}
