@@ -333,9 +333,9 @@ public:
 
 	void SetCompositionFont(const ViewStyle &vs, int style, UINT dpi) const {
 		LOGFONTW lf{};
-		int sizeZoomed = vs.styles[style].size + (vs.zoomLevel * FontSizeMultiplier);
-		if (sizeZoomed <= 2 * FontSizeMultiplier)	// Hangs if sizeZoomed <= 1
-			sizeZoomed = 2 * FontSizeMultiplier;
+		// Hangs if font height <= 1, so force minimum value
+		const int sizeZoomed = std::max(vs.styles[style].size + (vs.zoomLevel * FontSizeMultiplier),
+			2 * FontSizeMultiplier);
 		// The negative is to allow for leading
 		lf.lfHeight = -::MulDiv(sizeZoomed, dpi, pointsPerInch * FontSizeMultiplier);
 		lf.lfWeight = static_cast<LONG>(vs.styles[style].weight);
