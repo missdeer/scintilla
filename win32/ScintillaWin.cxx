@@ -872,7 +872,11 @@ bool ScintillaWin::UpdateRenderingParams(bool force) noexcept {
 	}
 
 	hCurrentMonitor = monitor;
-	deviceScaleFactor = Internal::GetDeviceScaleFactorWhenGdiScalingActive(hRootWnd);
+	const float newDeviceScaleFactor = Internal::GetDeviceScaleFactorWhenGdiScalingActive(hRootWnd);
+	if (deviceScaleFactor != newDeviceScaleFactor) {
+		deviceScaleFactor = newDeviceScaleFactor;
+		targets.valid = false;
+	}
 	renderingParams->defaultRenderingParams = std::move(monitorRenderingParams);
 	renderingParams->customRenderingParams = std::move(customClearTypeRenderingParams);
 	return true;
@@ -2434,13 +2438,13 @@ sptr_t ScintillaWin::WndProc(Message iMessage, uptr_t wParam, sptr_t lParam) {
 		case WM_MOUSEACTIVATE:
 		case WM_NCHITTEST:
 		case WM_NCCALCSIZE:
-		case WM_NCPAINT:
 		case WM_NCMOUSEMOVE:
 		case WM_NCLBUTTONDOWN:
 		case WM_SYSCOMMAND:
 		case WM_WINDOWPOSCHANGING:
 			return ::DefWindowProc(MainHWND(), msg, wParam, lParam);
 
+		case WM_NCPAINT:
 		case WM_WINDOWPOSCHANGED:
 #if defined(USE_D2D)
 			if (technology != Technology::Default) {
