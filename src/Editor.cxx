@@ -5899,6 +5899,8 @@ Sci::Position Editor::GetTag(char *tagValue, int tagNumber) {
 }
 
 Sci::Position Editor::ReplaceTarget(ReplaceType replaceType, std::string_view text) {
+	pdoc->CheckPosition(targetRange.start.Position());
+
 	UndoGroup ug(pdoc);
 
 	std::string substituted;	// Copy in case of re-entrance
@@ -6697,6 +6699,7 @@ sptr_t Editor::WndProc(Message iMessage, uptr_t wParam, sptr_t lParam) {
 			Sci::Position insertPos = PositionFromUPtr(wParam);
 			if (insertPos == -1)
 				insertPos = CurrentPosition();
+			pdoc->CheckPosition(insertPos);
 			Sci::Position newCurrent = CurrentPosition();
 			const char *sz = ConstCharPtrFromSPtr(lParam);
 			const Sci::Position lengthInserted = pdoc->InsertString(insertPos, sz, strlen(sz));

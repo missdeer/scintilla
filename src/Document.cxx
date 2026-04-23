@@ -530,6 +530,13 @@ void SCI_METHOD Document::SetErrorStatus(int status) {
 	}
 }
 
+void Document::CheckPosition(Sci::Position pos) const {
+	PLATFORM_ASSERT((pos >= 0) && (pos <= LengthNoExcept()));
+	if ((pos < 0) || (pos > LengthNoExcept())) {
+		throw Failure(Status::OutsideDocument);
+	}
+}
+
 Sci_Position SCI_METHOD Document::LineFromPosition(Sci_Position pos) const {
 	return cb.LineFromPosition(pos);
 }
@@ -1485,7 +1492,7 @@ Sci::Position Document::InsertString(Sci::Position position, const char *s, Sci:
 	if (insertLength <= 0) {
 		return 0;
 	}
-	PLATFORM_ASSERT((position >= 0) && (position <= Length()));
+	CheckPosition(position);
 	CheckReadOnly();	// Application may change read only state here
 	if (cb.IsReadOnly()) {
 		return 0;
