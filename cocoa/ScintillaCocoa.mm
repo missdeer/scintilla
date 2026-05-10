@@ -16,9 +16,13 @@
 
 #include <cmath>
 
+#include <new>
+#include <string>
 #include <string_view>
 #include <vector>
 #include <optional>
+#include <algorithm>
+#include <memory>
 
 #import <Cocoa/Cocoa.h>
 #if MAC_OS_X_VERSION_MAX_ALLOWED > MAC_OS_X_VERSION_10_5

@@ -14,6 +14,8 @@
 #include <cmath>
 
 #include <stdexcept>
+#include <new>
+#include <utility>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -22,6 +24,7 @@
 #include <forward_list>
 #include <optional>
 #include <algorithm>
+#include <iterator>
 #include <memory>
 #include <chrono>
 
