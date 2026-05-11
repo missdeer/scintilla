@@ -2447,15 +2447,13 @@ void Editor::RestoreSelection(Sci::Position newPos, UndoRedo history) {
 void Editor::Undo() {
 	if (pdoc->CanUndo()) {
 		InvalidateCaret();
-		const Sci::Position newPos = pdoc->Undo();
-		RestoreSelection(newPos, UndoRedo::undo);
+		pdoc->Undo();
 	}
 }
 
 void Editor::Redo() {
 	if (pdoc->CanRedo()) {
-		const Sci::Position newPos = pdoc->Redo();
-		RestoreSelection(newPos, UndoRedo::redo);
+		pdoc->Redo();
 	}
 }
 
@@ -2925,6 +2923,14 @@ void Editor::NotifyModified(Document *, DocModification mh, void *) {
 	if (IsLastStep(mh)) {
 		SetScrollBars();
 		Redraw();
+	}
+
+	if (FlagSet(mh.modificationType, ModificationFlags::Undo | ModificationFlags::Redo)
+		&& FlagSet(mh.modificationType, ModificationFlags::LastStepInUndoRedo)
+		&& !pdoc->TentativeActive()) {
+		// Update selection and scroll
+		RestoreSelection(mh.newPos,
+			FlagSet(mh.modificationType, ModificationFlags::Undo) ? UndoRedo::undo : UndoRedo::redo);
 	}
 
 	// If client wants to see this modification

@@ -650,9 +650,10 @@ public:
 	Scintilla::FoldLevel foldLevelPrev;
 	Sci::Line annotationLinesAdded;
 	Sci::Position token;
+	Sci::Position newPos = -1;	/**< Reasonable new caret position after undo or redo. */
 
 	DocModification(Scintilla::ModificationFlags modificationType_, Sci::Position position_=0, Sci::Position length_=0,
-		Sci::Line linesAdded_=0, const char *text_=nullptr, Sci::Line line_=0) noexcept :
+		Sci::Line linesAdded_=0, const char *text_=nullptr, Sci::Line line_=0, Sci::Position newPos_=-1) noexcept :
 		modificationType(modificationType_),
 		position(position_),
 		length(length_),
@@ -662,7 +663,8 @@ public:
 		foldLevelNow(Scintilla::FoldLevel::None),
 		foldLevelPrev(Scintilla::FoldLevel::None),
 		annotationLinesAdded(0),
-		token(0) {}
+		token(0),
+		newPos(newPos_) {}
 
 	DocModification(Scintilla::ModificationFlags modificationType_, const Action &act, Sci::Line linesAdded_=0) noexcept :
 		modificationType(modificationType_),

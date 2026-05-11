@@ -1633,7 +1633,7 @@ Sci::Position Document::Undo() {
 						modFlags |= ModificationFlags::MultilineUndoRedo;
 				}
 				NotifyModified(DocModification(modFlags, action.position, action.lenData,
-											   linesAdded, action.data));
+											   linesAdded, action.data, 0, newPos));
 			}
 
 			const bool endSavePoint = cb.IsSavePoint();
@@ -1693,7 +1693,7 @@ Sci::Position Document::Redo() {
 				}
 				NotifyModified(
 					DocModification(modFlags, action.position, action.lenData,
-									linesAdded, action.data));
+									linesAdded, action.data, 0, newPos));
 			}
 
 			const bool endSavePoint = cb.IsSavePoint();
