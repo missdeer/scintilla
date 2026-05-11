@@ -2501,7 +2501,7 @@ sptr_t ScintillaWin::WndProc(Message iMessage, uptr_t wParam, sptr_t lParam) {
 		}
 	} catch (std::bad_alloc &) {
 		errorStatus = Status::BadAlloc;
-	} catch (Failure &failure) {
+	} catch (const Failure &failure) {
 		errorStatus = failure.status;
 	} catch (...) {
 		errorStatus = Status::Failure;
