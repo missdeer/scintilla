@@ -2343,6 +2343,11 @@ void Editor::PasteRectangular(SelectionPosition pos, const char *ptr, Sci::Posit
 	sel.RangeMain().caret = RealizeVirtualSpace(sel.RangeMain().caret);
 	const int xInsert = XFromPosition(sel.RangeMain().caret);
 	bool prevCr = false;
+	constexpr Sci::Position maxBatchSpaces = 8192;
+	XYPOSITION maxSpaceWidth = 0;
+	for (const Style &style : vs.styles) {
+		maxSpaceWidth = std::max(maxSpaceWidth, style.spaceWidth);
+	}
 	while ((len > 0) && IsEOLCharacter(ptr[len-1]))
 		len--;
 	for (Sci::Position i = 0; i < len; i++) {
@@ -2355,7 +2360,24 @@ void Editor::PasteRectangular(SelectionPosition pos, const char *ptr, Sci::Posit
 			}
 			// Pad the end of lines with spaces if required
 			sel.RangeMain().caret.SetPosition(PositionFromLineX(line, xInsert));
-			if ((XFromPosition(sel.RangeMain().caret) < xInsert) && (i + 1 < len)) {
+			const int xCurrent = XFromPosition(sel.RangeMain().caret);
+			if ((xCurrent < xInsert) && (i + 1 < len)) {
+				if (pdoc->IsLineEndPosition(sel.MainCaret())) {
+					int xAfterBatch = xCurrent;
+					while ((xAfterBatch < xInsert) && (maxSpaceWidth > 0)) {
+						const int missing = xInsert - xAfterBatch;
+						const Sci::Position spacesEstimate = static_cast<Sci::Position>(missing / maxSpaceWidth);
+						if (spacesEstimate <= 2) {
+							break;
+						}
+						const Sci::Position batchSpaces = std::min(spacesEstimate - 1, maxBatchSpaces);
+						const std::string pad(static_cast<size_t>(batchSpaces), ' ');
+						const Sci::Position lengthInserted = pdoc->InsertString(sel.MainCaret(), pad);
+						sel.RangeMain().caret.Add(lengthInserted);
+						xAfterBatch = XFromPosition(sel.RangeMain().caret);
+					}
+				}
+
 				while (XFromPosition(sel.RangeMain().caret) < xInsert) {
 					assert(pdoc);
 					const Sci::Position lengthInserted = pdoc->InsertString(sel.MainCaret(), " ", 1);
