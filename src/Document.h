@@ -465,7 +465,8 @@ public:
 	Sci::Position CountUTF16(Sci::Position startPos, Sci::Position endPos) const noexcept;
 	Sci::Position FindColumn(Sci::Line line, Sci::Position column) const noexcept;
 	void Indent(bool forwards, Sci::Line lineBottom, Sci::Line lineTop);
-	static std::string TransformLineEnds(const char *s, size_t len, Scintilla::EndOfLine eolModeWanted);
+	static std::string TransformLineEnds(std::string_view s, Scintilla::EndOfLine eolModeWanted);
+	[[deprecated]]static std::string TransformLineEnds(const char *s, size_t len, Scintilla::EndOfLine eolModeWanted);
 	void ConvertLineEnds(Scintilla::EndOfLine eolModeSet);
 	std::string_view EOLString() const noexcept;
 	void SetReadOnly(bool set) noexcept { cb.SetReadOnly(set); }

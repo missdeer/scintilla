@@ -388,7 +388,7 @@ void ScintillaQt::PasteFromMode(QClipboard::Mode clipboardMode_)
 
 	UndoGroup ug(pdoc);
 	ClearSelection(multiPasteMode == MultiPaste::Each);
-	InsertPasteShape(selText.Data(), selText.Length(),
+	InsertPasteShape(selText.AsView(),
 		isRectangular ? PasteShape::rectangular : (isLine ? PasteShape::line : PasteShape::stream));
 	EnsureCaretVisible();
 }
@@ -855,7 +855,7 @@ void ScintillaQt::Drop(const Point &point, const QMimeData *data, bool move)
 	SelectionPosition movePos = SPositionFromLocation(point,
 				false, false, UserVirtualSpace());
 
-	DropAt(movePos, bytes, len, move, rectangular);
+	DropAt(movePos, std::string_view(bytes.constData(), len), move, rectangular);
 }
 
 void ScintillaQt::DropUrls(const QMimeData *data)

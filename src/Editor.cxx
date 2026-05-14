@@ -2204,11 +2204,11 @@ void Editor::ClearBeforeTentativeStart() {
 	}
 }
 
-void Editor::InsertPaste(const char *text, Sci::Position len) {
+void Editor::InsertPaste(std::string_view text) {
 	if (multiPasteMode == MultiPaste::Once) {
 		SelectionPosition selStart = sel.Start();
 		selStart = RealizeVirtualSpace(selStart);
-		const Sci::Position lengthInserted = pdoc->InsertString(selStart.Position(), text, len);
+		const Sci::Position lengthInserted = pdoc->InsertString(selStart.Position(), text);
 		if (lengthInserted > 0) {
 			SetEmptySelection(selStart.Position() + lengthInserted);
 		}
@@ -2219,7 +2219,7 @@ void Editor::InsertPaste(const char *text, Sci::Position len) {
 				Sci::Position positionInsert = sel.Range(r).Start().Position();
 				ClearSelectionRange(sel.Range(r));
 				positionInsert = RealizeVirtualSpace(positionInsert, sel.Range(r).caret.VirtualSpace());
-				const Sci::Position lengthInserted = pdoc->InsertString(positionInsert, text, len);
+				const Sci::Position lengthInserted = pdoc->InsertString(positionInsert, text);
 				if (lengthInserted > 0) {
 					sel.Range(r) = SelectionRange(positionInsert + lengthInserted);
 				}
@@ -2229,22 +2229,25 @@ void Editor::InsertPaste(const char *text, Sci::Position len) {
 	}
 }
 
-void Editor::InsertPasteShape(const char *text, Sci::Position len, PasteShape shape) {
+void Editor::InsertPaste(const char *text, Sci::Position len) {
+	InsertPaste(std::string_view(text, len));
+}
+
+void Editor::InsertPasteShape(std::string_view text, PasteShape shape) {
 	std::string convertedText;
 	if (convertPastes) {
 		// Convert line endings of the paste into our local line-endings mode
-		convertedText = Document::TransformLineEnds(text, len, pdoc->eolMode);
-		len = convertedText.length();
-		text = convertedText.c_str();
+		convertedText = Document::TransformLineEnds(text, pdoc->eolMode);
+		text = convertedText;
 	}
 	if (shape == PasteShape::rectangular) {
-		PasteRectangular(sel.Start(), text, len);
+		PasteRectangular(sel.Start(), text);
 	} else {
 		if (shape == PasteShape::line) {
 			const Sci::Position insertPos = pdoc->LineStartPosition(sel.MainCaret());
-			Sci::Position lengthInserted = pdoc->InsertString(insertPos, text, len);
+			Sci::Position lengthInserted = pdoc->InsertString(insertPos, text);
 			// add the newline if necessary
-			if ((len > 0) && (text[len - 1] != '\n' && text[len - 1] != '\r')) {
+			if ((!text.empty()) && (!AnyOf(text.back(), '\n', '\r'))) {
 				const std::string_view endline = pdoc->EOLString();
 				lengthInserted += pdoc->InsertString(insertPos + lengthInserted, endline);
 			}
@@ -2252,9 +2255,13 @@ void Editor::InsertPasteShape(const char *text, Sci::Position len, PasteShape sh
 				SetEmptySelection(sel.MainCaret() + lengthInserted);
 			}
 		} else {
-			InsertPaste(text, len);
+			InsertPaste(text);
 		}
 	}
+}
+
+void Editor::InsertPasteShape(const char *text, Sci::Position len, PasteShape shape) {
+	InsertPasteShape(std::string_view(text, len), shape);
 }
 
 void Editor::ClearSelection(bool retainMultipleSelections) {
@@ -2336,7 +2343,7 @@ void Editor::Cut() {
 	}
 }
 
-void Editor::PasteRectangular(SelectionPosition pos, const char *ptr, Sci::Position len) {
+void Editor::PasteRectangular(SelectionPosition pos, std::string_view text) {
 	if (pdoc->IsReadOnly() || SelectionContainsProtected()) {
 		return;
 	}
@@ -2352,11 +2359,12 @@ void Editor::PasteRectangular(SelectionPosition pos, const char *ptr, Sci::Posit
 	for (const Style &style : vs.styles) {
 		maxSpaceWidth = std::max(maxSpaceWidth, style.spaceWidth);
 	}
-	while ((len > 0) && IsEOLCharacter(ptr[len-1]))
-		len--;
-	for (Sci::Position i = 0; i < len; i++) {
-		if (IsEOLCharacter(ptr[i])) {
-			if ((ptr[i] == '\r') || (!prevCr))
+	while ((!text.empty()) && IsEOLCharacter(text.back())) {
+		text.remove_suffix(1);
+	}
+	for (size_t i = 0; i < text.length(); i++) {
+		if (IsEOLCharacter(text[i])) {
+			if ((text[i] == '\r') || (!prevCr))
 				line++;
 			if (line >= pdoc->LinesTotal()) {
 				const std::string_view eol = pdoc->EOLString();
@@ -2365,7 +2373,7 @@ void Editor::PasteRectangular(SelectionPosition pos, const char *ptr, Sci::Posit
 			// Pad the end of lines with spaces if required
 			sel.RangeMain().caret.SetPosition(PositionFromLineX(line, xInsert));
 			const int xCurrent = XFromPosition(sel.RangeMain().caret);
-			if ((xCurrent < xInsert) && (i + 1 < len)) {
+			if ((xCurrent < xInsert) && (i + 1 < text.length())) {
 				if (pdoc->IsLineEndPosition(sel.MainCaret())) {
 					int xAfterBatch = xCurrent;
 					while ((xAfterBatch < xInsert) && (maxSpaceWidth > 0)) {
@@ -2388,14 +2396,18 @@ void Editor::PasteRectangular(SelectionPosition pos, const char *ptr, Sci::Posit
 					sel.RangeMain().caret.Add(lengthInserted);
 				}
 			}
-			prevCr = ptr[i] == '\r';
+			prevCr = text[i] == '\r';
 		} else {
-			const Sci::Position lengthInserted = pdoc->InsertString(sel.MainCaret(), ptr + i, 1);
+			const Sci::Position lengthInserted = pdoc->InsertString(sel.MainCaret(), text.substr(i, 1));
 			sel.RangeMain().caret.Add(lengthInserted);
 			prevCr = false;
 		}
 	}
 	SetEmptySelection(pos);
+}
+
+void Editor::PasteRectangular(SelectionPosition pos, const char *ptr, Sci::Position len) {
+	PasteRectangular(pos, std::string_view(ptr, len));
 }
 
 bool Editor::CanPaste() {
@@ -4564,7 +4576,7 @@ void Editor::StartDrag() {
 	// Always handled by subclasses
 }
 
-void Editor::DropAt(SelectionPosition position, const char *value, size_t lengthValue, bool moving, bool rectangular) {
+void Editor::DropAt(SelectionPosition position, std::string_view value, bool moving, bool rectangular) {
 	//Platform::DebugPrintf("DropAt %d %d\n", inDragDrop, position);
 	if (inDragDrop == DragDrop::dragging)
 		dropWentOutside = false;
@@ -4604,10 +4616,10 @@ void Editor::DropAt(SelectionPosition position, const char *value, size_t length
 		}
 		position = positionAfterDeletion;
 
-		std::string convertedText = Document::TransformLineEnds(value, lengthValue, pdoc->eolMode);
+		std::string convertedText = Document::TransformLineEnds(value, pdoc->eolMode);
 
 		if (rectangular) {
-			PasteRectangular(position, convertedText.c_str(), convertedText.length());
+			PasteRectangular(position, convertedText);
 			// Should try to select new rectangle but it may not be a rectangle now so just select the drop position
 			SetEmptySelection(position);
 		} else {
@@ -4626,8 +4638,12 @@ void Editor::DropAt(SelectionPosition position, const char *value, size_t length
 	}
 }
 
+void Editor::DropAt(SelectionPosition position, const char *value, size_t lengthValue, bool moving, bool rectangular) {
+	DropAt(position, std::string_view(value, lengthValue), moving, rectangular);
+}
+
 void Editor::DropAt(SelectionPosition position, const char *value, bool moving, bool rectangular) {
-	DropAt(position, value, strlen(value), moving, rectangular);
+	DropAt(position, std::string_view(value), moving, rectangular);
 }
 
 /**
@@ -6388,7 +6404,7 @@ sptr_t Editor::WndProc(Message iMessage, uptr_t wParam, sptr_t lParam) {
 		if (!sel.Empty()) {
 			ClearSelection(); // want to replace rectangular selection contents
 		}
-		InsertPasteShape(ConstCharPtrFromSPtr(lParam), PositionFromUPtr(wParam), PasteShape::rectangular);
+		InsertPasteShape(std::string_view(ConstCharPtrFromSPtr(lParam), PositionFromUPtr(wParam)), PasteShape::rectangular);
 		break;
 	}
 

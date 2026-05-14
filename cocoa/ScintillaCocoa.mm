@@ -1111,7 +1111,7 @@ void ScintillaCocoa::Paste(bool forceRectangular) {
 	{
 		UndoGroup ug(pdoc);
 		ClearSelection(false);
-		InsertPasteShape(selectedText.Data(), selectedText.Length(),
+		InsertPasteShape(selectedText.AsView(),
 				 selectedText.rectangular ? PasteShape::rectangular : PasteShape::stream);
 	}
 
@@ -1652,7 +1652,7 @@ bool ScintillaCocoa::PerformDragOperation(id <NSDraggingInfo> info) {
 		NSDragOperation operation = [info draggingSourceOperationMask];
 		bool moving = (operation & NSDragOperationMove) != 0;
 
-		DropAt(posDrag, text.Data(), text.Length(), moving, text.rectangular);
+		DropAt(posDrag, text.AsView(), moving, text.rectangular);
 	};
 
 	return true;

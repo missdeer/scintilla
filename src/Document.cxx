@@ -1899,13 +1899,13 @@ constexpr std::string_view EOLForMode(EndOfLine eolMode) noexcept {
 
 // Convert line endings for a piece of text to a particular mode.
 // Stop at len or when a NUL is found.
-std::string Document::TransformLineEnds(const char *s, size_t len, EndOfLine eolModeWanted) {
+std::string Document::TransformLineEnds(std::string_view s, EndOfLine eolModeWanted) {
 	std::string dest;
 	const std::string_view eol = EOLForMode(eolModeWanted);
-	for (size_t i = 0; (i < len) && (s[i]); i++) {
+	for (size_t i = 0; (i < s.length()) && (s[i]); i++) {
 		if (s[i] == '\n' || s[i] == '\r') {
 			dest.append(eol);
-			if ((s[i] == '\r') && (i+1 < len) && (s[i+1] == '\n')) {
+			if ((s[i] == '\r') && (i+1 < s.length()) && (s[i+1] == '\n')) {
 				i++;
 			}
 		} else {
@@ -1913,6 +1913,10 @@ std::string Document::TransformLineEnds(const char *s, size_t len, EndOfLine eol
 		}
 	}
 	return dest;
+}
+
+std::string Document::TransformLineEnds(const char *s, size_t len, EndOfLine eolModeWanted) {
+	return TransformLineEnds(std::string_view(s, len), eolModeWanted);
 }
 
 void Document::ConvertLineEnds(EndOfLine eolModeSet) {

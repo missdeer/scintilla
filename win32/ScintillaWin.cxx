@@ -1412,7 +1412,7 @@ void ScintillaWin::SelectionToHangul() {
 			const std::string hangul = StringEncode(uniStr, CodePageOfDocument());
 			UndoGroup ug(pdoc);
 			ClearSelection();
-			InsertPaste(hangul.data(), hangul.size());
+			InsertPaste(hangul);
 		}
 	}
 }
@@ -3112,7 +3112,7 @@ void ScintillaWin::Paste() {
 		UndoGroup ug(pdoc);
 		const PasteShape pasteShape = isRectangular ? PasteShape::rectangular : (isLine ? PasteShape::line : PasteShape::stream);
 		ClearSelection(multiPasteMode == MultiPaste::Each);
-		InsertPasteShape(putf.c_str(), putf.length(), pasteShape);
+		InsertPasteShape(putf, pasteShape);
 	}
 	Redraw();
 }
@@ -3531,7 +3531,7 @@ void ScintillaWin::GetMouseParameters() noexcept {
 }
 
 void ScintillaWin::CopyToGlobal(GlobalMemory &gmUnicode, const SelectionText &selectedText) {
-	const std::string_view svSelected(selectedText.Data(), selectedText.LengthWithTerminator());
+	const std::string_view svSelected = selectedText.AsViewWithTerminator();
 	if (IsUnicodeMode()) {
 		const size_t uchars = UTF16Length(svSelected);
 		gmUnicode.Allocate(2 * uchars);
@@ -3834,7 +3834,7 @@ STDMETHODIMP ScintillaWin::Drop(LPDATAOBJECT pIDataSource, DWORD grfKeyState,
 		::ScreenToClient(MainHWND(), &rpt);
 		const SelectionPosition movePos = SPositionFromLocation(PointFromPOINT(rpt), false, false, UserVirtualSpace());
 
-		DropAt(movePos, putf.c_str(), putf.size(), *pdwEffect == DROPEFFECT_MOVE, isRectangular);
+		DropAt(movePos, putf, *pdwEffect == DROPEFFECT_MOVE, isRectangular);
 
 		return S_OK;
 	} catch (...) {
