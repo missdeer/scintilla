@@ -116,6 +116,10 @@ constexpr bool IsAllSpacesOrTabs(std::string_view sv) noexcept {
 	return true;
 }
 
+sptr_t SPtrFromPtr(const void *ptr) noexcept {
+	return reinterpret_cast<sptr_t>(ptr);
+}
+
 }
 
 Timer::Timer() noexcept :
@@ -2171,7 +2175,7 @@ void Editor::InsertCharacter(std::string_view sv, CharacterSource charSource) {
 
 	if (recordingMacro && charSource != CharacterSource::TentativeInput) {
 		std::string copy(sv); // ensure NUL-terminated
-		NotifyMacroRecord(Message::ReplaceSel, 0, reinterpret_cast<sptr_t>(copy.data()));
+		NotifyMacroRecord(Message::ReplaceSel, 0, SPtrFromPtr(copy.data()));
 	}
 }
 
@@ -3350,7 +3354,7 @@ void Editor::NewLine() {
 			NotifyChar(ch, CharacterSource::DirectInput);
 			if (recordingMacro) {
 				const char txt[2] = { ch, '\0' };
-				NotifyMacroRecord(Message::ReplaceSel, 0, reinterpret_cast<sptr_t>(txt));
+				NotifyMacroRecord(Message::ReplaceSel, 0, SPtrFromPtr(txt));
 			}
 		}
 	}
@@ -6237,10 +6241,6 @@ constexpr Selection::SelTypes SelTypeFromMode(SelectionMode mode) {
 	}
 }
 
-sptr_t SPtrFromPtr(void *ptr) noexcept {
-	return reinterpret_cast<sptr_t>(ptr);
-}
-
 }
 
 void Editor::SetSelectionMode(uptr_t wParam, bool setMoveExtends) {
@@ -8502,7 +8502,7 @@ sptr_t Editor::WndProc(Message iMessage, uptr_t wParam, sptr_t lParam) {
 			doc->SetUndoCollection(false);
 			pcs = ContractionStateCreate(pdoc->IsLarge());
 			ILoader *loader = doc;
-			return reinterpret_cast<sptr_t>(loader);
+			return SPtrFromPtr(loader);
 		}
 
 	case Message::SetModEventMask:
@@ -8735,10 +8735,10 @@ sptr_t Editor::WndProc(Message iMessage, uptr_t wParam, sptr_t lParam) {
 		return convertPastes ? 1 : 0;
 
 	case Message::GetCharacterPointer:
-		return reinterpret_cast<sptr_t>(pdoc->BufferPointer());
+		return SPtrFromPtr(pdoc->BufferPointer());
 
 	case Message::GetRangePointer:
-		return reinterpret_cast<sptr_t>(pdoc->RangePointer(
+		return SPtrFromPtr(pdoc->RangePointer(
 			PositionFromUPtr(wParam), lParam));
 
 	case Message::GetGapPosition:
@@ -8805,7 +8805,7 @@ sptr_t Editor::WndProc(Message iMessage, uptr_t wParam, sptr_t lParam) {
 
 	case Message::MarginGetText: {
 			const StyledText st = pdoc->MarginStyledText(LineFromUPtr(wParam));
-			return BytesResult(lParam, reinterpret_cast<const unsigned char *>(st.text), st.length);
+			return BytesResult(lParam, st.AsView());
 		}
 
 	case Message::MarginSetStyle:
@@ -8836,7 +8836,7 @@ sptr_t Editor::WndProc(Message iMessage, uptr_t wParam, sptr_t lParam) {
 
 	case Message::AnnotationGetText: {
 			const StyledText st = pdoc->AnnotationStyledText(LineFromUPtr(wParam));
-			return BytesResult(lParam, reinterpret_cast<const unsigned char *>(st.text), st.length);
+			return BytesResult(lParam, st.AsView());
 		}
 
 	case Message::AnnotationGetStyle: {
@@ -8885,7 +8885,7 @@ sptr_t Editor::WndProc(Message iMessage, uptr_t wParam, sptr_t lParam) {
 
 	case Message::EOLAnnotationGetText: {
 			const StyledText st = pdoc->EOLAnnotationStyledText(LineFromUPtr(wParam));
-			return BytesResult(lParam, reinterpret_cast<const unsigned char *>(st.text), st.length);
+			return BytesResult(lParam, st.AsView());
 		}
 
 	case Message::EOLAnnotationGetStyle: {

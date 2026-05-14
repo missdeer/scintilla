@@ -130,6 +130,9 @@ struct StyledText {
 	size_t StyleAt(size_t i) const noexcept {
 		return multipleStyles ? styles[i] : style;
 	}
+	std::string_view AsView() const noexcept {
+		return { text, length };
+	}
 };
 
 class HighlightDelimiter {
