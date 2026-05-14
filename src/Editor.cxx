@@ -3497,12 +3497,14 @@ Sci::Position Editor::StartEndDisplayLine(Sci::Position pos, bool start) {
 
 namespace {
 
-constexpr short HighShortFromWParam(uptr_t x) {
-	return static_cast<short>(x >> 16);
+constexpr KeyMod KeyModFromWParam(uptr_t x) {
+	constexpr uptr_t shiftForKeyMod = 16;
+	return static_cast<KeyMod>(x >> shiftForKeyMod);
 }
 
-constexpr short LowShortFromWParam(uptr_t x) {
-	return static_cast<short>(x & 0xffff);
+constexpr Keys KeysFromWParam(uptr_t x) {
+	constexpr uptr_t maskForKeys = 0xffff;
+	return static_cast<Keys>(x & maskForKeys);
 }
 
 constexpr Message WithExtends(Message iMessage) noexcept {
@@ -8126,13 +8128,13 @@ sptr_t Editor::WndProc(Message iMessage, uptr_t wParam, sptr_t lParam) {
 		return vs.caret.width;
 
 	case Message::AssignCmdKey:
-		kmap.AssignCmdKey(static_cast<Keys>(LowShortFromWParam(wParam)),
-			static_cast<KeyMod>(HighShortFromWParam(wParam)), static_cast<Message>(lParam));
+		kmap.AssignCmdKey(KeysFromWParam(wParam),
+			KeyModFromWParam(wParam), static_cast<Message>(lParam));
 		break;
 
 	case Message::ClearCmdKey:
-		kmap.AssignCmdKey(static_cast<Keys>(LowShortFromWParam(wParam)),
-			static_cast<KeyMod>(HighShortFromWParam(wParam)), Message::Null);
+		kmap.AssignCmdKey(KeysFromWParam(wParam),
+			KeyModFromWParam(wParam), Message::Null);
 		break;
 
 	case Message::ClearAllCmdKeys:
