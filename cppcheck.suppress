@@ -97,7 +97,6 @@ unusedFunction:scintilla/call/ScintillaCall.cxx
 
 // Don't want to unnecessarily allow const pointers to be made mutable through reinterpret_cast
 constParameterPointer:scintilla/call/ScintillaCall.cxx
-constParameterPointer:scintilla/src/Editor.cxx
 constVariablePointer:scintilla/src/Editor.cxx
 
 // The performance cost of by-value passing is often small and using a reference decreases
