@@ -1618,10 +1618,10 @@ bool Editor::WrapBlock(Surface *surface, Sci::Line lineToWrap, Sci::Line lineToW
 
 	std::shared_ptr<LineLayout> llLarge = std::make_shared<LineLayout>(-1, 200);
 	for (size_t indexLarge = 0; indexLarge < linesBeingWrapped; indexLarge++) {
-		const Sci::Line lineNumber = lineToWrap + indexLarge;
-		const Range rangeLine = pdoc->LineRange(lineNumber);
-		const Sci::Position lengthLine = rangeLine.Length();
-		if (lengthLine >= lengthToMultiThread) {
+		if (linesAfterWrap[indexLarge] == 0) {
+			const Sci::Line lineNumber = lineToWrap + indexLarge;
+			const Range rangeLine = pdoc->LineRange(lineNumber);
+			const Sci::Position lengthLine = rangeLine.Length();
 			std::shared_ptr<LineLayout> ll;
 			if (significantLines.LineMayCache(lineNumber)) {
 				ll = view.RetrieveLineLayout(lineNumber, *this);
