@@ -503,7 +503,7 @@ std::vector<int> MapImeIndicators(QInputMethodEvent *event)
 			if (format.hasProperty(QTextFormat::BackgroundBrush)) // win32, linux
 				indicator = IndicatorTarget;
 
-#ifdef Q_OS_OSX
+#ifdef Q_OS_MACOS
 			if (charFormat.underlineStyle() == QTextCharFormat::SingleUnderline) {
 				QColor uc = charFormat.underlineColor();
 				if (uc.lightness() < 2) { // osx
