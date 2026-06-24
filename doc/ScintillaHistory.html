@@ -608,7 +608,13 @@
 	Released 6 June 2026.
 	</li>
 	<li>
-	For Qt always place ScintillaEditBase library in scintilla/bin instead of depending on Qt version.
+	On Qt improve display for fractional scaling by providing SCI_SETSCALETECHNIQUE API.
+	The SCALE_TECHNIQUE_PIXEL_ALIGNED value will eliminate potential 'seams' between lines
+	and between runs on a line.
+	<a href="https://sourceforge.net/p/scintilla/bugs/2450/">Bug #2450</a>.
+	</li>
+	<li>
+	On Qt always place ScintillaEditBase library in scintilla/bin instead of depending on Qt version.
 	</li>
 	<li>
 	Optimize SCI_CHANGEINSERTION that sets empty insertion by not producing empty undo action

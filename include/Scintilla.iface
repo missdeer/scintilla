@@ -3542,6 +3542,16 @@ evt void AutoCSelectionChange=2032(int listType, string text, int position)
 
 cat Provisional
 
+enu ScaleTechnique=SCALE_TECHNIQUE_
+val SCALE_TECHNIQUE_DEFAULT=0
+val SCALE_TECHNIQUE_PIXEL_ALIGNED=1
+
+# Set the scale technique
+set void SetScaleTechnique=2820(ScaleTechnique technique,)
+
+# Get the scale technique
+get ScaleTechnique GetScaleTechnique=2821(,)
+
 enu Bidirectional=SC_BIDIRECTIONAL_
 val SC_BIDIRECTIONAL_DISABLED=0
 val SC_BIDIRECTIONAL_L2R=1
