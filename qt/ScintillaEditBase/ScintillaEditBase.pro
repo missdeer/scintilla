@@ -100,7 +100,7 @@ CONFIG(release, debug|release) {
     DEFINES += NDEBUG=1
 }
 
-DESTDIR = ../../bin
+DESTDIR = $$_PRO_FILE_PWD_/../../bin
 
 macx {
 	QMAKE_LFLAGS_SONAME = -Wl,-install_name,@executable_path/../Frameworks/
