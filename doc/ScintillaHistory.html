@@ -614,6 +614,16 @@
 	<a href="https://sourceforge.net/p/scintilla/bugs/2450/">Bug #2450</a>.
 	</li>
 	<li>
+	Scintilla.iface is augmented with comments indicating which APIs take pixel values so may
+	be automatically scaled by wrappers.
+	For compatibilty this is currently indicated in comments after each affected API but this will
+	change to using the 'pixels' type in a future version,
+	Downstream projects should examine this and make any needed changes, such as using floating
+	point types for wrapper methods.
+	To help migration, the scripts/FilterPixels.py script can convert this Scintilla.iface into the previous form
+	with no mention of 'pixels' or into the final form with 'pixels' as the only type for these features.
+	</li>
+	<li>
 	On Qt always place ScintillaEditBase library in scintilla/bin instead of depending on Qt version.
 	</li>
 	<li>
