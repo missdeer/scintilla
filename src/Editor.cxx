@@ -1591,8 +1591,13 @@ bool Editor::WrapBlock(Surface *surface, Sci::Line lineToWrap, Sci::Line lineToW
 				if (lengthLine < lengthToMultiThread) {
 					std::shared_ptr<LineLayout> ll;
 					if (significantLines.LineMayCache(lineNumber)) {
-						std::lock_guard<std::mutex> guard(mutexRetrieve);
-						ll = view.RetrieveLineLayout(lineNumber, *this);
+						if (multiThreaded) {
+							std::lock_guard<std::mutex> guard(mutexRetrieve);
+							ll = view.RetrieveLineLayout(lineNumber, *this);
+						} else {
+							// No lock needed for single threaded
+							ll = view.RetrieveLineLayout(lineNumber, *this);
+						}
 					} else {
 						ll = llTemporary;
 						ll->ReSet(lineNumber, lengthLine);
