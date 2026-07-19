@@ -136,9 +136,24 @@ struct StyledText {
 };
 
 class HighlightDelimiter {
+	bool isEnabled = false;
+	Sci::Line beginFoldBlock = -1;	// Begin of current fold block
+	Sci::Line endFoldBlock = -1;	// End of current fold block
+	Sci::Line firstChangeableLineBefore = -1;	// First line that triggers repaint before starting line that determined current fold block
+	Sci::Line firstChangeableLineAfter = -1;	// First line that triggers repaint after starting line that determined current fold block
 public:
-	HighlightDelimiter() noexcept : isEnabled(false) {
-		Clear();
+	HighlightDelimiter() noexcept = default;
+
+	void SetEnabled(bool isEnabled_) noexcept {
+		isEnabled = isEnabled_;
+	}
+
+	void Set(Sci::Line beginFoldBlock_, Sci::Line endFoldBlock_, Sci::Line firstChangeableLineBefore_,
+		Sci::Line firstChangeableLineAfter_) noexcept {
+		beginFoldBlock = beginFoldBlock_;
+		endFoldBlock = endFoldBlock_;
+		firstChangeableLineBefore = firstChangeableLineBefore_;
+		firstChangeableLineAfter = firstChangeableLineAfter_;
 	}
 
 	void Clear() noexcept {
@@ -148,31 +163,29 @@ public:
 		firstChangeableLineAfter = -1;
 	}
 
-	bool NeedsDrawing(Sci::Line line) const noexcept {
+	[[nodiscard]] bool IsEnabled() const noexcept {
+		return isEnabled;
+	}
+
+	[[nodiscard]] bool NeedsDrawing(Sci::Line line) const noexcept {
 		return isEnabled && (line <= firstChangeableLineBefore || line >= firstChangeableLineAfter);
 	}
 
-	bool IsFoldBlockHighlighted(Sci::Line line) const noexcept {
+	[[nodiscard]] bool IsFoldBlockHighlighted(Sci::Line line) const noexcept {
 		return isEnabled && beginFoldBlock != -1 && beginFoldBlock <= line && line <= endFoldBlock;
 	}
 
-	bool IsHeadOfFoldBlock(Sci::Line line) const noexcept {
+	[[nodiscard]] bool IsHeadOfFoldBlock(Sci::Line line) const noexcept {
 		return beginFoldBlock == line && line < endFoldBlock;
 	}
 
-	bool IsBodyOfFoldBlock(Sci::Line line) const noexcept {
+	[[nodiscard]] bool IsBodyOfFoldBlock(Sci::Line line) const noexcept {
 		return beginFoldBlock != -1 && beginFoldBlock < line && line < endFoldBlock;
 	}
 
-	bool IsTailOfFoldBlock(Sci::Line line) const noexcept {
+	[[nodiscard]] bool IsTailOfFoldBlock(Sci::Line line) const noexcept {
 		return beginFoldBlock != -1 && beginFoldBlock < line && line == endFoldBlock;
 	}
-
-	Sci::Line beginFoldBlock;	// Begin of current fold block
-	Sci::Line endFoldBlock;	// End of current fold block
-	Sci::Line firstChangeableLineBefore;	// First line that triggers repaint before starting line that determined current fold block
-	Sci::Line firstChangeableLineAfter;	// First line that triggers repaint after starting line that determined current fold block
-	bool isEnabled;
 };
 
 // Base class for view state that can be held and transferred without understanding the contents.

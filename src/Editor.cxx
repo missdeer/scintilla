@@ -2952,7 +2952,7 @@ void Editor::NotifyModified(Document *, DocModification mh, void *) {
 		if ((!willRedrawAll) && ((paintState == PaintState::notPainting) || !PaintContainsMargin())) {
 			if (FlagSet(mh.modificationType, ModificationFlags::ChangeFold)) {
 				// Fold changes can affect the drawing of following lines so redraw whole margin
-				RedrawSelMargin(marginView.highlightDelimiter.isEnabled ? -1 : mh.line - 1, true);
+				RedrawSelMargin(marginView.highlightDelimiter.IsEnabled() ? -1 : mh.line - 1, true);
 			} else {
 				RedrawSelMargin(mh.line);
 			}
@@ -7564,7 +7564,7 @@ sptr_t Editor::WndProc(Message iMessage, uptr_t wParam, sptr_t lParam) {
 		RedrawSelMargin();
 		break;
 	case Message::MarkerEnableHighlight:
-		marginView.highlightDelimiter.isEnabled = wParam == 1;
+		marginView.highlightDelimiter.SetEnabled(wParam == 1);
 		RedrawSelMargin();
 		break;
 	case Message::MarkerSetAlpha:
