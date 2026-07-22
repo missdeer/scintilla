@@ -2641,8 +2641,10 @@ bool Editor::NotifyUpdateUI() {
 		NotificationData scn = {};
 		scn.nmhdr.code = Notification::UpdateUI;
 		scn.updated = needUpdateUI;
+		scn.position = updateTextStart;
 		NotifyParent(scn);
 		needUpdateUI = Update::None;
+		updateTextStart = InvalidPosition;
 		return true;
 	}
 	return false;
@@ -2799,6 +2801,14 @@ constexpr Sci::Position MovePositionForDeletion(Sci::Position position, Sci::Pos
 
 void Editor::NotifyModified(Document *, DocModification mh, void *) {
 	ContainerNeedsUpdate(Update::Content);
+	if (FlagSet(mh.modificationType, ModificationFlags::InsertText | ModificationFlags::DeleteText)) {
+		ContainerNeedsUpdate(Update::Text);
+		updateTextStart = updateTextStart == InvalidPosition ? mh.position : std::min(updateTextStart, mh.position);
+	}
+	if (mh.linesAdded != 0) {
+		ContainerNeedsUpdate(Update::LineCount);
+	}
+
 	if (paintState == PaintState::painting) {
 		CheckForChangeOutsidePaint(Range(mh.position, mh.position + mh.length));
 	}

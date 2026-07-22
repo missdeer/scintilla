@@ -608,6 +608,11 @@
 	Released 6 July 2026.
 	</li>
 	<li>
+	Add SC_UPDATE_TEXT and SC_UPDATE_LINE_COUNT flags to SCN_UPDATEUI notifications.
+	This can help improve performance by client code switching from listening for changes with rapid
+	SCN_MODIFIED to delayed SCN_UPDATEUI notifications.
+	</li>
+	<li>
 	On Cocoa, fix problem where styling and update UI notifications were performed inside drawing
 	instead of before drawing which could cause drawing to be abandoned unnecessarily.
 	</li>
