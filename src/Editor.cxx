@@ -1540,6 +1540,9 @@ namespace {
 // This allows faster processing when lines differ greatly in length and thus time to lay out.
 constexpr Sci::Position lengthToMultiThread = 4000;
 
+// Generally, source code lines are mostly shorter than lengthCommon so use this for initial LineLayout size.
+constexpr int lengthCommon = 200;
+
 }
 
 bool Editor::WrapBlock(Surface *surface, Sci::Line lineToWrap, Sci::Line lineToWrapEnd) {
@@ -1575,7 +1578,7 @@ bool Editor::WrapBlock(Surface *surface, Sci::Line lineToWrap, Sci::Line lineToW
 	RunThreads(threads,
 		[=, &surface, &nextIndex, &linesAfterWrap, &mutexRetrieve]() {
 			// llTemporary is reused for non-significant lines, avoiding allocation costs.
-			std::shared_ptr<LineLayout> llTemporary = std::make_shared<LineLayout>(-1, 200);
+			std::shared_ptr<LineLayout> llTemporary = std::make_shared<LineLayout>(-1, lengthCommon);
 			while (true) {
 				const size_t i = nextIndex.fetch_add(1, std::memory_order_acq_rel);
 				if (i >= linesBeingWrapped) {
@@ -1611,7 +1614,7 @@ bool Editor::WrapBlock(Surface *surface, Sci::Line lineToWrap, Sci::Line lineToW
 	// Wrap all the long lines in the main thread.
 	// LayoutLine may then multi-thread over segments in each line.
 
-	std::shared_ptr<LineLayout> llLarge = std::make_shared<LineLayout>(-1, 200);
+	std::shared_ptr<LineLayout> llLarge = std::make_shared<LineLayout>(-1, lengthCommon);
 	for (size_t indexLarge = 0; indexLarge < linesBeingWrapped; indexLarge++) {
 		if (linesAfterWrap[indexLarge] == 0) {
 			const Sci::Line lineNumber = lineToWrap + indexLarge;

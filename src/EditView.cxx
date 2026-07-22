@@ -496,8 +496,7 @@ void EditView::LayoutLine(const EditModel &model, Surface *surface, const ViewSt
 			std::atomic<uint32_t> nextIndex = 0;
 
 			const bool textUnicode = CpUtf8 == model.pdoc->dbcsCodePage;
-			const bool multiThreaded = threads > 1;
-			const bool multiThreadedContext = multiThreaded || callerMultiThreaded;
+			const bool multiThreadedContext = (threads > 1) || callerMultiThreaded;
 			IPositionCache *pCache = posCache.get();
 
 			// If only 1 thread needed then use the main thread, else spin up multiple
