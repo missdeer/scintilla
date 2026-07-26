@@ -123,11 +123,7 @@ SelectionRange::SelectionRange(std::string_view &sv) {
 }
 
 Sci::Position SelectionRange::Length() const noexcept {
-	if (anchor > caret) {
-		return anchor.Position() - caret.Position();
-	} else {
-		return caret.Position() - anchor.Position();
-	}
+	return std::abs(anchor.Position() - caret.Position());
 }
 
 void SelectionRange::MoveForInsertDelete(bool insertion, Sci::Position startChange, Sci::Position length) noexcept {

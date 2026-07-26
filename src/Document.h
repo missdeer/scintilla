@@ -51,7 +51,7 @@ public:
 	}
 
 	[[nodiscard]] Sci::Position Length() const noexcept {
-		return (start <= end) ? (end - start) : (start - end);
+		return std::abs(end - start);
 	}
 
 	[[nodiscard]] Sci::Position First() const noexcept {
