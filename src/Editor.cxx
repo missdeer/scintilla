@@ -2179,8 +2179,8 @@ void Editor::InsertCharacter(std::string_view sv, CharacterSource charSource) {
 
 void Editor::ClearSelectionRange(SelectionRange &range) {
 	if (!range.Empty()) {
-		if (range.Length()) {
-			pdoc->DeleteChars(range.Start().Position(), range.Length());
+		if (const Sci::Position length = range.Length()) {
+			pdoc->DeleteChars(range.Start().Position(), length);
 			range.ClearVirtualSpace();
 		} else {
 			// Range is all virtual so collapse to start of virtual space
@@ -5246,8 +5246,7 @@ void Editor::ButtonUpWithModifiers(Point pt, unsigned int curTime, KeyMod modifi
 			const SelectionPosition selStart = SelectionStart();
 			const SelectionPosition selEnd = SelectionEnd();
 			if (selStart < selEnd) {
-				if (drag.Length()) {
-					const Sci::Position length = drag.Length();
+				if (const Sci::Position length = drag.Length()) {
 					if (FlagSet(modifiers, KeyMod::Ctrl)) {
 						const Sci::Position lengthInserted = pdoc->InsertString(
 							newPos.Position(), drag.Data(), length);
