@@ -88,15 +88,17 @@ bool SelectionPosition::operator >(const SelectionPosition &other) const noexcep
 }
 
 bool SelectionPosition::operator <=(const SelectionPosition &other) const noexcept {
-	if (other == *this)
-		return true;
-	return other > *this;
+	if (position == other.position) {
+		return virtualSpace <= other.virtualSpace;
+	}
+	return position <= other.position;
 }
 
 bool SelectionPosition::operator >=(const SelectionPosition &other) const noexcept {
-	if (other == *this)
-		return true;
-	return *this > other;
+	if (position == other.position) {
+		return virtualSpace >= other.virtualSpace;
+	}
+	return position >= other.position;
 }
 
 double SelectionPosition::VirtualSpaceWidth(double spaceWidth) const noexcept {
@@ -141,7 +143,7 @@ void SelectionRange::MoveForInsertDelete(bool insertion, Sci::Position startChan
 }
 
 bool SelectionRange::Contains(Sci::Position pos) const noexcept {
-	if (anchor > caret)
+	if (anchor.Position() > caret.Position())
 		return (pos >= caret.Position()) && (pos <= anchor.Position());
 	else
 		return (pos >= anchor.Position()) && (pos <= caret.Position());
@@ -155,7 +157,7 @@ bool SelectionRange::Contains(SelectionPosition sp) const noexcept {
 }
 
 bool SelectionRange::ContainsCharacter(Sci::Position posCharacter) const noexcept {
-	if (anchor > caret)
+	if (anchor.Position() > caret.Position())
 		return (posCharacter >= caret.Position()) && (posCharacter < anchor.Position());
 	else
 		return (posCharacter >= anchor.Position()) && (posCharacter < caret.Position());
