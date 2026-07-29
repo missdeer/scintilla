@@ -613,6 +613,10 @@
 	SCN_MODIFIED to delayed SCN_UPDATEUI notifications.
 	</li>
 	<li>
+	On Qt, prepare for drawing asynchronously to avoid styling inside the draw handler.
+	This may improve performance and matches other platforms.
+	</li>
+	<li>
 	On Cocoa, fix problem where styling and update UI notifications were performed inside drawing
 	instead of before drawing which could cause drawing to be abandoned unnecessarily.
 	</li>
