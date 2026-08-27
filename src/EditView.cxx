@@ -2589,8 +2589,8 @@ void EditView::PaintText(Surface *surfaceWindow, const EditModel &model, const V
 					rcLine.top = static_cast<XYPOSITION>(ypos);
 					rcLine.bottom = static_cast<XYPOSITION>(ypos + vsDraw.lineHeight);
 
-					const Range rangeLine(model.pdoc->LineStart(lineDoc),
-						model.pdoc->LineStart(lineDoc + 1));
+					const ForwardRange rangeLine(model.pdoc->LineStart(lineDoc),
+						model.pdoc->LineStart(lineDoc) + ll->numCharsInLine);
 
 					// Highlight the current braces if any
 					ll->SetBracesHighlight(rangeLine, model.braces, static_cast<char>(model.bracesMatchStyle),

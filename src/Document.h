@@ -34,7 +34,7 @@ public:
 	explicit Range(Sci::Position pos=0) noexcept :
 		start(pos), end(pos) {
 	}
-	Range(Sci::Position start_, Sci::Position end_) noexcept :
+	constexpr Range(Sci::Position start_, Sci::Position end_) noexcept :
 		start(start_), end(end_) {
 	}
 
@@ -88,6 +88,42 @@ public:
 		Contains(other.end) ||
 		other.Contains(start) ||
 		other.Contains(end);
+	}
+};
+
+/**
+ * The ForwardRange class represents a range of text in a document.
+ * It is ordered so that the start is always less than or equal to the end.
+ */
+class ForwardRange {
+	Sci::Position start = 0;
+	Sci::Position end = 0;
+public:
+	constexpr ForwardRange(Sci::Position start_, Sci::Position end_) noexcept :
+		start(start_), end(end_) {
+		PLATFORM_ASSERT(start_ <= end_);
+	}
+
+	explicit constexpr ForwardRange(const Range &range) noexcept :
+		start(range.start), end(range.end) {
+		PLATFORM_ASSERT(start <= end);
+	}
+
+	explicit constexpr operator Range() const noexcept {
+		return { start, end };
+	}
+
+	[[nodiscard]] Sci::Position First() const noexcept {
+		return start;
+	}
+
+	[[nodiscard]] Sci::Position Last() const noexcept {
+		return end;
+	}
+
+	// Is the character after pos within the range?
+	[[nodiscard]] bool ContainsCharacter(Sci::Position pos) const noexcept {
+		return (pos >= start && pos < end);
 	}
 };
 

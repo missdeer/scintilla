@@ -124,9 +124,9 @@ public:
 	bool InLine(int offset, int line) const noexcept;
 	int SubLineFromPosition(int posInLine, PointEnd pe) const noexcept;
 	void AddLineStart(Sci::Position start);
-	void SetBracesHighlight(Range rangeLine, const Sci::Position braces[],
+	void SetBracesHighlight(ForwardRange rangeLine, const Sci::Position braces[],
 		char bracesMatchStyle, int xHighlight, bool ignoreStyle);
-	void RestoreBracesHighlight(Range rangeLine, const Sci::Position braces[], bool ignoreStyle);
+	void RestoreBracesHighlight(ForwardRange rangeLine, const Sci::Position braces[], bool ignoreStyle);
 	int FindBefore(XYPOSITION x, Range range) const noexcept;
 	int FindPositionFromX(XYPOSITION x, Range range, bool charPosition) const noexcept;
 	Point PointFromPosition(int posInLine, int lineHeight, PointEnd pe) const noexcept;

@@ -228,40 +228,32 @@ void LineLayout::AddLineStart(Sci::Position start) {
 	lineStarts[lines] = static_cast<int>(start);
 }
 
-void LineLayout::SetBracesHighlight(Range rangeLine, const Sci::Position braces[],
+void LineLayout::SetBracesHighlight(ForwardRange rangeLine, const Sci::Position braces[],
                                     char bracesMatchStyle, int xHighlight, bool ignoreStyle) {
 	if (!ignoreStyle && rangeLine.ContainsCharacter(braces[0])) {
-		const Sci::Position braceOffset = braces[0] - rangeLine.start;
-		if (braceOffset < numCharsInLine) {
-			bracePreviousStyles[0] = styles[braceOffset];
-			styles[braceOffset] = bracesMatchStyle;
-		}
+		const Sci::Position braceOffset = braces[0] - rangeLine.First();
+		bracePreviousStyles[0] = styles[braceOffset];
+		styles[braceOffset] = bracesMatchStyle;
 	}
 	if (!ignoreStyle && rangeLine.ContainsCharacter(braces[1])) {
-		const Sci::Position braceOffset = braces[1] - rangeLine.start;
-		if (braceOffset < numCharsInLine) {
-			bracePreviousStyles[1] = styles[braceOffset];
-			styles[braceOffset] = bracesMatchStyle;
-		}
+		const Sci::Position braceOffset = braces[1] - rangeLine.First();
+		bracePreviousStyles[1] = styles[braceOffset];
+		styles[braceOffset] = bracesMatchStyle;
 	}
-	if ((braces[0] >= rangeLine.start && braces[1] <= rangeLine.end) ||
-	        (braces[1] >= rangeLine.start && braces[0] <= rangeLine.end)) {
+	if ((braces[0] >= rangeLine.First() && braces[1] <= rangeLine.Last()) ||
+	        (braces[1] >= rangeLine.First() && braces[0] <= rangeLine.Last())) {
 		xHighlightGuide = xHighlight;
 	}
 }
 
-void LineLayout::RestoreBracesHighlight(Range rangeLine, const Sci::Position braces[], bool ignoreStyle) {
+void LineLayout::RestoreBracesHighlight(ForwardRange rangeLine, const Sci::Position braces[], bool ignoreStyle) {
 	if (!ignoreStyle && rangeLine.ContainsCharacter(braces[0])) {
-		const Sci::Position braceOffset = braces[0] - rangeLine.start;
-		if (braceOffset < numCharsInLine) {
-			styles[braceOffset] = bracePreviousStyles[0];
-		}
+		const Sci::Position braceOffset = braces[0] - rangeLine.First();
+		styles[braceOffset] = bracePreviousStyles[0];
 	}
 	if (!ignoreStyle && rangeLine.ContainsCharacter(braces[1])) {
-		const Sci::Position braceOffset = braces[1] - rangeLine.start;
-		if (braceOffset < numCharsInLine) {
-			styles[braceOffset] = bracePreviousStyles[1];
-		}
+		const Sci::Position braceOffset = braces[1] - rangeLine.First();
+		styles[braceOffset] = bracePreviousStyles[1];
 	}
 	xHighlightGuide = 0;
 }
