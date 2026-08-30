@@ -325,7 +325,7 @@ void EditView::CalculateSingles(const EditModel &model, Surface *surface, const 
 				repWidth.data(), callerMultiThreaded);
 			XWidth representationWidth = static_cast<XWidth>(repWidth[repr->stringRep.length() - 1]);
 			if (FlagSet(repr->appearance, RepresentationAppearance::Blob)) {
-				representationWidth += vstyle.ctrlCharPadding;
+				representationWidth += static_cast<XWidth>(vstyle.ctrlCharPadding);
 			}
 			const unsigned char uch = ch;
 			singles[uch] = representationWidth;
