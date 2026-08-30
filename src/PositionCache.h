@@ -263,7 +263,7 @@ constexpr int lengthStartSubdivision = 300;
 // Class to break a line of text into shorter runs at sensible places.
 class BreakFinder {
 	const LineLayout *ll;
-	const Range lineRange;
+	const ForwardRange lineRange;
 	int nextBreak;
 	std::vector<int> selAndEdge;
 	unsigned int saeCurrentPos;
@@ -282,7 +282,7 @@ public:
 		Foreground = 2,
 		ForegroundAndSelection = 3,
 	};
-	BreakFinder(const LineLayout *ll_, const Selection *psel, Range lineRange_, Sci::Position posLineStart,
+	BreakFinder(const LineLayout *ll_, const Selection *psel, ForwardRange lineRange_, Sci::Position posLineStart,
 		XYPOSITION xStart, BreakFor breakFor, const Document *pdoc_, const SpecialRepresentations *preprs_, const ViewStyle *pvsDraw);
 	// Deleted so BreakFinder objects can not be copied.
 	BreakFinder(const BreakFinder &) = delete;
