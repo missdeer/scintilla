@@ -510,8 +510,8 @@ Sci_Position SCI_METHOD Document::LineStart(Sci_Position line) const {
 	return cb.LineStart(line);
 }
 
-Range Document::LineRange(Sci::Line line) const noexcept {
-	return {cb.LineStart(line), cb.LineStart(line + 1)};
+Sci::Position Document::LineLength(Sci::Line line) const noexcept {
+	return cb.LineStart(line + 1) - cb.LineStart(line);
 }
 
 bool Document::IsLineStartPosition(Sci::Position position) const noexcept {
