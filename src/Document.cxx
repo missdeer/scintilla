@@ -1485,7 +1485,7 @@ bool Document::DeleteChars(Sci::Position pos, Sci::Position len) {
 		if ((pos < LengthNoExcept()) || (pos == 0))
 			ModifiedAt(pos);
 		else
-			ModifiedAt(pos-1);
+			ModifiedAt(NextPosition(pos, -1));
 		NotifyModified(
 			DocModification(
 			    ModificationFlags::DeleteText | ModificationFlags::User |
@@ -1614,7 +1614,7 @@ Sci::Position Document::Undo() {
 				cb.PerformUndoStep();
 				if (action.at != ActionType::container) {
 					if ((action.at == ActionType::insert) && (action.position >= LengthNoExcept()) && (action.position > 0))
-						ModifiedAt(action.position - 1);
+						ModifiedAt(NextPosition(action.position, -1));
 					else
 						ModifiedAt(action.position);
 					newPos = action.position;
