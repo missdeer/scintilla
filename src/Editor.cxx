@@ -121,6 +121,13 @@ sptr_t SPtrFromPtr(const void *ptr) noexcept {
 	return reinterpret_cast<sptr_t>(ptr);
 }
 
+// Expect to take around 1 microsecond to wrap one byte of text.
+// Allow for systems 10 times faster or 100 times slower.
+
+constexpr double wrapOneByteExpected = 1.0 / 1'000'000;
+constexpr double wrapOneByteMinimum = wrapOneByteExpected / 100;
+constexpr double wrapOneByteMaximum = wrapOneByteExpected * 10;
+
 }
 
 Timer::Timer() noexcept :
@@ -129,7 +136,7 @@ Timer::Timer() noexcept :
 Idler::Idler() noexcept :
 		state(false), idlerID(nullptr) {}
 
-Editor::Editor() : durationWrapOneByte(0.000001, 0.00000001, 0.00001) {
+Editor::Editor() : durationWrapOneByte(wrapOneByteExpected, wrapOneByteMinimum, wrapOneByteMaximum) {
 	ctrlID = 0;
 
 	stylesValid = false;

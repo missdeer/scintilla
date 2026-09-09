@@ -376,6 +376,7 @@ public:
 	/// Can also be SC_CP_UTF8 to enable UTF-8 mode
 	int dbcsCodePage;
 	Scintilla::LineEndType lineEndBitSet;
+	static constexpr int standardTabSize = 8;
 	int tabInChars;
 	int indentInChars;
 	int actualIndentInChars;

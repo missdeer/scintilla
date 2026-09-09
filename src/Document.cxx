@@ -110,6 +110,17 @@ bool LexInterface::UseContainerLexing() const noexcept {
 	return !instance;
 }
 
+namespace {
+
+// Expect to take around 1 microsecond to style one byte of text.
+// Allow for systems 10 times faster or slower.
+
+constexpr double styleOneByteExpected = 1.0 / 1'000'000;
+constexpr double styleOneByteMinimum = styleOneByteExpected / 10;
+constexpr double styleOneByteMaximum = styleOneByteExpected * 10;
+
+}
+
 ActionDuration::ActionDuration(double duration_, double minDuration_, double maxDuration_) noexcept :
 	duration(duration_), minDuration(minDuration_), maxDuration(maxDuration_) {
 }
@@ -167,13 +178,13 @@ Document::Document(DocumentOption options) :
 #endif
 	dbcsCodePage(CpUtf8),
 	lineEndBitSet(LineEndType::Default),
-	tabInChars(8),
+	tabInChars(standardTabSize),
 	indentInChars(0),
-	actualIndentInChars(8),
+	actualIndentInChars(standardTabSize),
 	useTabs(true),
 	tabIndents(true),
 	backspaceUnindents(false),
-	durationStyleOneByte(0.000001, 0.0000001, 0.00001) {
+	durationStyleOneByte(styleOneByteExpected, styleOneByteMinimum, styleOneByteMaximum) {
 
 	perLineData[ldMarkers] = std::make_unique<LineMarkers>();
 	perLineData[ldLevels] = std::make_unique<LineLevels>();
