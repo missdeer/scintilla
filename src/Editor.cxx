@@ -558,6 +558,10 @@ void Editor::InvalidateRange(Sci::Position start, Sci::Position end) {
 	RedrawRect(RectangleFromRange(Range(start, end), view.LinesOverlap() ? vs.lineOverlap : 0));
 }
 
+void Editor::InvalidateRange(ForwardRange range) {
+	InvalidateRange(range.First(), range.Last());
+}
+
 Sci::Position Editor::CurrentPosition() const noexcept {
 	return sel.MainCaret();
 }
@@ -4821,7 +4825,7 @@ void Editor::DwellEnd(bool mouseMoved) {
 }
 
 void Editor::MouseLeave() {
-	SetHotSpotRange(nullptr);
+	ClearHotSpotRange();
 	SetHoverIndicatorPosition(Sci::invalidPosition);
 	if (!HaveMouseCapture()) {
 		ptMouseLast = Point(-1, -1);
@@ -5062,30 +5066,30 @@ void Editor::SetHoverIndicatorPoint(Point pt) {
 	}
 }
 
-void Editor::SetHotSpotRange(const Point *pt) {
-	if (pt) {
-		const Sci::Position pos = PositionFromLocation(*pt, false, true);
+void Editor::ClearHotSpotRange() {
+	if (!hotspot.Empty()) {
+		InvalidateRange(hotspot);
+	}
+	hotspot = {};
+}
 
-		// If we don't limit this to word characters then the
-		// range can encompass more than the run range and then
-		// the underline will not be drawn properly.
-		Range hsNew;
-		hsNew.start = pdoc->ExtendStyleRange(pos, -1, hotspotSingleLine);
-		hsNew.end = pdoc->ExtendStyleRange(pos, 1, hotspotSingleLine);
+void Editor::SetHotSpotRange(Point pt) {
+	const Sci::Position pos = PositionFromLocation(pt, false, true);
 
-		// Only invalidate the range if the hotspot range has changed...
-		if (!(hsNew == hotspot)) {
-			if (hotspot.Valid()) {
-				InvalidateRange(hotspot.start, hotspot.end);
-			}
-			hotspot = hsNew;
-			InvalidateRange(hotspot.start, hotspot.end);
+	// If we don't limit this to word characters then the
+	// range can encompass more than the run range and then
+	// the underline will not be drawn properly.
+	const ForwardRange hsNew(
+		pdoc->ExtendStyleRange(pos, -1, hotspotSingleLine),
+		pdoc->ExtendStyleRange(pos, 1, hotspotSingleLine));
+
+	// Only invalidate the range if the hotspot range has changed...
+	if (!(hsNew == hotspot)) {
+		if (!hotspot.Empty()) {
+			InvalidateRange(hotspot);
 		}
-	} else {
-		if (hotspot.Valid()) {
-			InvalidateRange(hotspot.start, hotspot.end);
-		}
-		hotspot = Range(Sci::invalidPosition);
+		hotspot = hsNew;
+		InvalidateRange(hotspot);
 	}
 }
 
@@ -5176,8 +5180,8 @@ void Editor::ButtonMoveWithModifiers(Point pt, unsigned int, KeyMod modifiers) {
 		}
 		EnsureCaretVisible(false, false, true);
 
-		if (hotspot.Valid() && !PointIsHotspot(pt))
-			SetHotSpotRange(nullptr);
+		if (!hotspot.Empty() && !PointIsHotspot(pt))
+			ClearHotSpotRange();
 
 		if (hotSpotClickPos != Sci::invalidPosition && PositionFromLocation(pt, true, true) != hotSpotClickPos) {
 			if (inDragDrop == DragDrop::none) {
@@ -5190,7 +5194,7 @@ void Editor::ButtonMoveWithModifiers(Point pt, unsigned int, KeyMod modifiers) {
 		if (vs.fixedColumnWidth > 0) {	// There is a margin
 			if (PointInSelMargin(pt)) {
 				DisplayCursor(GetMarginCursor(pt));
-				SetHotSpotRange(nullptr);
+				ClearHotSpotRange();
 				SetHoverIndicatorPosition(Sci::invalidPosition);
 				return; 	// No need to test for selection
 			}
@@ -5203,13 +5207,13 @@ void Editor::ButtonMoveWithModifiers(Point pt, unsigned int, KeyMod modifiers) {
 			SetHoverIndicatorPoint(pt);
 			if (PointIsHotspot(pt)) {
 				DisplayCursor(Window::Cursor::hand);
-				SetHotSpotRange(&pt);
+				SetHotSpotRange(pt);
 			} else {
 				if (hoverIndicatorPos != Sci::invalidPosition)
 					DisplayCursor(Window::Cursor::hand);
 				else
 					DisplayCursor(Window::Cursor::text);
-				SetHotSpotRange(nullptr);
+				ClearHotSpotRange();
 			}
 		}
 	}
@@ -5239,7 +5243,7 @@ void Editor::ButtonUpWithModifiers(Point pt, unsigned int curTime, KeyMod modifi
 			DisplayCursor(GetMarginCursor(pt));
 		} else {
 			DisplayCursor(Window::Cursor::text);
-			SetHotSpotRange(nullptr);
+			ClearHotSpotRange();
 		}
 		ptMouseLast = pt;
 		ChangeMouseCapture(false);
@@ -5603,7 +5607,7 @@ void Editor::SetDocPointer(Document *document) {
 	view.llc.Deallocate();
 	NeedWrapping();
 
-	hotspot = Range(Sci::invalidPosition);
+	hotspot = {};
 	hoverIndicatorPos = Sci::invalidPosition;
 
 	view.ClearAllTabstops();

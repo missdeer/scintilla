@@ -1693,7 +1693,7 @@ void DrawBackground(Surface *surface, const EditModel &model, const ViewStyle &v
 			InSelection inSelection = vsDraw.selection.visible ? model.sel.CharacterInSelection(iDoc) : InSelection::inNone;
 			if (FlagSet(vsDraw.caret.style, CaretStyle::Curses) && (inSelection == InSelection::inMain))
 				inSelection = CharacterInCursesSelection(iDoc, model, vsDraw);
-			const bool inHotspot = model.hotspot.Valid() && model.hotspot.ContainsCharacter(iDoc);
+			const bool inHotspot = model.hotspot.ContainsCharacter(iDoc);
 			ColourRGBA textBack = TextBackground(model, vsDraw, ll, background, inSelection,
 				inHotspot, ll->styles[i], i);
 			if (ts.representation) {
@@ -2167,7 +2167,7 @@ void EditView::DrawForeground(Surface *surface, const EditModel &model, const Vi
 			ColourRGBA textFore = vsDraw.styles[styleMain].fore;
 			const Font *textFont = vsDraw.styles[styleMain].font.get();
 			// Hot-spot foreground
-			const bool inHotspot = model.hotspot.Valid() && model.hotspot.ContainsCharacter(iDoc);
+			const bool inHotspot = model.hotspot.ContainsCharacter(iDoc);
 			if (inHotspot) {
 				if (const ColourOptional colourHotSpot = vsDraw.ElementColour(Element::HotSpotActive)) {
 					textFore = *colourHotSpot;

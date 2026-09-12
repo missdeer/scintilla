@@ -95,6 +95,8 @@ class ForwardRange {
 	Sci::Position start = 0;
 	Sci::Position end = 0;
 public:
+	constexpr ForwardRange() noexcept = default;
+
 	constexpr ForwardRange(Sci::Position start_, Sci::Position end_) noexcept :
 		start(start_), end(end_) {
 		PLATFORM_ASSERT(start_ <= end_);
@@ -107,6 +109,14 @@ public:
 
 	explicit constexpr operator Range() const noexcept {
 		return { start, end };
+	}
+
+	bool operator==(const ForwardRange &other) const noexcept {
+		return (start == other.start) && (end == other.end);
+	}
+
+	[[nodiscard]] bool Empty() const noexcept {
+		return start == end;
 	}
 
 	[[nodiscard]] Sci::Position First() const noexcept {
