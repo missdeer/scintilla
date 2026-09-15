@@ -2521,7 +2521,7 @@ void Editor::DelCharBack(bool allowLineStartDeletion) {
 					if (allowLineStartDeletion || (pdoc->LineStart(lineCurrentPos) != sel.Range(r).caret.Position())) {
 						if (pdoc->GetColumn(sel.Range(r).caret.Position()) <= pdoc->GetLineIndentation(lineCurrentPos) &&
 								pdoc->GetColumn(sel.Range(r).caret.Position()) > 0 && pdoc->backspaceUnindents) {
-							UndoGroup ugInner(pdoc, !ug.Needed());
+							UndoGroup ugInner(pdoc);
 							const int indentation = pdoc->GetLineIndentation(lineCurrentPos);
 							const int indentationStep = pdoc->IndentSize();
 							int indentationChange = indentation % indentationStep;

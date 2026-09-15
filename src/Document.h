@@ -679,14 +679,8 @@ public:
 	UndoGroup &operator=(UndoGroup &&) = delete;
 	~UndoGroup() {
 		if (groupNeeded) {
-			// EndUndoAction can throw as it allocates but throw in destructor is fatal.
-			// To fix this UndoHistory should allocate any memory needed by EndUndoAction
-			// beforehand or change EndUndoAction to not require allocation.
 			pdoc->EndUndoAction();
 		}
-	}
-	[[nodiscard]] bool Needed() const noexcept {
-		return groupNeeded;
 	}
 };
 
