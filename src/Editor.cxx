@@ -3660,7 +3660,8 @@ SelectionPosition Editor::PositionMove(Message iMessage, SelectionPosition spCar
 	case Message::CharLeftExtend:
 		if (spCaret.VirtualSpace()) {
 			spCaret.AddVirtualSpace(-1);
-		} else if (!FlagSet(virtualSpaceOptions, VirtualSpace::NoWrapLineStart) || pdoc->GetColumn(spCaret.Position()) > 0) {
+		} else if (!FlagSet(virtualSpaceOptions, VirtualSpace::NoWrapLineStart) ||
+			!pdoc->IsLineStartPosition(spCaret.Position())) {
 			spCaret.Add(-1);
 		}
 		return spCaret;
@@ -3801,7 +3802,8 @@ int Editor::HorizontalMove(Message iMessage) {
 		case Message::CharLeftExtend: // only when sel.IsRectangular() && sel.MoveExtends()
 			if (pdoc->IsLineEndPosition(spCaret.Position()) && spCaret.VirtualSpace()) {
 				spCaret.SetVirtualSpace(spCaret.VirtualSpace() - 1);
-			} else if (!FlagSet(virtualSpaceOptions, VirtualSpace::NoWrapLineStart) || pdoc->GetColumn(spCaret.Position()) > 0) {
+			} else if (!FlagSet(virtualSpaceOptions, VirtualSpace::NoWrapLineStart) ||
+				!pdoc->IsLineStartPosition(spCaret.Position())) {
 				spCaret = SelectionPosition(spCaret.Position() - 1);
 			}
 			break;
