@@ -6500,10 +6500,9 @@ sptr_t Editor::WndProc(Message iMessage, uptr_t wParam, sptr_t lParam) {
 
 		// Replacement of the old Scintilla interpretation of EM_LINELENGTH
 	case Message::LineLength:
-		if ((LineFromUPtr(wParam) < 0) ||
-		        (LineFromUPtr(wParam) > pdoc->LineFromPosition(pdoc->Length())))
+		if ((LineFromUPtr(wParam) < 0) || (LineFromUPtr(wParam) >= pdoc->LinesTotal()))
 			return 0;
-		return pdoc->LineStart(LineFromUPtr(wParam) + 1) - pdoc->LineStart(LineFromUPtr(wParam));
+		return pdoc->LineLength(LineFromUPtr(wParam));
 
 	case Message::ReplaceSel: {
 			if (lParam == 0)
