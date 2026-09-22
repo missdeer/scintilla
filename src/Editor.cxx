@@ -2433,11 +2433,9 @@ void Editor::Clear() {
 		UndoGroup ug(pdoc, (sel.Count() > 1) || singleVirtual);
 		for (size_t r=0; r<sel.Count(); r++) {
 			if (!RangeContainsProtected(sel.Range(r).caret.Position(), sel.Range(r).caret.Position() + 1)) {
-				if (sel.Range(r).Start().VirtualSpace()) {
-					if (sel.Range(r).anchor < sel.Range(r).caret)
-						sel.Range(r) = SelectionRange(RealizeVirtualSpace(sel.Range(r).anchor.Position(), sel.Range(r).anchor.VirtualSpace()));
-					else
-						sel.Range(r) = SelectionRange(RealizeVirtualSpace(sel.Range(r).caret.Position(), sel.Range(r).caret.VirtualSpace()));
+				const SelectionPosition start = sel.Range(r).Start();
+				if (start.VirtualSpace()) {
+					sel.Range(r) = SelectionRange(RealizeVirtualSpace(start));
 				}
 				if ((sel.Count() == 1) || !pdoc->IsPositionInLineEnd(sel.Range(r).caret.Position())) {
 					pdoc->DelChar(sel.Range(r).caret.Position());

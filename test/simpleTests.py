@@ -2128,6 +2128,26 @@ class TestMultiSelection(unittest.TestCase):
 		self.assertEqual(self.ed.GetSelectionNStartVirtualSpace(0), 0)
 		self.assertEqual(self.ed.GetSelectionNEndVirtualSpace(0), 3)
 
+	def testDelCharVirtualSpace(self):
+		# Feature 1589 Empty virtual selection
+		self.ed.SetSelection(3, 3)
+		self.ed.SetSelectionNCaretVirtualSpace(0, 2)
+		self.ed.SetSelectionNAnchorVirtualSpace(0, 2)
+		self.assertEqual(self.ed.GetSelectionSerialized(), b'3v2')
+		self.ed.DeleteBack()
+		self.assertEqual(self.ed.GetSelectionSerialized(), b'3v1')
+
+	def testClearVirtualSpace(self):
+		# Feature 1589 Empty virtual selection
+		self.ed.SetSelection(3, 3)
+		self.ed.SetSelectionNCaretVirtualSpace(0, 2)
+		self.ed.SetSelectionNAnchorVirtualSpace(0, 2)
+		self.assertEqual(self.ed.GetSelectionSerialized(), b'3v2')
+		self.ed.Clear()
+		# Realizes the 2 virtual spaces then deletes the line end, selection now at 3+2 = 5
+		self.assertEqual(self.ed.GetSelectionSerialized(), b'5')
+		self.assertEqual(self.ed.Contents(), b"xxx  xxx\nxxx")
+
 	def testRectangularVirtualSpace(self):
 		self.ed.VirtualSpaceOptions=1
 		self.ed.RectangularSelectionAnchor = 3
