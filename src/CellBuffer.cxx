@@ -627,8 +627,11 @@ Sci::Position CellBuffer::LineStart(Sci::Line line) const noexcept {
 }
 
 Sci::Position CellBuffer::LineEnd(Sci::Line line) const noexcept {
+	if (line < 0) {
+		return -1;
+	}
 	if (line >= Lines() - 1) {
-		return LineStart(line + 1);
+		return Length();
 	}
 	Sci::Position position = LineStart(line + 1);
 	if (LineEndType::Unicode == GetLineEndTypes()) {

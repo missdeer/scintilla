@@ -157,6 +157,14 @@ TEST_CASE("CellBuffer") {
 			REQUIRE(sLength2 == cb.LineEnd(1));
 			cb.DeleteChars(0, sLength2, startSequence);
 		}
+		{
+			// Return -1 before start
+			constexpr std::string_view sText2 = "Two\nLines";
+			constexpr Sci::Position sLength2 = sText2.length();
+			cb.InsertString(0, sText2.data(), sLength2, startSequence);
+			REQUIRE(cb.LineEnd(-1) < 0);
+			cb.DeleteChars(0, sLength2, startSequence);
+		}
 		cb.SetLineEndTypes(LineEndType::Default);
 	}
 
