@@ -1559,7 +1559,8 @@ class TestScrolling(unittest.TestCase):
 		self.ed.ClearAll()
 		self.ed.EmptyUndoBuffer()
 		# 150 should be enough lines
-		self.ed.InsertText(0, b"a" * 150 + b"\n" * 150)
+		self.lineCount = 150
+		self.ed.InsertText(0, b"a" * self.lineCount + b"\n" * self.lineCount)
 
 	def testTop(self):
 		self.ed.GotoLine(0)
@@ -1581,6 +1582,27 @@ class TestScrolling(unittest.TestCase):
 	def testVisibleLine(self):
 		self.ed.FirstVisibleLine = 7
 		self.assertEqual(self.ed.FirstVisibleLine, 7)
+
+	def testVerticalCentre(self):
+		self.assertEqual(self.ed.LineCount, self.lineCount + 1)
+		onScreen = self.ed.LinesOnScreen()
+		self.assertTrue(onScreen > 0)
+
+		# With caret 1/3 was down document
+		self.ed.FirstVisibleLine = 7
+		lineSelect = self.lineCount // 3
+		offset = self.lineCount + lineSelect
+		self.ed.SetSelection(offset, offset)
+		self.ed.VerticalCentreCaret()
+		expectedScroll = lineSelect - onScreen / 2
+		self.assertEqual(self.ed.FirstVisibleLine, expectedScroll)
+
+		# With caret at end
+		offset = self.ed.Length
+		self.ed.SetSelection(offset, offset)
+		self.ed.VerticalCentreCaret()
+		expectedScroll = self.ed.LineCount - self.ed.LinesOnScreen()
+		self.assertEqual(self.ed.FirstVisibleLine, expectedScroll)
 
 class TestSearch(unittest.TestCase):
 

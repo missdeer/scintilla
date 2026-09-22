@@ -1033,9 +1033,9 @@ void Editor::VerticalCentreCaret() {
 	const Sci::Line lineDoc =
 		pdoc->SciLineFromPosition(sel.IsRectangular() ? sel.Rectangular().caret.Position() : sel.MainCaret());
 	const Sci::Line lineDisplay = pcs->DisplayFromDoc(lineDoc);
-	const Sci::Line newTop = lineDisplay - (LinesOnScreen() / 2);
+	const Sci::Line newTop = std::clamp<Sci::Line>(lineDisplay - (LinesOnScreen() / 2), 0, MaxScrollPos());
 	if (topLine != newTop) {
-		SetTopLine(newTop > 0 ? newTop : 0);
+		SetTopLine(newTop);
 		SetVerticalScrollPos();
 		RedrawRect(GetClientRectangle());
 	}
