@@ -1866,27 +1866,21 @@ Sci::Position Document::CountUTF16(Sci::Position startPos, Sci::Position endPos)
 
 Sci::Position Document::FindColumn(Sci::Line line, Sci::Position column) const noexcept {
 	Sci::Position position = cb.LineStart(line);
-	if ((line >= 0) && (line < LinesTotal())) {
-		const Sci::Position length = LengthNoExcept();
-		Sci::Position columnCurrent = 0;
-		while ((columnCurrent < column) && (position < length)) {
-			const char ch = cb.CharAt(position);
-			if (ch == '\t') {
-				columnCurrent = NextTab(columnCurrent, tabInChars);
-				if (columnCurrent > column)
-					return position;
-				position++;
-			} else if (ch == '\r') {
+	const Sci::Position endPos = cb.LineEnd(line);
+	Sci::Position columnCurrent = 0;
+	while ((columnCurrent < column) && (position < endPos)) {
+		const char ch = cb.CharAt(position);
+		if (ch == '\t') {
+			columnCurrent = NextTab(columnCurrent, tabInChars);
+			if (columnCurrent > column)
 				return position;
-			} else if (ch == '\n') {
-				return position;
-			} else if (UTF8IsAscii(ch)) {
-				columnCurrent++;
-				position++;
-			} else {
-				columnCurrent++;
-				position = NextPosition(position, 1);
-			}
+			position++;
+		} else if (UTF8IsAscii(ch)) {
+			columnCurrent++;
+			position++;
+		} else {
+			columnCurrent++;
+			position = NextPosition(position, 1);
 		}
 	}
 	return position;

@@ -22,6 +22,11 @@ class TestSimple(unittest.TestCase):
 		self.ed.ClearAll()
 		self.ed.EmptyUndoBuffer()
 
+	def setUnicodeLineEnds(self):
+		self.xite.ChooseLexer(b"cpp")
+		self.ed.SetCodePage(65001)
+		self.ed.SetLineEndTypesAllowed(self.ed.SC_LINE_END_TYPE_UNICODE)
+
 	def testStatus(self):
 		self.assertEqual(self.ed.GetStatus(), 0)
 		self.ed.SetStatus(1)
@@ -297,6 +302,49 @@ class TestSimple(unittest.TestCase):
 		self.assertEqual(self.ed.GetColumn(0), 0)
 		self.assertEqual(self.ed.GetColumn(1), 1)
 		self.assertEqual(self.ed.GetColumn(2), 4)
+
+	@unittest.skipUnless(unicodeLineEndsAvailable, "can not test Unicode line ends")
+	def testFindColumnUnicodeLineEnd(self):
+		self.setUnicodeLineEnds()
+		# LS=\xe2\x80\xa8 gamma=\xCE\x93
+		self.ed.SetContents(b"ab\tc\xCE\x93\r\nd\xe2\x80\xa8z\na")
+
+		# Outside document
+		self.assertEqual( 0, self.ed.FindColumn(0, -1))
+		self.assertEqual( 6, self.ed.FindColumn(0, 1000))
+
+		# Each line
+		self.assertEqual( 0, self.ed.FindColumn(0, 0))	# a
+		self.assertEqual( 1, self.ed.FindColumn(0, 1))	# b
+		self.assertEqual( 2, self.ed.FindColumn(0, 2))	# \t
+		self.assertEqual( 2, self.ed.FindColumn(0, 3))	# \t
+		self.assertEqual( 2, self.ed.FindColumn(0, 4))	# \t
+		self.assertEqual( 2, self.ed.FindColumn(0, 5))	# \t
+		self.assertEqual( 2, self.ed.FindColumn(0, 6))	# \t
+		self.assertEqual( 2, self.ed.FindColumn(0, 7))	# \t
+		self.assertEqual( 3, self.ed.FindColumn(0, 8))	# c
+		self.assertEqual( 4, self.ed.FindColumn(0, 9))	# gamma[1], gamma[2]
+		self.assertEqual( 6, self.ed.FindColumn(0, 10))	# \r
+		self.assertEqual( 6, self.ed.FindColumn(0, 11))	# \n
+		self.assertEqual( 6, self.ed.FindColumn(0, 12))	# ...
+
+		self.assertEqual( 8, self.ed.FindColumn(1, 0))	# d
+		self.assertEqual( 9, self.ed.FindColumn(1, 1))	# LS[0]
+		self.assertEqual( 9, self.ed.FindColumn(1, 2))	# LS[1]
+		self.assertEqual( 9, self.ed.FindColumn(1, 3))	# LS[2]
+		self.assertEqual( 9, self.ed.FindColumn(1, 4))	# ...
+
+		self.assertEqual(12, self.ed.FindColumn(2, 0))	# z
+		self.assertEqual(13, self.ed.FindColumn(2, 1))	# \n
+		self.assertEqual(13, self.ed.FindColumn(2, 2))	# ...
+
+		self.assertEqual(14, self.ed.FindColumn(3, 0))	# a
+		self.assertEqual(15, self.ed.FindColumn(3, 1))	# end of document
+		self.assertEqual(15, self.ed.FindColumn(3, 2))	# ...
+
+		# Line beyond end
+		self.assertEqual(15, self.ed.FindColumn(4, 0))
+		self.assertEqual(15, self.ed.FindColumn(4, 1))
 
 	def testIndent(self):
 		self.assertEqual(self.ed.Indent, 0)
