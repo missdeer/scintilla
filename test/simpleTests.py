@@ -385,7 +385,7 @@ class TestSimple(unittest.TestCase):
 		# Then remove U+2028 and should be just 1 lines
 		self.xite.ChooseLexer(b"cpp")
 		self.ed.SetCodePage(65001)
-		self.ed.SetLineEndTypesAllowed(1)
+		self.ed.SetLineEndTypesAllowed(self.ed.SC_LINE_END_TYPE_UNICODE)
 		self.ed.AddText(5, b"x\xe2\x80\xa8y")
 		self.assertEqual(self.ed.LineCount, 2)
 		self.assertEqual(self.ed.GetLineEndPosition(0), 1)
@@ -417,7 +417,7 @@ class TestSimple(unittest.TestCase):
 		# Into UTF-8 mode - should now be interpreting as two lines
 		self.xite.ChooseLexer(b"cpp")
 		self.ed.SetCodePage(65001)
-		self.ed.SetLineEndTypesAllowed(1)
+		self.ed.SetLineEndTypesAllowed(self.ed.SC_LINE_END_TYPE_UNICODE)
 		self.assertEqual(self.ed.LineCount, 2)
 		# Back to code page 0 and 1 line
 		self.ed.SetCodePage(0)
@@ -450,7 +450,7 @@ class TestSimple(unittest.TestCase):
 		# Add end of UTF-8 line end then insert start
 		self.xite.ChooseLexer(b"cpp")
 		self.ed.SetCodePage(65001)
-		self.ed.SetLineEndTypesAllowed(1)
+		self.ed.SetLineEndTypesAllowed(self.ed.SC_LINE_END_TYPE_UNICODE)
 		self.assertEqual(self.ed.LineCount, 1)
 		self.ed.AddText(4, b"x\x80\xa8y")
 		self.assertEqual(self.ed.LineCount, 1)
@@ -464,7 +464,7 @@ class TestSimple(unittest.TestCase):
 		# only one line after each removal of any byte in line end and 2 lines after reinsertion
 		self.xite.ChooseLexer(b"cpp")
 		self.ed.SetCodePage(65001)
-		self.ed.SetLineEndTypesAllowed(1)
+		self.ed.SetLineEndTypesAllowed(self.ed.SC_LINE_END_TYPE_UNICODE)
 		text = b"x\xe2\x80\xa9y"
 		self.ed.AddText(5, text)
 		self.assertEqual(self.ed.LineCount, 2)
@@ -489,7 +489,7 @@ class TestSimple(unittest.TestCase):
 		# Add UTF-8 line end then delete each byte causing line end to disappear
 		self.xite.ChooseLexer(b"cpp")
 		self.ed.SetCodePage(65001)
-		self.ed.SetLineEndTypesAllowed(1)
+		self.ed.SetLineEndTypesAllowed(self.ed.SC_LINE_END_TYPE_UNICODE)
 		for i in range(3):
 			self.ed.ClearAll()
 			self.ed.AddText(5, b"x\xe2\x80\xa8y")
@@ -507,7 +507,7 @@ class TestSimple(unittest.TestCase):
 		# Then remove U+0085 and should be just 1 lines
 		self.xite.ChooseLexer(b"cpp")
 		self.ed.SetCodePage(65001)
-		self.ed.SetLineEndTypesAllowed(1)
+		self.ed.SetLineEndTypesAllowed(self.ed.SC_LINE_END_TYPE_UNICODE)
 		self.ed.AddText(4, b"x\xc2\x85y")
 		self.assertEqual(self.ed.LineCount, 2)
 		self.assertEqual(self.ed.GetLineEndPosition(0), 1)
@@ -537,7 +537,7 @@ class TestSimple(unittest.TestCase):
 		# Add end of UTF-8 NEL then insert start
 		self.xite.ChooseLexer(b"cpp")
 		self.ed.SetCodePage(65001)
-		self.ed.SetLineEndTypesAllowed(1)
+		self.ed.SetLineEndTypesAllowed(self.ed.SC_LINE_END_TYPE_UNICODE)
 		self.assertEqual(self.ed.LineCount, 1)
 		self.ed.AddText(4, b"x\x85y")
 		self.assertEqual(self.ed.LineCount, 1)
@@ -551,7 +551,7 @@ class TestSimple(unittest.TestCase):
 		# only one line after each removal of any byte in line end and 2 lines after reinsertion
 		self.xite.ChooseLexer(b"cpp")
 		self.ed.SetCodePage(65001)
-		self.ed.SetLineEndTypesAllowed(1)
+		self.ed.SetLineEndTypesAllowed(self.ed.SC_LINE_END_TYPE_UNICODE)
 		text = b"x\xc2\x85y"
 		self.ed.AddText(4, text)
 		self.assertEqual(self.ed.LineCount, 2)
