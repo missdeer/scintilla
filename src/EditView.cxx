@@ -1025,7 +1025,6 @@ void EditView::DrawEOL(Surface *surface, const EditModel &model, const ViewStyle
 	Sci::Line line, int xStart, PRectangle rcLine, int subLine, Sci::Position lineEnd, XYPOSITION subLineStart, ColourOptional background) {
 
 	const Sci::Position posLineStart = model.pdoc->LineStart(line);
-	PRectangle rcSegment = rcLine;
 
 	const bool lastSubLine = subLine == (ll->lines - 1);
 	const Sci::Position virtualSpaces = lastSubLine ? model.VirtualSpaceForLine(line) : 0;
@@ -1035,10 +1034,9 @@ void EditView::DrawEOL(Surface *surface, const EditModel &model, const ViewStyle
 
 	// Fill the virtual space and show selections within it
 	if (virtualSpace > 0.0f) {
-		rcSegment.left = xEol + xStart;
-		rcSegment.right = xEol + xStart + virtualSpace;
+		const Interval intervalVirtual = Interval::FromLeftAndWidth(xEol + xStart, virtualSpace);
 		const ColourRGBA backgroundFill = background.value_or(vsDraw.styles[ll->LastStyle()].back);
-		surface->FillRectangleAligned(rcSegment, backgroundFill);
+		surface->FillRectangleAligned(rcLine.WithHorizontalBounds(intervalVirtual), backgroundFill);
 		if (vsDraw.selection.visible && (vsDraw.selection.layer == Layer::Base)) {
 			const Sci::Position posLineEnd = posLineStart + ll->numCharsBeforeEOL;
 			const SelectionSegment virtualSpaceRange(SelectionPosition(posLineEnd),
@@ -1046,6 +1044,7 @@ void EditView::DrawEOL(Surface *surface, const EditModel &model, const ViewStyle
 			for (size_t r = 0; r<model.sel.Count(); r++) {
 				const SelectionSegment portion = model.sel.Range(r).Intersect(virtualSpaceRange);
 				if (!portion.Empty()) {
+					PRectangle rcSegment = rcLine;
 					rcSegment.left = xStart + ll->GetPosition(portion.start.Position() - posLineStart) -
 						subLineStart + portion.start.VirtualSpaceWidth(spaceWidth);
 					rcSegment.right = xStart + ll->GetPosition(portion.end.Position() - posLineStart) -
