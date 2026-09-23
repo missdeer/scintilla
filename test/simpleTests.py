@@ -304,6 +304,36 @@ class TestSimple(unittest.TestCase):
 		self.assertEqual(self.ed.GetColumn(2), 4)
 
 	@unittest.skipUnless(unicodeLineEndsAvailable, "can not test Unicode line ends")
+	def testGetColumnUnicodeLineEnd(self):
+		self.setUnicodeLineEnds()
+		# LS=\xe2\x80\xa8 gamma=\xCE\x93
+		self.ed.SetContents(b"ab\tc\xCE\x93\r\nd\xe2\x80\xa8z")
+
+		# Outside document
+		self.assertEqual( 0, self.ed.GetColumn(-1))
+		self.assertEqual( 1, self.ed.GetColumn(1000))
+
+		# Each line
+		self.assertEqual( 0, self.ed.GetColumn( 0))	# a
+		self.assertEqual( 1, self.ed.GetColumn( 1))	# b
+		self.assertEqual( 2, self.ed.GetColumn( 2))	# \t
+		self.assertEqual( 8, self.ed.GetColumn( 3))	# c
+		self.assertEqual( 9, self.ed.GetColumn( 4))	# gamma[0]
+		self.assertEqual( 9, self.ed.GetColumn( 5))	# gamma[1]
+		self.assertEqual(10, self.ed.GetColumn( 6))	# \r
+		self.assertEqual(10, self.ed.GetColumn( 7))	# \n
+
+		self.assertEqual( 0, self.ed.GetColumn( 8))	# d
+		self.assertEqual( 1, self.ed.GetColumn( 9))	# LS[0]
+		self.assertEqual( 1, self.ed.GetColumn(10))	# LS[1]
+		self.assertEqual( 1, self.ed.GetColumn(11))	# LS[2]
+
+		self.assertEqual( 0, self.ed.GetColumn(12))	# z
+		self.assertEqual( 1, self.ed.GetColumn(13))	# end of document
+
+		self.assertEqual( 1, self.ed.GetColumn(14))	# 1 after end of document
+
+	@unittest.skipUnless(unicodeLineEndsAvailable, "can not test Unicode line ends")
 	def testFindColumnUnicodeLineEnd(self):
 		self.setUnicodeLineEnds()
 		# LS=\xe2\x80\xa8 gamma=\xCE\x93

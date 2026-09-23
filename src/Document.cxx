@@ -1812,28 +1812,28 @@ Sci::Position Document::GetLineIndentPosition(Sci::Line line) const noexcept {
 Sci::Position Document::GetColumn(Sci::Position pos) const noexcept {
 	Sci::Position column = 0;
 	const Sci::Line line = SciLineFromPosition(pos);
-	if ((line >= 0) && (line < LinesTotal())) {
-		const Sci::Position length = LengthNoExcept();
-		for (Sci::Position i = cb.LineStart(line); i < pos;) {
-			const char ch = cb.CharAt(i);
-			if (ch == '\t') {
-				column = NextTab(column, tabInChars);
-				i++;
-			} else if (ch == '\r') {
+	const Sci::Position length = LengthNoExcept();
+	pos = std::min(pos, length);
+	for (Sci::Position i = cb.LineStart(line); i < pos;) {
+		const char ch = cb.CharAt(i);
+		if (ch == '\t') {
+			column = NextTab(column, tabInChars);
+			i++;
+		} else if (ch == '\n' || ch == '\r') {
+			return column;
+		} else if (UTF8IsAscii(ch)) {
+			column++;
+			i++;
+		} else {
+			i = NextPosition(i, 1);
+			if (i > pos) {
+				// For pos inside multibyte character report column before
 				return column;
-			} else if (ch == '\n') {
-				return column;
-			} else if (i >= length) {
-				return column;
-			} else if (UTF8IsAscii(ch)) {
-				column++;
-				i++;
-			} else {
-				column++;
-				i = NextPosition(i, 1);
 			}
+			column++;
 		}
 	}
+
 	return column;
 }
 
