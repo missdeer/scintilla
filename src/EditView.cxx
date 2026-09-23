@@ -1040,8 +1040,9 @@ void EditView::DrawEOL(Surface *surface, const EditModel &model, const ViewStyle
 		const ColourRGBA backgroundFill = background.value_or(vsDraw.styles[ll->LastStyle()].back);
 		surface->FillRectangleAligned(rcSegment, backgroundFill);
 		if (vsDraw.selection.visible && (vsDraw.selection.layer == Layer::Base)) {
-			const SelectionSegment virtualSpaceRange(SelectionPosition(model.pdoc->LineEnd(line)),
-				SelectionPosition(model.pdoc->LineEnd(line), virtualSpaces));
+			const Sci::Position posLineEnd = posLineStart + ll->numCharsBeforeEOL;
+			const SelectionSegment virtualSpaceRange(SelectionPosition(posLineEnd),
+				SelectionPosition(posLineEnd, virtualSpaces));
 			for (size_t r = 0; r<model.sel.Count(); r++) {
 				const SelectionSegment portion = model.sel.Range(r).Intersect(virtualSpaceRange);
 				if (!portion.Empty()) {
@@ -2589,8 +2590,8 @@ void EditView::PaintText(Surface *surfaceWindow, const EditModel &model, const V
 					rcLine.top = static_cast<XYPOSITION>(ypos);
 					rcLine.bottom = static_cast<XYPOSITION>(ypos + vsDraw.lineHeight);
 
-					const ForwardRange rangeLine(model.pdoc->LineStart(lineDoc),
-						model.pdoc->LineStart(lineDoc) + ll->numCharsInLine);
+					const Sci::Position posLineStart = model.pdoc->LineStart(lineDoc);
+					const ForwardRange rangeLine(posLineStart, posLineStart + ll->numCharsInLine);
 
 					// Highlight the current braces if any
 					ll->SetBracesHighlight(rangeLine, model.braces, static_cast<char>(model.bracesMatchStyle),
