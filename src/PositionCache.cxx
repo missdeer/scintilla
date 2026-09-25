@@ -93,7 +93,16 @@ XWidth *XPositions::PositionsFor(int index) const noexcept {
 }
 
 XYPOSITION XPositions::GetPosition(Sci::Position index) const noexcept {
-	return positions[index] + (characterWidthMean * static_cast<XYPOSITION>(index));
+	// The position calculation may produce a value that is close to but just below an integer.
+	// Some text drawing APIs, like Win32 GDI will truncate which is a significant difference
+	// so force the result to the nearest integer above if it is close.
+	constexpr XYPOSITION epsilon = 0.00001;
+	const XYPOSITION ret = positions[index] + (characterWidthMean * static_cast<XYPOSITION>(index));
+	const XYPOSITION retAbove = std::ceil(ret);
+	if (retAbove - ret < epsilon) {
+		return retAbove;
+	}
+	return ret;
 }
 
 XYPOSITION XPositions::GetWidth(Sci::Position end, Sci::Position start) const noexcept {
