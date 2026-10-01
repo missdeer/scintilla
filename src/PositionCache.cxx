@@ -81,7 +81,18 @@ XWidth XPositions::GetValue(Sci::Position index) const noexcept {
 }
 
 void XPositions::SetPosition(int index, XYPOSITION position) noexcept {
-	positions[index] = static_cast<XWidth>(position - (characterWidthMean * index));
+	// When position is an integer, inaccuracy in the scaling then reverse scaling may produce
+	// a value that is close to but just below the original integer.
+	// Some text drawing APIs, like Win32 GDI will truncate which is a significant difference.
+	// If this will occur, force the scaled value to the nearest float above.
+	const XYPOSITION expected = characterWidthMean * index;
+	const XWidth scaled = static_cast<XWidth>(position - expected);
+	const XYPOSITION scaledBack = scaled + expected;
+	if ((position > scaledBack) && (std::floor(position) > std::floor(scaledBack))) {
+		positions[index] = nextafter(scaled, scaled + 1.0f);
+	} else {
+		positions[index] = scaled;
+	}
 }
 
 void XPositions::SetValue(int index, XWidth width) const noexcept {
@@ -93,16 +104,7 @@ XWidth *XPositions::PositionsFor(int index) const noexcept {
 }
 
 XYPOSITION XPositions::GetPosition(Sci::Position index) const noexcept {
-	// The position calculation may produce a value that is close to but just below an integer.
-	// Some text drawing APIs, like Win32 GDI will truncate which is a significant difference
-	// so force the result to the nearest integer above if it is close.
-	constexpr XYPOSITION epsilon = 0.00001;
-	const XYPOSITION ret = positions[index] + (characterWidthMean * static_cast<XYPOSITION>(index));
-	const XYPOSITION retAbove = std::ceil(ret);
-	if (retAbove - ret < epsilon) {
-		return retAbove;
-	}
-	return ret;
+	return positions[index] + (characterWidthMean * static_cast<XYPOSITION>(index));
 }
 
 XYPOSITION XPositions::GetWidth(Sci::Position end, Sci::Position start) const noexcept {
