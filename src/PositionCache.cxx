@@ -89,7 +89,8 @@ void XPositions::SetPosition(int index, XYPOSITION position) noexcept {
 	const XWidth scaled = static_cast<XWidth>(position - expected);
 	const XYPOSITION scaledBack = scaled + expected;
 	if ((position > scaledBack) && (std::floor(position) > std::floor(scaledBack))) {
-		positions[index] = nextafter(scaled, scaled + 1.0f);
+		// Nudge scaled larger
+		positions[index] = nextafterf(scaled, scaled + 1.0f);
 	} else {
 		positions[index] = scaled;
 	}
