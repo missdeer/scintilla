@@ -611,6 +611,11 @@
 	Released 28 September 2026.
 	</li>
 	<li>
+	Improve speed by avoiding line layout when determining positions at line starts.
+	Increase maximum size of cached lexemes from 30 to 40 as many identifiers, column names, and
+	common values are larger than 30 bytes.
+	</li>
+	<li>
 	Fix crash with change history undo caused by optimizing bulk deletion in version 5.3.8.
 	</li>
 	<li>
