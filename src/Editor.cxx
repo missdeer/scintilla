@@ -2510,27 +2510,12 @@ void Editor::DelCharBack(bool allowLineStartDeletion) {
 	if (sel.Empty()) {
 		for (size_t r=0; r<sel.Count(); r++) {
 			if (!RangeContainsProtected(sel.Range(r).caret.Position() - 1, sel.Range(r).caret.Position())) {
-				if (sel.Range(r).caret.VirtualSpace()) {
-					sel.Range(r).caret.SetVirtualSpace(sel.Range(r).caret.VirtualSpace() - 1);
-					sel.Range(r).anchor.SetVirtualSpace(sel.Range(r).caret.VirtualSpace());
-				} else {
-					const Sci::Line lineCurrentPos =
-						pdoc->SciLineFromPosition(sel.Range(r).caret.Position());
-					if (allowLineStartDeletion || (pdoc->LineStart(lineCurrentPos) != sel.Range(r).caret.Position())) {
-						const Sci::Position column = pdoc->GetColumn(sel.Range(r).caret.Position());
-						const int indentation = pdoc->GetLineIndentation(lineCurrentPos);
-						if ((column <= indentation) && (column > 0) && pdoc->backspaceUnindents) {
-							UndoGroup ugInner(pdoc);
-							const int indentationStep = pdoc->IndentSize();
-							int indentationChange = indentation % indentationStep;
-							if (indentationChange == 0)
-								indentationChange = indentationStep;
-							const Sci::Position posSelect = pdoc->SetLineIndentation(lineCurrentPos, indentation - indentationChange);
-							// SetEmptySelection
-							sel.Range(r) = SelectionRange(posSelect);
-						} else {
-							pdoc->DelCharBack(sel.Range(r).caret.Position());
-						}
+				if (!sel.Range(r).BackSpaceVirtual()) {
+					const Sci::Position posSelect = pdoc->BackSpace(sel.Range(r).caret.Position(),
+						allowLineStartDeletion);
+					if (posSelect != Sci::invalidPosition) {
+						// SetEmptySelection
+						sel.Range(r) = SelectionRange(posSelect);
 					}
 				}
 			} else {

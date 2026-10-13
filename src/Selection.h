@@ -163,6 +163,7 @@ struct SelectionRange {
 	void Truncate(Sci::Position length) noexcept;
 	// If range is all virtual collapse to start of virtual space
 	void MinimizeVirtualSpace() noexcept;
+	bool BackSpaceVirtual() noexcept;
 	[[nodiscard]] std::string ToString() const;
 };
 
