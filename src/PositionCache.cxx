@@ -433,7 +433,9 @@ void LineLayout::CalculatePositions(Sci::Line line, const TabStopProvider &tsp, 
 	}
 	SetPosition(numCharsInLine, xPosition);
 
-	const bool lastSegItalics = (chars[numCharsBeforeEOL - 1] != ' ') && vstyle.styles[styles[numCharsBeforeEOL - 1]].italic;
+	const bool lastSegItalics = (numCharsBeforeEOL > 0) &&
+		(chars[numCharsBeforeEOL - 1] != ' ') &&
+		vstyle.styles[styles[numCharsBeforeEOL - 1]].italic;
 
 	// Small hack to make lines that end with italics not cut off the edge of the last character
 	if (lastSegItalics) {
