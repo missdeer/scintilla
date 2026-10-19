@@ -4174,6 +4174,8 @@ const int catRanges[] = {
 
 constexpr int maxUnicode = 0x10ffff;
 constexpr int maskCategory = 0x1F;
+constexpr int shiftCategory = 5;
+constexpr size_t denseSize = 0x100;	// Optimize the first 256 characters.
 
 }
 
@@ -4191,7 +4193,7 @@ constexpr int maskCategory = 0x1F;
 CharacterCategory CategoriseCharacter(int character) noexcept {
 	if (character < 0 || character > maxUnicode)
 		return ccCn;
-	const int baseValue = character * (maskCategory+1) + maskCategory;
+	const int baseValue = (character * (maskCategory+1)) + maskCategory;
 	try {
 		// lower_bound will never throw with these args but its not marked noexcept so add catch to pretend.
 		const int *placeAfter = std::lower_bound(catRanges, std::end(catRanges), baseValue);
@@ -4224,15 +4226,15 @@ OtherID OtherIDOfCharacter(int character) noexcept {
 		(character == 0x309B) ||	// KATAKANA-HIRAGANA VOICED SOUND MARK
 		(character == 0x309C)) {	// KATAKANA-HIRAGANA SEMI-VOICED SOUND MARK
 		return OtherID::oidStart;
-	} else if (
+	}
+	if (
 		(character == 0x00B7) ||	// MIDDLE DOT
 		(character == 0x0387) ||	// GREEK ANO TELEIA
 		((character >= 0x1369) && (character <= 0x1371)) ||	// ETHIOPIC DIGIT ONE..ETHIOPIC DIGIT NINE
 		(character == 0x19DA)) {	// NEW TAI LUE THAM DIGIT ONE
 		return OtherID::oidContinue;
-	} else {
-		return OtherID::oidNone;
 	}
+	return OtherID::oidNone;
 }
 
 // Determine if a character is in  Ll|Lu|Lt|Lm|Lo|Nl|Mn|Mc|Nd|Pc and has
@@ -4339,22 +4341,20 @@ bool IsIdContinue(int character) noexcept {
 bool IsXidStart(int character) noexcept {
 	if (OmitXidStart(character)) {
 		return false;
-	} else {
-		return IsIdStart(character);
 	}
+	return IsIdStart(character);
 }
 
 // XID_Continue is ID_Continue modified for Normalization Form KC in UAX #31
 bool IsXidContinue(int character) noexcept {
 	if (OmitXidContinue(character)) {
 		return false;
-	} else {
-		return IsIdContinue(character);
 	}
+	return IsIdContinue(character);
 }
 
 CharacterCategoryMap::CharacterCategoryMap() {
-	Optimize(256);
+	Optimize(denseSize);
 }
 
 int CharacterCategoryMap::Size() const noexcept {
@@ -4372,8 +4372,8 @@ void CharacterCategoryMap::Optimize(int countCharacters) {
 	do {
 		const int next = catRanges[index];
 		const unsigned char category = current & maskCategory;
-		current >>= 5;
-		end = std::min(characters, next >> 5);
+		current >>= shiftCategory;
+		end = std::min(characters, next >> shiftCategory);
 		while (current < end) {
 			dense[current++] = category;
 		}
