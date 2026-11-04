@@ -406,15 +406,7 @@ const CGFloat paddingHighlightY = 2;
 //----------------- CGContextCurrent ---------------------------------------------------------------
 
 CGContextRef Scintilla::Internal::CGContextCurrent() {
-	if (@available(macOS 10.10, *)) {
-		return [NSGraphicsContext currentContext].CGContext;
-	} else {
-		// Use old deprecated API
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdeprecated-declarations"
-		return static_cast<CGContextRef>([NSGraphicsContext currentContext].graphicsPort);
-#pragma clang diagnostic pop
-	}
+	return [NSGraphicsContext currentContext].CGContext;
 }
 
 //----------------- ScintillaCocoa -----------------------------------------------------------------
@@ -1395,16 +1387,7 @@ void ScintillaCocoa::StartDrag() {
 
 	// Put the data to be dragged on the drag pasteboard.
 	SelectionText selectedText;
-	NSPasteboard *pasteboard = nil;
-	if (@available(macOS 10.13, *)) {
-		pasteboard = [NSPasteboard pasteboardWithName: NSPasteboardNameDrag];
-	} else {
-		// Use old deprecated name
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdeprecated-declarations"
-		pasteboard = [NSPasteboard pasteboardWithName: NSDragPboard];
-#pragma clang diagnostic pop
-	}
+	NSPasteboard *pasteboard = [NSPasteboard pasteboardWithName: NSPasteboardNameDrag];
 	CopySelectionRange(&selectedText);
 	SetPasteboardData(pasteboard, selectedText);
 
@@ -1590,16 +1573,8 @@ NSDragOperation ScintillaCocoa::DraggingUpdated(id <NSDraggingInfo> info) {
 			[pasteboard.types containsObject: ScintillaRecPboardType])
 		return (sourceDragMask & NSDragOperationMove) ? NSDragOperationMove : NSDragOperationCopy;
 
-	if (@available(macOS 10.13, *)) {
-		if ([pasteboard.types containsObject: NSPasteboardTypeFileURL])
-			return (sourceDragMask & NSDragOperationGeneric);
-	} else {
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdeprecated-declarations"
-		if ([pasteboard.types containsObject: NSFilenamesPboardType])
-			return (sourceDragMask & NSDragOperationGeneric);
-#pragma clang diagnostic pop
-	}
+	if ([pasteboard.types containsObject: NSPasteboardTypeFileURL])
+		return (sourceDragMask & NSDragOperationGeneric);
 	return NSDragOperationNone;
 }
 
@@ -1623,26 +1598,13 @@ void ScintillaCocoa::DraggingExited(id <NSDraggingInfo> info) {
 bool ScintillaCocoa::PerformDragOperation(id <NSDraggingInfo> info) {
 	NSPasteboard *pasteboard = [info draggingPasteboard];
 
-	if (@available(macOS 10.13, *)) {
-		// NSPasteboardTypeFileURL is available for macOS 10.13+, provides NSURLs
-		if ([pasteboard.types containsObject: NSPasteboardTypeFileURL]) {
-			NSArray *files = [pasteboard readObjectsForClasses:@[NSURL.class] options:nil];
-			for (NSURL *uri in files) {
-				NotifyURIDropped([uri path].UTF8String);
-			}
-			return true;
+	// NSPasteboardTypeFileURL is available for macOS 10.13+, provides NSURLs
+	if ([pasteboard.types containsObject: NSPasteboardTypeFileURL]) {
+		NSArray *files = [pasteboard readObjectsForClasses:@[NSURL.class] options:nil];
+		for (NSURL *uri in files) {
+			NotifyURIDropped([uri path].UTF8String);
 		}
-	} else {
-		// Use deprecated NSFilenamesPboardType, provides NSStrings
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdeprecated-declarations"
-		if ([pasteboard.types containsObject: NSFilenamesPboardType]) {
-			NSArray *files = [pasteboard propertyListForType: NSFilenamesPboardType];
-			for (NSString *uri in files) {
-				NotifyURIDropped(uri.UTF8String);
-			}
-		}
-#pragma clang diagnostic pop
+		return true;
 	}
 
 	SelectionText text;
@@ -2657,38 +2619,35 @@ ColourRGBA ColourFromNSColor(NSColor *value) {
  */
 void ScintillaCocoa::UpdateBaseElements() {
 	NSView *content = ContentView();
-	NSAppearance *saved = [NSAppearance currentAppearance];
-	[NSAppearance setCurrentAppearance:content.effectiveAppearance];
+
+	[content.effectiveAppearance performAsCurrentDrawingAppearance:^{
 
 	bool changed = false;
-	if (@available(macOS 10.14, *)) {
-		NSColorSpace *colorSpace = [NSColorSpace genericRGBColorSpace];
-		NSColor *textBack = [NSColor.textBackgroundColor colorUsingColorSpace: colorSpace];
-		NSColor *noFocusBack = [NSColor.unemphasizedSelectedTextBackgroundColor colorUsingColorSpace: colorSpace];
-		if (vs.selection.layer == Layer::Base) {
-			NSColor *selBack = [NSColor.selectedTextBackgroundColor colorUsingColorSpace: colorSpace];
-			// Additional selection: blend with text background to make weaker version.
-			NSColor *modified = [selBack blendedColorWithFraction:0.5 ofColor:textBack];
-			changed = vs.SetElementBase(Element::SelectionBack, ColourFromNSColor(selBack));
-			changed = vs.SetElementBase(Element::SelectionAdditionalBack, ColourFromNSColor(modified)) || changed;
-			changed = vs.SetElementBase(Element::SelectionInactiveBack, ColourFromNSColor(noFocusBack)) || changed;
-		} else {
-			// Less translucent colour used in dark mode as otherwise less visible
-			const int alpha = textBack.brightnessComponent > 0.5 ? 0x40 : 0x60;
-			// Make a translucent colour that approximates selectedTextBackgroundColor
-			NSColor *accent = [NSColor.controlAccentColor colorUsingColorSpace: colorSpace];
-			const ColourRGBA colourAccent = ColourFromNSColor(accent);
-			changed = vs.SetElementBase(Element::SelectionBack, ColourRGBA(colourAccent, alpha));
-			changed = vs.SetElementBase(Element::SelectionAdditionalBack, ColourRGBA(colourAccent, alpha/2)) || changed;
-			changed = vs.SetElementBase(Element::SelectionInactiveBack, ColourRGBA(ColourFromNSColor(noFocusBack), alpha)) || changed;
+	NSColorSpace *colorSpace = [NSColorSpace genericRGBColorSpace];
+	NSColor *textBack = [NSColor.textBackgroundColor colorUsingColorSpace: colorSpace];
+	NSColor *noFocusBack = [NSColor.unemphasizedSelectedTextBackgroundColor colorUsingColorSpace: colorSpace];
+	if (vs.selection.layer == Layer::Base) {
+		NSColor *selBack = [NSColor.selectedTextBackgroundColor colorUsingColorSpace: colorSpace];
+		// Additional selection: blend with text background to make weaker version.
+		NSColor *modified = [selBack blendedColorWithFraction:0.5 ofColor:textBack];
+		changed = vs.SetElementBase(Element::SelectionBack, ColourFromNSColor(selBack));
+		changed = vs.SetElementBase(Element::SelectionAdditionalBack, ColourFromNSColor(modified)) || changed;
+		changed = vs.SetElementBase(Element::SelectionInactiveBack, ColourFromNSColor(noFocusBack)) || changed;
+	} else {
+		// Less translucent colour used in dark mode as otherwise less visible
+		const int alpha = textBack.brightnessComponent > 0.5 ? 0x40 : 0x60;
+		// Make a translucent colour that approximates selectedTextBackgroundColor
+		NSColor *accent = [NSColor.controlAccentColor colorUsingColorSpace: colorSpace];
+		const ColourRGBA colourAccent = ColourFromNSColor(accent);
+		changed = vs.SetElementBase(Element::SelectionBack, ColourRGBA(colourAccent, alpha));
+		changed = vs.SetElementBase(Element::SelectionAdditionalBack, ColourRGBA(colourAccent, alpha/2)) || changed;
+		changed = vs.SetElementBase(Element::SelectionInactiveBack, ColourRGBA(ColourFromNSColor(noFocusBack), alpha)) || changed;
 
-		}
 	}
 	if (changed) {
 		Redraw();
 	}
-
-	[NSAppearance setCurrentAppearance:saved];
+	}];
 }
 
 //--------------------------------------------------------------------------------------------------

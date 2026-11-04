@@ -238,15 +238,7 @@ static NSCursor *cursorFromEnum(Window::Cursor cursor) {
 		trackingArea = nil;
 		mMarkedTextRange = NSMakeRange(NSNotFound, 0);
 
-		if (@available(macOS 10.13, *)) {
-			[self registerForDraggedTypes: @[NSPasteboardTypeString, ScintillaRecPboardType, NSPasteboardTypeFileURL]];
-		} else {
-			// Use old deprecated type
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdeprecated-declarations"
-			[self registerForDraggedTypes: @[NSPasteboardTypeString, ScintillaRecPboardType, NSFilenamesPboardType]];
-#pragma clang diagnostic pop
-		}
+		[self registerForDraggedTypes: @[NSPasteboardTypeString, ScintillaRecPboardType, NSPasteboardTypeFileURL]];
 
 		// Set up accessibility in the text role
 		if ([self respondsToSelector: @selector(setAccessibilityElement:)]) {
@@ -1356,17 +1348,7 @@ static NSCursor *cursorFromEnum(Window::Cursor cursor) {
  * (like clearing all marks and setting new ones etc.).
  */
 - (void) suspendDrawing: (BOOL) suspend {
-	if (@available(macOS 10.14, *)) {
-		// Don't try where deprecated
-	} else {
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-		if (suspend)
-			[self.window disableFlushWindow];
-		else
-			[self.window enableFlushWindow];
-#pragma GCC diagnostic pop
-	}
+	// Don't try since deprecated
 }
 
 //--------------------------------------------------------------------------------------------------

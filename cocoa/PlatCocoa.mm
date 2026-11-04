@@ -1983,11 +1983,10 @@ void ListBoxImpl::Create(Window & /*parent*/, int /*ctrlID*/, Scintilla::Interna
 
 	table.target = ds;
 	table.doubleAction = @selector(doubleClick:);
-	table.selectionHighlightStyle = NSTableViewSelectionHighlightStyleSourceList;
+	table.style = NSTableViewStyleSourceList;
+	table.selectionHighlightStyle = NSTableViewSelectionHighlightStyleRegular;
 
-	if (@available(macOS 11.0, *)) {
-		[table setStyle: NSTableViewStylePlain];
-	}
+	[table setStyle: NSTableViewStylePlain];
 
 	wid = (__bridge_retained WindowID)winLB;
 }
@@ -2020,12 +2019,7 @@ PRectangle ListBoxImpl::GetDesiredRect() {
 	rcDesired = GetPosition();
 
 	CGFloat itemHeight;
-	if (@available(macOS 11.0, *)) {
-		itemHeight = table.rowHeight;
-	} else {
-		// There appears to be an extra pixel above and below the row contents
-		itemHeight = table.rowHeight + 2;
-	}
+	itemHeight = table.rowHeight;
 
 	int rows = Length();
 	if ((rows == 0) || (rows > desiredVisibleRows))
