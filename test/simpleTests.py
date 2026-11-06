@@ -810,7 +810,7 @@ class TestSimple(unittest.TestCase):
 		self.ed.SetSel(1, 2)
 		self.ed.MoveSelectedLinesDown()
 		self.assertEqual(self.ed.Contents(), b"b2\na1\nc3")
-		
+
 		# Exercise rectangular selection
 		self.ed.EOLMode = self.ed.SC_EOL_LF
 		self.ed.SetContents(b"a1\nb2\nc3")
@@ -958,7 +958,7 @@ class TestSimple(unittest.TestCase):
 		# End of text
 		self.assertEqual(self.ed.PositionFromPoint(100, 1), 3)
 		self.assertEqual(self.ed.PositionFromPointClose(100, 1), -1)
-		
+
 		# Character positions
 		# Start of text
 		self.assertEqual(self.ed.CharPositionFromPoint(0,0), 0)
@@ -1082,12 +1082,12 @@ class TestUndoSaveRestore(unittest.TestCase):
 		self.ed.ChangeLastUndoActionText(2, b'yx')
 		self.ed.PushUndoActionType(atDeletion + actMayCoalesce, 1)
 		self.ed.ChangeLastUndoActionText(1, b'y')
-		
+
 		self.assertEqual(self.ed.UndoActions, 4)
 		self.ed.SetUndoCurrent(1)
 		self.ed.SetUndoSavePoint(1)
 		self.ed.SetUndoTentative(-1)
-		
+
 		self.ed.Undo()
 		self.assertEqual(self.ed.UndoCurrent, 0)
 		self.assertEqual(self.ed.Contents(), b"")
@@ -2439,7 +2439,7 @@ class TestMultiSelection(unittest.TestCase):
 		self.ed.SetContents(b"a")
 		self.ed.SetSelectionSerialized(0, b'200-0')
 		self.assertEqual(self.ed.GetSelectionSerialized(), b'1-0')
-		
+
 		# Retain virtual space
 		self.ed.SetSelectionSerialized(0, b'0v1-200')
 		self.assertEqual(self.ed.GetSelectionSerialized(), b'0v1-1')

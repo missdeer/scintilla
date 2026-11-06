@@ -979,7 +979,7 @@ void Window::InvalidateRectangle(PRectangle rc)
 	if (wid) {
 		const qreal scale = ScaleOfWindow(wid);
 		QRect upd;
-		
+
 		if (!scale) {
 			upd = QRectFromPRect(rc);
 		} else {
