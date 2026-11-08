@@ -2415,6 +2415,16 @@ class TestMultiSelection(unittest.TestCase):
 		self.assertEqual(self.ed.Contents(), b'a    1')
 		self.assertEqual(self.textOfSelection(0), b' ')
 
+	def testPasteInVirtualSpace(self):
+		self.ed.SetContents(b"abcd\n1234")
+		self.ed.SetSelection(1, 2)
+		self.ed.Copy()
+		self.ed.SetSelectionSerialized(0, b'4v4')
+		self.ed.MultiPaste = self.ed.SC_MULTIPASTE_EACH
+		self.ed.Paste()
+		self.ed.MultiPaste = self.ed.SC_MULTIPASTE_ONCE
+		self.assertEqual(self.ed.Contents(), b'abcd    b\n1234')
+
 	def testSelectionSerialization(self):
 		self.ed.SetContents(b"a")
 		self.ed.SetSelection(0, 1)
