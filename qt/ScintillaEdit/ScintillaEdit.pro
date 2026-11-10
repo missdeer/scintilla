@@ -11,7 +11,7 @@ equals(QT_MAJOR_VERSION, 6): QT += core5compat
 TARGET = ScintillaEdit
 TEMPLATE = lib
 CONFIG += lib_bundle
-CONFIG += c++1z
+CONFIG += c++20
 
 VERSION = 5.6.9
 
