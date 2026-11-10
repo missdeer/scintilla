@@ -1587,7 +1587,7 @@ bool Editor::WrapBlock(Surface *surface, Sci::Line lineToWrap, Sci::Line lineToW
 	std::mutex mutexRetrieve;
 
 	RunThreads(threads,
-		[=, &surface, &nextIndex, &linesAfterWrap, &mutexRetrieve]() {
+		[=, this, &surface, &nextIndex, &linesAfterWrap, &mutexRetrieve]() {
 			// llTemporary is reused for non-significant lines, avoiding allocation costs.
 			std::shared_ptr<LineLayout> llTemporary = std::make_shared<LineLayout>(-1, lengthCommon);
 			while (true) {
