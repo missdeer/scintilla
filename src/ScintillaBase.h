@@ -52,11 +52,6 @@ protected:
 	void Colourise(int start, int end);
 
 	ScintillaBase();
-	// Deleted so ScintillaBase objects can not be copied.
-	ScintillaBase(const ScintillaBase &) = delete;
-	ScintillaBase(ScintillaBase &&) = delete;
-	ScintillaBase &operator=(const ScintillaBase &) = delete;
-	ScintillaBase &operator=(ScintillaBase &&) = delete;
 	// ~ScintillaBase() in public section
 	void Initialise() override {}
 	void Finalise() override;
@@ -97,6 +92,12 @@ protected:
 	void NotifyStyleToNeeded(Sci::Position endStyleNeeded) override;
 
 public:
+	// Deleted so ScintillaBase objects can not be copied.
+	ScintillaBase(const ScintillaBase &) = delete;
+	ScintillaBase(ScintillaBase &&) = delete;
+	ScintillaBase &operator=(const ScintillaBase &) = delete;
+	ScintillaBase &operator=(ScintillaBase &&) = delete;
+
 	~ScintillaBase() override;
 
 	// Public so scintilla_send_message can use it

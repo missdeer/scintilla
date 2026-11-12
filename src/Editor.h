@@ -301,11 +301,6 @@ protected:	// ScintillaBase subclass needs access to much of Editor
 	bool convertPastes;
 
 	Editor();
-	// Deleted so Editor objects can not be copied.
-	Editor(const Editor &) = delete;
-	Editor(Editor &&) = delete;
-	Editor &operator=(const Editor &) = delete;
-	Editor &operator=(Editor &&) = delete;
 	// ~Editor() in public section
 	virtual void Initialise() = 0;
 	virtual void Finalise();
@@ -715,6 +710,12 @@ protected:	// ScintillaBase subclass needs access to much of Editor
 	}
 
 public:
+	// Deleted so Editor objects can not be copied.
+	Editor(const Editor &) = delete;
+	Editor(Editor &&) = delete;
+	Editor &operator=(const Editor &) = delete;
+	Editor &operator=(Editor &&) = delete;
+
 	~Editor() override;
 
 	// Public so the COM thunks can access it.
