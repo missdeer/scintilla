@@ -31,7 +31,7 @@ extern "C" int APIENTRY DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID lpvR
 		if (!Internal::RegisterClasses(hInstance))
 			return FALSE;
 	} else if (dwReason == DLL_PROCESS_DETACH) {
-		if (lpvReserved == NULL) {
+		if (!lpvReserved) {
 			Internal::ResourcesRelease(true);
 		}
 	}

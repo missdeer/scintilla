@@ -190,13 +190,13 @@ void Indicator::Draw(Surface *surface, const PRectangle &rc, const PRectangle &r
 			std::vector<ColourStop> stops;
 			switch (sacDraw.style) {
 			case IndicatorStyle::Gradient:
-				stops.push_back(ColourStop(0.0, start));
-				stops.push_back(ColourStop(1.0, end));
+				stops.emplace_back(0.0, start);
+				stops.emplace_back(1.0, end);
 				break;
 			case IndicatorStyle::GradientCentre:
-				stops.push_back(ColourStop(0.0, end));
-				stops.push_back(ColourStop(0.5, start));
-				stops.push_back(ColourStop(1.0, end));
+				stops.emplace_back(0.0, end);
+				stops.emplace_back(0.5, start);
+				stops.emplace_back(1.0, end);
 				break;
 			default:
 				break;

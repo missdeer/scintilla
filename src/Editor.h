@@ -399,7 +399,7 @@ protected:	// ScintillaBase subclass needs access to much of Editor
 		constexpr bool operator==(const XYScrollPosition &other) const noexcept = default;
 	};
 	XYScrollPosition XYScrollToMakeVisible(const SelectionRange &range,
-		const XYScrollOptions options, CaretPolicies policies);
+		XYScrollOptions options, CaretPolicies policies);
 	void SetXYScroll(XYScrollPosition newXY);
 	void EnsureCaretVisible(bool useMargin=true, bool vert=true, bool horiz=true);
 	void ScrollRange(SelectionRange range);

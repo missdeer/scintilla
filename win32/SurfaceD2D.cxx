@@ -337,7 +337,7 @@ class SurfaceD2D : public Surface, public ISetRenderingParams {
 	void Clear() noexcept;
 	void SetFontQuality(FontQuality extraFontFlag);
 	HRESULT GetBitmap(ID2D1Bitmap **ppBitmap);
-	void SetDeviceScaleFactor(const ID2D1RenderTarget *const pD2D1RenderTarget) noexcept;
+	void SetDeviceScaleFactor(const ID2D1RenderTarget *pD2D1RenderTarget) noexcept;
 
 public:
 	SurfaceD2D() noexcept = default;
