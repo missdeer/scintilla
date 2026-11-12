@@ -7805,7 +7805,7 @@ sptr_t Editor::WndProc(Message iMessage, uptr_t wParam, sptr_t lParam) {
 		return vs.ElementColour(Element::CaretLineBack) ? 1 : 0;
 	case Message::SetCaretLineVisible:
 		if (wParam) {
-			if (!vs.elementColours.count(Element::CaretLineBack)) {
+			if (!vs.elementColours.contains(Element::CaretLineBack)) {
 				// Yellow default
 				vs.elementColours[Element::CaretLineBack] = ColourRGBA(maximumByte, maximumByte, 0);
 				InvalidateStyleRedraw();

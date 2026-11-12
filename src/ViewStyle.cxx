@@ -643,7 +643,7 @@ ColourRGBA ViewStyle::ElementColourForced(Element element) const {
 }
 
 bool ViewStyle::ElementAllowsTranslucent(Element element) const {
-	return elementAllowsTranslucent.count(element) > 0;
+	return elementAllowsTranslucent.contains(element);
 }
 
 bool ViewStyle::ResetElement(Element element) {
