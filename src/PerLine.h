@@ -27,7 +27,6 @@ class MarkerHandleSet {
 	std::forward_list<MarkerHandleNumber> mhList;
 
 public:
-	MarkerHandleSet();
 	bool Empty() const noexcept;
 	int MarkValue() const noexcept;	///< Bit set of marker numbers.
 	bool Contains(int handle) const noexcept;
@@ -64,8 +63,6 @@ public:
 class LineLevels : public PerLine {
 	SplitVector<int> levels;
 public:
-	LineLevels() {
-	}
 	void Init() override;
 	void InsertLine(Sci::Line line) override;
 	void InsertLines(Sci::Line line, Sci::Line lines) override;
@@ -82,8 +79,6 @@ public:
 class LineState : public PerLine {
 	SplitVector<int> lineStates;
 public:
-	LineState() {
-	}
 	void Init() override;
 	void InsertLine(Sci::Line line) override;
 	void InsertLines(Sci::Line line, Sci::Line lines) override;
@@ -97,9 +92,6 @@ public:
 class LineAnnotation : public PerLine {
 	SplitVector<std::unique_ptr<char []>> annotations;
 public:
-	LineAnnotation() {
-	}
-
 	[[nodiscard]] bool Empty() const noexcept;
 	void Init() override;
 	void InsertLine(Sci::Line line) override;
@@ -118,13 +110,11 @@ public:
 	int Lines(Sci::Line line) const noexcept;
 };
 
-typedef std::vector<int> TabstopList;
+using TabstopList = std::vector<int>;
 
 class LineTabstops : public PerLine {
 	SplitVector<std::unique_ptr<TabstopList>> tabstops;
 public:
-	LineTabstops() {
-	}
 	void Init() override;
 	void InsertLine(Sci::Line line) override;
 	void InsertLines(Sci::Line line, Sci::Line lines) override;

@@ -11,7 +11,7 @@ namespace Scintilla::Internal {
 
 class IDecoration {
 public:
-	virtual ~IDecoration() {}
+	virtual ~IDecoration() = default;
 	virtual bool Empty() const noexcept = 0;
 	virtual int Indicator() const noexcept = 0;
 	virtual Sci::Position Length() const noexcept = 0;
@@ -25,7 +25,7 @@ public:
 
 class IDecorationList {
 public:
-	virtual ~IDecorationList() {}
+	virtual ~IDecorationList() = default;
 
 	virtual const std::vector<const IDecoration*> &View() const noexcept = 0;
 

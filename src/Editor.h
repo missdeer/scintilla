@@ -747,8 +747,7 @@ public:
 	AutoSurface(AutoSurface &&) = delete;
 	void operator=(const AutoSurface &) = delete;
 	void operator=(AutoSurface &&) = delete;
-	~AutoSurface() {
-	}
+	~AutoSurface() = default;
 	Surface *operator->() const noexcept {
 		return surf.get();
 	}

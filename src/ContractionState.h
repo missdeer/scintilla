@@ -14,7 +14,7 @@ namespace Scintilla::Internal {
 */
 class IContractionState {
 public:
-	virtual ~IContractionState() {};
+	virtual ~IContractionState() = default;
 
 	virtual void Clear()=0;
 
