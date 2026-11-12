@@ -19,6 +19,7 @@ ifdef CLANG
 CXX = clang++
 CC = clang
 WARNINGS += -Wno-deprecated-register
+WARNINGS += -Wno-c2y-extensions
 ifdef windir
 # Turn off some warnings that occur when Clang is being used on Windows where it
 # is including Microsoft headers.
