@@ -17,9 +17,7 @@ struct StyleAndColour {
 	}
 	StyleAndColour(Scintilla::IndicatorStyle style_, ColourRGBA fore_ = black) noexcept : style(style_), fore(fore_) {
 	}
-	bool operator==(const StyleAndColour &other) const noexcept {
-		return (style == other.style) && (fore == other.fore);
-	}
+	constexpr bool operator==(const StyleAndColour &other) const noexcept = default;
 };
 
 constexpr int strokeWidthScale = 100;

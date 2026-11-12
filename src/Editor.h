@@ -401,9 +401,7 @@ protected:	// ScintillaBase subclass needs access to much of Editor
 		int xOffset;
 		Sci::Line topLine;
 		XYScrollPosition(int xOffset_, Sci::Line topLine_) noexcept : xOffset(xOffset_), topLine(topLine_) {}
-		bool operator==(const XYScrollPosition &other) const noexcept {
-			return (xOffset == other.xOffset) && (topLine == other.topLine);
-		}
+		constexpr bool operator==(const XYScrollPosition &other) const noexcept = default;
 	};
 	XYScrollPosition XYScrollToMakeVisible(const SelectionRange &range,
 		const XYScrollOptions options, CaretPolicies policies);

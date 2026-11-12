@@ -6,6 +6,7 @@
 #include <cstdint>
 
 #include <stdexcept>
+#include <compare>
 #include <string_view>
 #include <vector>
 #include <map>

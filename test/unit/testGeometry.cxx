@@ -4,6 +4,8 @@
 
 #include <cstdint>
 
+#include <compare>
+
 #include "Geometry.h"
 
 #include "catch.hpp"

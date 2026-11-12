@@ -34,9 +34,7 @@ struct EditionCount {
 	int edition;
 	int count;
 	// Used in tests.
-	constexpr bool operator==(const EditionCount &other) const noexcept {
-		return (edition == other.edition) && (count == other.count);
-	}
+	constexpr bool operator==(const EditionCount &other) const noexcept = default;
 };
 
 // EditionSet is ordered from oldest to newest, its not really a set

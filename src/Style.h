@@ -26,8 +26,7 @@ struct FontSpecification {
 	constexpr FontSpecification(const char *fontName_, int size_) noexcept :
 		fontName(fontName_), size(size_) {
 	}
-	bool operator==(const FontSpecification &other) const noexcept;
-	bool operator<(const FontSpecification &other) const noexcept;
+	auto operator<=>(const FontSpecification &) const = default;
 };
 
 struct FontMeasurements {

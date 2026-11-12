@@ -52,13 +52,7 @@ struct SplitView {
 	const char *segment2 = nullptr;
 	size_t length = 0;
 
-	bool operator==(const SplitView &other) const noexcept {
-		return segment1 == other.segment1 && length1 == other.length1 &&
-			segment2 == other.segment2 && length == other.length;
-	}
-	bool operator!=(const SplitView &other) const noexcept {
-		return !(*this == other);
-	}
+	bool operator==(const SplitView &other) const noexcept = default;
 
 	[[nodiscard]] char CharAt(size_t position) const noexcept {
 		if (position < length1) {

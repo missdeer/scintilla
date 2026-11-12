@@ -11,6 +11,7 @@
 #include <stdexcept>
 #include <system_error>
 #include <utility>
+#include <compare>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -79,26 +80,6 @@ void SelectionPosition::MoveForInsertDelete(bool insertion, Sci::Position startC
 			}
 		}
 	}
-}
-
-bool SelectionPosition::operator >(const SelectionPosition &other) const noexcept {
-	if (position == other.position)
-		return virtualSpace > other.virtualSpace;
-	return position > other.position;
-}
-
-bool SelectionPosition::operator <=(const SelectionPosition &other) const noexcept {
-	if (position == other.position) {
-		return virtualSpace <= other.virtualSpace;
-	}
-	return position <= other.position;
-}
-
-bool SelectionPosition::operator >=(const SelectionPosition &other) const noexcept {
-	if (position == other.position) {
-		return virtualSpace >= other.virtualSpace;
-	}
-	return position >= other.position;
 }
 
 double SelectionPosition::VirtualSpaceWidth(double spaceWidth) const noexcept {

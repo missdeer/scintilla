@@ -29,13 +29,7 @@ public:
 		return Point(static_cast<XYPOSITION>(x_), static_cast<XYPOSITION>(y_));
 	}
 
-	constexpr bool operator==(Point other) const noexcept {
-		return (x == other.x) && (y == other.y);
-	}
-
-	constexpr bool operator!=(Point other) const noexcept {
-		return (x != other.x) || (y != other.y);
-	}
+	constexpr bool operator==(const Point &other) const noexcept = default;
 
 	constexpr Point operator+(Point other) const noexcept {
 		return Point(x + other.x, y + other.y);
@@ -60,9 +54,7 @@ class Interval {
 public:
 	XYPOSITION left;
 	XYPOSITION right;
-	constexpr bool operator==(const Interval &other) const noexcept {
-		return (left == other.left) && (right == other.right);
-	}
+	constexpr bool operator==(const Interval &other) const noexcept = default;
 	[[nodiscard]] constexpr XYPOSITION Width() const noexcept { return right - left; }
 	[[nodiscard]] constexpr bool Empty() const noexcept {
 		return Width() <= 0;
@@ -101,10 +93,7 @@ public:
 
 	// Other automatically defined methods (assignment, copy constructor, destructor) are fine
 
-	constexpr bool operator==(const PRectangle &rc) const noexcept {
-		return (rc.left == left) && (rc.right == right) &&
-			(rc.top == top) && (rc.bottom == bottom);
-	}
+	constexpr bool operator==(const PRectangle &rc) const noexcept = default;
 
 	constexpr PRectangle operator*(XYPOSITION multiplier) const noexcept {
 		return PRectangle(left * multiplier, top * multiplier, right * multiplier, bottom * multiplier);
@@ -270,12 +259,7 @@ public:
 		return ComponentAsFloat(GetAlpha());
 	}
 
-	[[nodiscard]] constexpr bool operator==(const ColourRGBA &other) const noexcept {
-		return co == other.co;
-	}
-	[[nodiscard]] constexpr bool operator!=(const ColourRGBA &other) const noexcept {
-		return co != other.co;
-	}
+	[[nodiscard]] constexpr bool operator==(const ColourRGBA &other) const noexcept = default;
 
 	[[nodiscard]] constexpr bool IsOpaque() const noexcept {
 		return GetAlpha() == maximumByte;

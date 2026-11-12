@@ -38,9 +38,7 @@ public:
 		start(start_), end(end_) {
 	}
 
-	bool operator==(const Range &other) const noexcept {
-		return (start == other.start) && (end == other.end);
-	}
+	constexpr bool operator==(const Range &other) const noexcept = default;
 
 	[[nodiscard]] bool Valid() const noexcept {
 		return (start != Sci::invalidPosition) && (end != Sci::invalidPosition);
@@ -111,9 +109,7 @@ public:
 		return { start, end };
 	}
 
-	bool operator==(const ForwardRange &other) const noexcept {
-		return (start == other.start) && (end == other.end);
-	}
+	constexpr bool operator==(const ForwardRange &other) const noexcept = default;
 
 	[[nodiscard]] bool Empty() const noexcept {
 		return start == end;

@@ -29,12 +29,7 @@ public:
 	};
 	KeyModifiers(Scintilla::Keys key_, Scintilla::KeyMod modifiers_) noexcept : key(key_), modifiers(modifiers_) {
 	}
-	bool operator<(const KeyModifiers &other) const noexcept {
-		if (key == other.key)
-			return modifiers < other.modifiers;
-		else
-			return key < other.key;
-	}
+	auto operator<=>(const KeyModifiers &) const noexcept = default;
 };
 
 /**

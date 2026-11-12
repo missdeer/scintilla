@@ -16,6 +16,7 @@
 #include <climits>
 
 #include <utility>
+#include <compare>
 #include <string_view>
 #include <vector>
 #include <map>

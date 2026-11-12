@@ -14,6 +14,7 @@
 
 #include <stdexcept>
 #include <new>
+#include <compare>
 #include <string>
 #include <string_view>
 #include <vector>

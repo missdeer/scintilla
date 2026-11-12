@@ -26,20 +26,7 @@ public:
 		virtualSpace = 0;
 	}
 	void MoveForInsertDelete(bool insertion, Sci::Position startChange, Sci::Position length, bool moveForEqual) noexcept;
-	[[nodiscard]] constexpr bool operator ==(const SelectionPosition &other) const noexcept {
-		return (position == other.position) && (virtualSpace == other.virtualSpace);
-	}
-	[[nodiscard]] constexpr bool operator !=(const SelectionPosition &other) const noexcept {
-		return (position != other.position) || (virtualSpace != other.virtualSpace);
-	}
-	[[nodiscard]] constexpr bool operator <(const SelectionPosition &other) const noexcept {
-		if (position == other.position)
-			return virtualSpace < other.virtualSpace;
-		return position < other.position;
-	}
-	[[nodiscard]] bool operator >(const SelectionPosition &other) const noexcept;
-	[[nodiscard]] bool operator <=(const SelectionPosition &other) const noexcept;
-	[[nodiscard]] bool operator >=(const SelectionPosition &other) const noexcept;
+	auto operator<=>(const SelectionPosition &) const = default;
 	[[nodiscard]] Sci::Position Position() const noexcept {
 		return position;
 	}
@@ -132,12 +119,7 @@ struct SelectionRange {
 	}
 	[[nodiscard]] Sci::Position Length() const noexcept;
 	// Sci::Position Width() const;	// Like Length but takes virtual space into account
-	bool operator ==(const SelectionRange &other) const noexcept {
-		return caret == other.caret && anchor == other.anchor;
-	}
-	bool operator <(const SelectionRange &other) const noexcept {
-		return caret < other.caret || ((caret == other.caret) && (anchor < other.anchor));
-	}
+	auto operator<=>(const SelectionRange &) const = default;
 	void Reset() noexcept {
 		anchor.Reset();
 		caret.Reset();

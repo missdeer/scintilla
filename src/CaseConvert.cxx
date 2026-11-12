@@ -12,6 +12,7 @@
 #include <cstring>
 
 #include <stdexcept>
+#include <compare>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -586,6 +587,7 @@ constexpr size_t maxConversionLength = 6;
 class CaseConverter final : public ICaseConverter {
 	struct ConversionString {
 		char conversion[maxConversionLength+1]{};
+		auto operator<=>(const ConversionString &) const noexcept = default;
 	};
 	// Conversions are initially store in a vector of structs but then decomposed into
 	// parallel arrays as that is about 10% faster to search.
@@ -604,9 +606,7 @@ class CaseConverter final : public ICaseConverter {
 				// Ignore any exception
 			}
 		}
-		bool operator<(const CharacterConversion &other) const noexcept {
-			return character < other.character;
-		}
+		auto operator<=>(const CharacterConversion &) const noexcept = default;
 	};
 	using CharacterToConversion = std::vector<CharacterConversion>;
 	CharacterToConversion characterToConversion;
