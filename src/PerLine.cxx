@@ -531,7 +531,7 @@ bool LineTabstops::AddTabstop(Sci::Line line, int x) {
 	TabstopList *tl = tabstops[line].get();
 	if (tl) {
 		// tabstop positions are kept in order - insert in the right place
-		std::vector<int>::iterator it = std::lower_bound(tl->begin(), tl->end(), x);
+		std::vector<int>::iterator it = std::ranges::lower_bound(*tl, x);
 		// don't insert duplicates
 		if (it == tl->end() || *it != x) {
 			tl->insert(it, x);

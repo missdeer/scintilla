@@ -540,7 +540,7 @@ constexpr bool GraphicASCII(char ch) noexcept {
 }
 
 bool AllGraphicASCII(std::string_view text) {
-	return std::all_of(text.cbegin(), text.cend(), GraphicASCII);
+	return std::ranges::all_of(text, GraphicASCII);
 }
 
 }
@@ -873,7 +873,7 @@ void SpecialRepresentations::SetDefaultRepresentations(int dbcsCodePage) {
 void BreakFinder::Insert(Sci::Position val) {
 	const int posInLine = static_cast<int>(val);
 	if (posInLine > nextBreak) {
-		const std::vector<int>::iterator it = std::lower_bound(selAndEdge.begin(), selAndEdge.end(), posInLine);
+		const std::vector<int>::iterator it = std::ranges::lower_bound(selAndEdge, posInLine);
 		if (it == selAndEdge.end()) {
 			selAndEdge.push_back(posInLine);
 		} else if (*it != posInLine) {

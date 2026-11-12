@@ -2105,7 +2105,7 @@ void Editor::InsertCharacter(std::string_view sv, CharacterSource charSource) {
 			selPtrs.push_back(&sel.Range(r));
 		}
 		// Order selections by position in document.
-		std::sort(selPtrs.begin(), selPtrs.end(),
+		std::ranges::sort(selPtrs,
 			[](const SelectionRange *a, const SelectionRange *b) noexcept {return *a < *b;});
 
 		// Loop in reverse to avoid disturbing positions of selections yet to be processed.
@@ -4500,7 +4500,7 @@ void Editor::CopySelectionRange(SelectionText *ss, bool allowLineCopy) {
 		std::string text;
 		std::vector<SelectionRange> rangesInOrder = sel.RangesCopy();
 		if (sel.selType == Selection::SelTypes::rectangle)
-			std::sort(rangesInOrder.begin(), rangesInOrder.end());
+			std::ranges::sort(rangesInOrder);
 		const std::string_view separator = (sel.selType == Selection::SelTypes::rectangle) ? pdoc->EOLString() : copySeparator;
 		for (size_t part = 0; part < rangesInOrder.size(); part++) {
 			text.append(RangeText(rangesInOrder[part].Start().Position(), rangesInOrder[part].End().Position()));

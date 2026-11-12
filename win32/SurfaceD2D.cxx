@@ -1125,7 +1125,7 @@ void ScreenLineLayout::FillTextLayoutFormats(const IScreenLine *screenLine, IDWr
 std::wstring ScreenLineLayout::ReplaceRepresentation(std::string_view text) {
 	const TextWide wideText(text, CpUtf8);
 	std::wstring ws(wideText.buffer, wideText.tlen);
-	std::replace(ws.begin(), ws.end(), L'\t', L'X');
+	std::ranges::replace(ws, L'\t', L'X');
 	return ws;
 }
 

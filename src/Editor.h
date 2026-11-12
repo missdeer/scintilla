@@ -112,7 +112,7 @@ private:
 	void FixSelectionForClipboard() {
 		// To avoid truncating the contents of the clipboard when pasted where the
 		// clipboard contains NUL characters, replace NUL characters by spaces.
-		std::replace(s.begin(), s.end(), '\0', ' ');
+		std::ranges::replace(s, '\0', ' ');
 	}
 };
 

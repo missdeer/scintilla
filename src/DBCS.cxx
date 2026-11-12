@@ -123,7 +123,7 @@ FoldMap *DBCSCreateFoldMap(int codePage) {
 }
 
 const FoldMap *DBCSGetFoldMap(int codePage) {
-	const CodePageToFoldMap::iterator it = std::find_if(cpToFoldMap.begin(), cpToFoldMap.end(),
+	const CodePageToFoldMap::iterator it = std::ranges::find_if(cpToFoldMap,
 		[codePage](const CodePageFoldMap &cpfm) -> bool {return cpfm.codePage == codePage; });
 	if (it != cpToFoldMap.end()) {
 		return &(it->foldMap);

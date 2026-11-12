@@ -623,7 +623,7 @@ public:
 		characterToConversion.emplace_back(character, conversion_);
 	}
 	const char *Find(int character) {
-		const std::vector<int>::iterator it = std::lower_bound(characters.begin(), characters.end(), character);
+		const std::vector<int>::iterator it = std::ranges::lower_bound(characters, character);
 		if (it == characters.end())
 			return nullptr;
 		if (*it == character)
@@ -674,7 +674,7 @@ public:
 		return lenConverted;
 	}
 	void FinishedAdding() {
-		std::sort(characterToConversion.begin(), characterToConversion.end());
+		std::ranges::sort(characterToConversion);
 		characters.reserve(characterToConversion.size());
 		conversions.reserve(characterToConversion.size());
 		for (const CharacterConversion &chConv : characterToConversion) {
