@@ -11,11 +11,10 @@
 namespace Scintilla::Internal {
 
 struct StyleAndColour {
-	Scintilla::IndicatorStyle style;
-	ColourRGBA fore;
-	StyleAndColour() noexcept : style(Scintilla::IndicatorStyle::Plain), fore(black) {
-	}
-	StyleAndColour(Scintilla::IndicatorStyle style_, ColourRGBA fore_ = black) noexcept : style(style_), fore(fore_) {
+	Scintilla::IndicatorStyle style = Scintilla::IndicatorStyle::Plain;
+	ColourRGBA fore = black;
+	StyleAndColour() noexcept = default;
+	explicit StyleAndColour(Scintilla::IndicatorStyle style_, ColourRGBA fore_ = black) noexcept : style(style_), fore(fore_) {
 	}
 	constexpr bool operator==(const StyleAndColour &other) const noexcept = default;
 };
@@ -27,24 +26,26 @@ constexpr int strokeWidthMax = 10 * strokeWidthScale;
  */
 class Indicator {
 public:
+	static constexpr int fillAlphaDefault = 30;
+	static constexpr int outlineAlphaDefault = 50;
 	enum class State { normal, hover };
 	StyleAndColour sacNormal;
 	StyleAndColour sacHover;
-	bool under;
-	int fillAlpha;
-	int outlineAlpha;
-	Scintilla::IndicFlag attributes;
+	bool under = false;
+	int fillAlpha = fillAlphaDefault;
+	int outlineAlpha = outlineAlphaDefault;
+	Scintilla::IndicFlag attributes = Scintilla::IndicFlag::None;
 	XYPOSITION strokeWidth = 1.0f;
-	Indicator() noexcept : under(false), fillAlpha(30), outlineAlpha(50), attributes(Scintilla::IndicFlag::None) {
-	}
-	Indicator(Scintilla::IndicatorStyle style_, ColourRGBA fore_= black, bool under_=false, int fillAlpha_=30, int outlineAlpha_=50) noexcept :
-		sacNormal(style_, fore_), sacHover(style_, fore_), under(under_), fillAlpha(fillAlpha_), outlineAlpha(outlineAlpha_), attributes(Scintilla::IndicFlag::None) {
+	Indicator() noexcept = default;
+	explicit Indicator(Scintilla::IndicatorStyle style_, ColourRGBA fore_=black, bool under_=false,
+		int fillAlpha_=fillAlphaDefault, int outlineAlpha_=outlineAlphaDefault) noexcept :
+		sacNormal(style_, fore_), sacHover(style_, fore_), under(under_), fillAlpha(fillAlpha_), outlineAlpha(outlineAlpha_) {
 	}
 	void Draw(Surface *surface, const PRectangle &rc, const PRectangle &rcLine, const PRectangle &rcCharacter, State drawState, int value) const;
-	bool IsDynamic() const noexcept {
+	[[nodiscard]] bool IsDynamic() const noexcept {
 		return !(sacNormal == sacHover);
 	}
-	bool OverridesTextFore() const noexcept {
+	[[nodiscard]] bool OverridesTextFore() const noexcept {
 		return sacNormal.style == Scintilla::IndicatorStyle::TextFore || sacHover.style == Scintilla::IndicatorStyle::TextFore;
 	}
 	[[nodiscard]] Scintilla::IndicFlag Flags() const noexcept {
