@@ -155,6 +155,12 @@ constexpr T MakeLowerCase(T ch) noexcept {
 int CompareCaseInsensitive(const char *a, const char *b) noexcept;
 int CompareNCaseInsensitive(const char *a, const char *b, size_t len) noexcept;
 
+// Return -1 on failure
+int ValueFromHexPair(const char *cp) noexcept;
+
+// Return 0 on failure
+int ByteFromHexPair(const char *cp) noexcept;
+
 }
 
 #endif

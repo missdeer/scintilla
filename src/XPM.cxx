@@ -27,6 +27,7 @@
 #include "Geometry.h"
 #include "Platform.h"
 
+#include "CharacterType.h"
 #include "XPM.h"
 
 using namespace Scintilla;
@@ -56,22 +57,11 @@ size_t MeasureLength(const char *s) noexcept {
 	return i;
 }
 
-unsigned int ValueOfHex(const char ch) noexcept {
-	constexpr unsigned int decimal = 10;
-	if (ch >= '0' && ch <= '9')
-		return ch - '0';
-	if (ch >= 'A' && ch <= 'F')
-		return ch - 'A' + decimal;
-	if (ch >= 'a' && ch <= 'f')
-		return ch - 'a' + decimal;
-	return 0;
-}
-
 ColourRGBA ColourFromHex(const char *val) noexcept {
-	const unsigned int r = (ValueOfHex(val[0]) * 16) + ValueOfHex(val[1]);
-	const unsigned int g = (ValueOfHex(val[2]) * 16) + ValueOfHex(val[3]);
-	const unsigned int b = (ValueOfHex(val[4]) * 16) + ValueOfHex(val[5]);
-	return {r, g, b};
+	const unsigned int r = ByteFromHexPair(val);
+	const unsigned int g = ByteFromHexPair(val + 2);
+	const unsigned int b = ByteFromHexPair(val + 4);
+	return { r, g, b };
 }
 
 }

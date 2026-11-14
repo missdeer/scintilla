@@ -17,6 +17,7 @@ TESTEDSRC=\
  ../../src/CellBuffer.cxx \
  ../../src/ChangeHistory.cxx \
  ../../src/CharacterCategoryMap.cxx \
+ ../../src/CharacterType.cxx \
  ../../src/CharClassify.cxx \
  ../../src/ContractionState.cxx \
  ../../src/Decoration.cxx \

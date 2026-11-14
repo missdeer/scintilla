@@ -424,6 +424,7 @@ $(DIR_O)/PositionCache.obj: \
 	../src/PositionCache.h
 $(DIR_O)/RESearch.obj: \
 	../src/RESearch.cxx \
+	../src/CharacterType.h \
 	../src/Position.h \
 	../src/CharClassify.h \
 	../src/RESearch.h
@@ -520,4 +521,5 @@ $(DIR_O)/XPM.obj: \
 	../src/Debugging.h \
 	../src/Geometry.h \
 	../src/Platform.h \
+	../src/CharacterType.h \
 	../src/XPM.h

@@ -209,6 +209,7 @@
 #include <algorithm>
 #include <iterator>
 
+#include "CharacterType.h"
 #include "Position.h"
 #include "CharClassify.h"
 #include "RESearch.h"
@@ -295,29 +296,6 @@ constexpr unsigned char escapeValue(unsigned char ch) noexcept {
 	return 0;
 }
 
-constexpr int GetHexaChar(unsigned char hd1, unsigned char hd2) noexcept {
-	int hexValue = 0;
-	if (hd1 >= '0' && hd1 <= '9') {
-		hexValue += 16 * (hd1 - '0');
-	} else if (hd1 >= 'A' && hd1 <= 'F') {
-		hexValue += 16 * (hd1 - 'A' + 10);
-	} else if (hd1 >= 'a' && hd1 <= 'f') {
-		hexValue += 16 * (hd1 - 'a' + 10);
-	} else {
-		return -1;
-	}
-	if (hd2 >= '0' && hd2 <= '9') {
-		hexValue += hd2 - '0';
-	} else if (hd2 >= 'A' && hd2 <= 'F') {
-		hexValue += hd2 - 'A' + 10;
-	} else if (hd2 >= 'a' && hd2 <= 'f') {
-		hexValue += hd2 - 'a' + 10;
-	} else {
-		return -1;
-	}
-	return hexValue;
-}
-
 constexpr int isinset(const char *ap, unsigned char c) noexcept {
 	return ap[c >> 3] & (1 << (c & BITIND));
 }
@@ -356,9 +334,7 @@ int RESearch::GetBackslashExpression(const char *pattern, int &incr) noexcept {
 		result = escapeValue(bsc);
 		break;
 	case 'x': {
-			const unsigned char hd1 = *(pattern + 1);
-			const unsigned char hd2 = *(pattern + 2);
-			const int hexValue = GetHexaChar(hd1, hd2);
+			const int hexValue = ValueFromHexPair(pattern+1);
 			if (hexValue >= 0) {
 				result = hexValue;
 				incr = 2;	// Must skip the digits

@@ -423,6 +423,7 @@ PositionCache.o: \
 	../src/PositionCache.h
 RESearch.o: \
 	../src/RESearch.cxx \
+	../src/CharacterType.h \
 	../src/Position.h \
 	../src/CharClassify.h \
 	../src/RESearch.h
@@ -519,4 +520,5 @@ XPM.o: \
 	../src/Debugging.h \
 	../src/Geometry.h \
 	../src/Platform.h \
+	../src/CharacterType.h \
 	../src/XPM.h

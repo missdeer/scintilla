@@ -158,6 +158,7 @@
     <ClCompile Include="..\..\src\CellBuffer.cxx" />
     <ClCompile Include="..\..\src\ChangeHistory.cxx" />
     <ClCompile Include="..\..\src\CharacterCategoryMap.cxx" />
+    <ClCompile Include="..\..\src\CharacterType.cxx" />
     <ClCompile Include="..\..\src\CharClassify.cxx" />
     <ClCompile Include="..\..\src\ContractionState.cxx" />
     <ClCompile Include="..\..\src\Decoration.cxx" />

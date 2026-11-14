@@ -60,6 +60,7 @@ CaseFolder.o \
 CellBuffer.o \
 ChangeHistory.o \
 CharacterCategoryMap.o \
+CharacterType.o \
 CharClassify.o \
 ContractionState.o \
 Decoration.o \
