@@ -1445,8 +1445,7 @@ EncodingFamily Document::CodePageFamily() const noexcept {
 }
 
 void Document::ModifiedAt(Sci::Position pos) noexcept {
-	if (endStyled > pos)
-		endStyled = pos;
+	endStyled = std::min(endStyled, pos);
 }
 
 void Document::CheckReadOnly() {
@@ -2711,7 +2710,7 @@ int SCI_METHOD Document::SetLineState(Sci_Position line, int state) {
 	const int statePrevious = States()->SetLineState(line, state, LinesTotal());
 	if (state != statePrevious) {
 		const DocModification mh(ModificationFlags::ChangeLineState, LineStart(line), 0, 0, nullptr,
-			static_cast<Sci::Line>(line));
+			line);
 		NotifyModified(mh);
 	}
 	return statePrevious;
@@ -2849,7 +2848,7 @@ void Document::EOLAnnotationClearAll() {
 
 void Document::IncrementStyleClock() noexcept {
 	// Cyclic increment to detect changes to styles
-	constexpr Sci::Position styleClockMax = 0x100000;
+	constexpr int styleClockMax = 0x100000;
 	styleClock = (styleClock + 1) % styleClockMax;
 }
 
